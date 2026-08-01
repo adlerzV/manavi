@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")  // pooled connection string (PgBouncer / port 6543)
+  directUrl = env("DIRECT_URL")    // direct connection, used only for migrations
+}
+
+// ============================================================
+// USERS & ROLES
+// ============================================================
+
+model User {
+  id               String        @id @default(uuid())
+  telegramId       BigInt        @unique
+  firstName        String
+  lastName         String?
+  username         String?
+  role             Role          @default(USER)
+  isSubscribed     Boolean       @default(false)
+  subscriptionEnd  DateTime?
+  coinsBalance     Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  comments         Comment[]
+  transactionsSent Transaction[] @relation("Payer")
+  bookmarks        Bookmark[]
+  readHistory      ReadHistory[]
+  staffRoles       ComicStaff[]
+  publisherProfile Publisher?
+
+  @@index([role])
+}
+
+enum Role {
+  USER
+  LOCALIZATION_TEAM // translators / editors / cleaners working under an active license
+  PUBLISHER         // account representing a licensor
+  ADMIN
+}
+
+// ============================================================
+// PUBLISHERS & LICENSES
+// ============================================================
+
+model Publisher {
+  id             String    @id @default(uuid())
+  name           String
+  legalEntity    String?   // registered studio/company name, if different from `name`
+  contactEmail   String
+  contractUserId String?   @unique // optional: the User account this publisher logs in as
+  contractUser   User?     @relation(fields: [contractUserId], references: [id])
+  createdAt      DateTime  @default(now())
+
+  licenses       License[]
+}
+
+enum LicenseStatus {
+  PENDING    // signed but not yet in effect (startDate in the future)
+  ACTIVE
+  EXPIRED    // endDate passed without renewal
+  TERMINATED // ended early (breach, mutual agreement, etc.)
+}
+
+model License {
+  id                String        @id @default(uuid())
+  publisherId       String
+  publisher         Publisher     @relation(fields: [publisherId], references: [id])
+
+  territory         String[]      // ISO country codes covered, e.g. ["IR", "GLOBAL"]
+  royaltyPercentage Decimal       @db.Decimal(5, 2) // publisher's share, e.g. 55.00 = 55%
+  status            LicenseStatus @default(PENDING)
+
+  startDate         DateTime
+  endDate           DateTime?     // null = open-ended, runs until terminated
+  terminatedAt      DateTime?
+  contractReference String?       // internal contract/doc ID, for audit trail
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  comics            Comic[]
+  settlements       RoyaltySettlement[]
+
+  @@index([publisherId])
+  @@index([status])
+}
+
+// ============================================================
+// CONTENT
+// ============================================================
+
+model Comic {
+  id            String        @id @default(uuid())
+  title         String
+  slug          String        @unique
+  description   String
+  coverImage    String
+  bannerImage   String?
+  dominantColor String?       // hex color, e.g. "#3a5f2e" — computed once at creation time
+  ageRating     AgeRating     @default(NORMAL)
+  status        ComicStatus   @default(ONGOING)
+  createdAt     DateTime      @default(now())
+
+  licenseId     String
+  license       License       @relation(fields: [licenseId], references: [id])
+
+  chapters     Chapter[]
+  staff        ComicStaff[]
+  bookmarks    Bookmark[]
+  transactions Transaction[]
+
+  @@index([licenseId])
+}
+
+enum AgeRating {
+  NORMAL
+  EIGHTEEN_PLUS
+  NSFW
+}
+
+enum ComicStatus {
+  ONGOING
+  COMPLETED
+  HIATUS
+}
+
+model ComicStaff {
+  id        String    @id @default(uuid())
+  comicId   String
+  userId    String
+  roleTitle StaffRole
+
+  comic Comic @relation(fields: [comicId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([comicId, userId, roleTitle])
+}
+
+enum StaffRole {
+  LOCALIZATION_SPECIALIST // translation
+  EDITOR
+  CLEANER
+}
+
+model Chapter {
+  id            String    @id @default(uuid())
+  comicId       String
+  chapterNumber Float
+  title         String?
+  pages         String[]
+  isLocked      Boolean   @default(false)
+  publishedAt   DateTime? // null = draft
+  createdAt     DateTime  @default(now())
+
+  comic    Comic     @relation(fields: [comicId], references: [id])
+  comments Comment[]
+
+  @@index([comicId, chapterNumber])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  chapterId String
+  userId    String
+  content   String
+  isSpoiler Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  chapter Chapter @relation(fields: [chapterId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+}
+
+model Bookmark {
+  userId  String
+  comicId String
+  user    User  @relation(fields: [userId], references: [id])
+  comic   Comic @relation(fields: [comicId], references: [id])
+
+  @@id([userId, comicId])
+}
+
+model ReadHistory {
+  userId        String
+  comicId       String
+  lastChapterId String
+  lastPage      Int      @default(1)
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@id([userId, comicId])
+}
+
+// ============================================================
+// REVENUE & ROYALTY SETTLEMENT
+// ============================================================
+
+model Transaction {
+  id       String          @id @default(uuid())
+  type     TransactionType
+  amount   Decimal         @db.Decimal(12, 2)
+  currency String          @default("IRR")
+
+  payerId String
+  payer   User   @relation("Payer", fields: [payerId], references: [id])
+
+  comicId String? // null for platform-wide purchases
+  comic   Comic?  @relation(fields: [comicId], references: [id])
+
+  settlementId String?
+  settlement   RoyaltySettlement? @relation(fields: [settlementId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([comicId])
+  @@index([type])
+  @@index([settlementId])
+}
+
+enum TransactionType {
+  SUBSCRIPTION
+  DONATION
+  COIN_PURCHASE
+  CHAPTER_UNLOCK
+}
+
+model RoyaltySettlement {
+  id        String  @id @default(uuid())
+  licenseId String
+  license   License @relation(fields: [licenseId], references: [id])
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  grossRevenue          Decimal @db.Decimal(12, 2)
+  publisherShare        Decimal @db.Decimal(12, 2) // grossRevenue * license.royaltyPercentage
+  localizationTeamShare Decimal @db.Decimal(12, 2) // remainder
+
+  status SettlementStatus @default(PENDING)
+  paidAt DateTime?
+
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+
+  @@index([licenseId, periodStart])
+}
+
+enum SettlementStatus {
+  PENDING
+  PAID
+  DISPUTED
+}
