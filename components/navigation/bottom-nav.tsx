@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { Home, Search, Gem, User } from "lucide-react";
 
 const ITEMS = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/explore", label: "Explore", icon: Search },
-  { href: "/shop", label: "Shop", icon: Gem },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/app", label: "خانه", icon: Home },
+  { href: "/app/explore", label: "جستجو", icon: Search },
+  { href: "/app/shop", label: "فروشگاه", icon: Gem },
+  { href: "/app/profile", label: "پروفایل", icon: User },
 ] as const;
 
 export function BottomNav() {
@@ -21,13 +21,9 @@ export function BottomNav() {
     >
       <div className="mx-auto flex max-w-4xl items-center justify-around px-2 py-2">
         {ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const active = href === "/app" ? pathname === "/app" : pathname.startsWith(href);
           return (
-            <Link
-              key={href}
-              href={href}
-              className="flex flex-col items-center gap-1 px-3 py-1 text-xs"
-            >
+            <Link key={href} href={href} className="flex flex-col items-center gap-1 px-3 py-1 text-xs">
               <Icon
                 size={22}
                 strokeWidth={active ? 2.4 : 1.8}

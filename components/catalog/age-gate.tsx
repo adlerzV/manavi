@@ -26,12 +26,12 @@ export function AgeGate({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-md border border-border bg-surface p-8 text-center">
-      <p className="text-sm text-text-main">This title contains mature content.</p>
+      <p className="text-sm text-text-main">این عنوان محتوای بزرگسال دارد.</p>
       <button
         onClick={confirm}
         className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
       >
-        I am 18 or older — continue
+        بالای ۱۸ سال دارم — ادامه
       </button>
     </div>
   );

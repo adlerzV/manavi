@@ -1,0 +1,88 @@
+import Link from "next/link";
+import Image from "next/image";
+import { getSessionUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { ContentPreferenceForm } from "@/components/profile/content-preference-form";
+
+export default async function ProfilePage() {
+  const user = await getSessionUser();
+
+  if (!user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-6 text-center">
+        <p className="text-sm text-text-muted">برای مشاهده پروفایل، این صفحه را از داخل تلگرام باز کنید.</p>
+      </main>
+    );
+  }
+
+  const [bookmarks, readHistory] = await Promise.all([
+    prisma.bookmark.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      include: { comic: { select: { slug: true, title: true, coverImage: true } } },
+    }),
+    prisma.readHistory.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+      include: { comic: { select: { slug: true, title: true, coverImage: true } } },
+    }),
+  ]);
+
+  return (
+    <main className="min-h-screen bg-background px-4 py-8">
+      <div className="mx-auto max-w-2xl space-y-10">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-xl font-medium text-text-main">
+            {user.firstName.charAt(0)}
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-text-main">
+              {user.firstName} {user.lastName ?? ""}
+            </h1>
+            <p className="text-sm text-text-muted">موجودی سکه: {user.coinsBalance.toLocaleString("fa-IR")}</p>
+          </div>
+        </div>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium text-text-main">تنظیمات محتوا</h2>
+          <ContentPreferenceForm current={user.contentPreference} />
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium text-text-main">ادامه مطالعه</h2>
+          <div className="space-y-2">
+            {readHistory.map((entry) => (
+              <Link
+                key={entry.comicId}
+                href={`/app/read/${entry.lastChapterId}`}
+                className="flex items-center gap-3 rounded-md border border-border bg-surface p-2"
+              >
+                <div className="relative h-14 w-10 flex-shrink-0 overflow-hidden rounded">
+                  <Image src={entry.comic.coverImage} alt={entry.comic.title} fill className="object-cover" />
+                </div>
+                <span className="text-sm text-text-main">{entry.comic.title}</span>
+              </Link>
+            ))}
+            {readHistory.length === 0 && <p className="text-sm text-text-muted">هنوز چیزی نخوانده‌اید.</p>}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium text-text-main">بوکمارک‌ها</h2>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+            {bookmarks.map((b) => (
+              <Link key={b.comicId} href={`/app/comic/${b.comic.slug}`} className="block">
+                <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
+                  <Image src={b.comic.coverImage} alt={b.comic.title} fill className="object-cover" />
+                </div>
+                <p className="mt-1 truncate text-xs text-text-main">{b.comic.title}</p>
+              </Link>
+            ))}
+            {bookmarks.length === 0 && <p className="text-sm text-text-muted">بوکمارکی ثبت نشده است.</p>}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}

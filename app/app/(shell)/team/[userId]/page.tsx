@@ -1,0 +1,108 @@
+import { notFound } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+
+interface PageProps {
+  params: Promise<{ userId: string }>;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  LOCALIZATION_SPECIALIST: "مترجم",
+  EDITOR: "ادیتور",
+  CLEANER: "کلینر",
+};
+
+export default async function TeamProfilePage({ params }: PageProps) {
+  const { userId } = await params;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      username: true,
+      staffRoles: {
+        select: { roleTitle: true, comic: { select: { id: true, title: true, slug: true, coverImage: true } } },
+      },
+    },
+  });
+
+  if (!user) {
+    notFound();
+  }
+
+  const chapterCounts = await prisma.chapterStaff.groupBy({
+    by: ["roleTitle"],
+    where: { userId: user.id, chapter: { publishedAt: { not: null } } },
+    _count: { _all: true },
+  });
+
+  const comicsByTitle = new Map<
+    string,
+    { id: string; title: string; slug: string; coverImage: string; roles: Set<string> }
+  >();
+  for (const entry of user.staffRoles) {
+    const existing = comicsByTitle.get(entry.comic.id);
+    if (existing) {
+      existing.roles.add(entry.roleTitle);
+    } else {
+      comicsByTitle.set(entry.comic.id, { ...entry.comic, roles: new Set([entry.roleTitle]) });
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-background px-4 py-10">
+      <div className="mx-auto max-w-3xl">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-xl font-medium text-text-main">
+            {user.firstName.charAt(0)}
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-text-main">
+              {user.firstName} {user.lastName ?? ""}
+            </h1>
+            {user.username && <p className="text-sm text-text-muted">@{user.username}</p>}
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-3 gap-3">
+          {chapterCounts.map((c) => (
+            <div key={c.roleTitle} className="rounded-md border border-border bg-surface p-4 text-center">
+              <p className="text-2xl font-semibold text-primary">{c._count._all}</p>
+              <p className="mt-1 text-xs text-text-muted">{ROLE_LABELS[c.roleTitle] ?? c.roleTitle}</p>
+            </div>
+          ))}
+          {chapterCounts.length === 0 && (
+            <p className="col-span-3 text-sm text-text-muted">هنوز چپتری ثبت نشده است.</p>
+          )}
+        </div>
+
+        <h2 className="mb-3 mt-8 text-sm font-medium text-text-main">پروژه‌ها</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {Array.from(comicsByTitle.values()).map((comic) => (
+            <Link key={comic.id} href={`/app/comic/${comic.slug}`} className="block">
+              <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
+                <Image
+                  src={comic.coverImage}
+                  alt={comic.title}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 200px"
+                  className="object-cover"
+                />
+              </div>
+              <p className="mt-2 truncate text-sm text-text-main">{comic.title}</p>
+              <p className="text-xs text-text-muted">
+                {Array.from(comic.roles)
+                  .map((r) => ROLE_LABELS[r] ?? r)
+                  .join("، ")}
+              </p>
+            </Link>
+          ))}
+          {comicsByTitle.size === 0 && <p className="text-sm text-text-muted">هنوز پروژه‌ای ثبت نشده است.</p>}
+        </div>
+      </div>
+    </main>
+  );
+}

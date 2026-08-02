@@ -1,12 +1,11 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 
-// Works against AWS S3 or any S3-compatible host (Liara, ArvanCloud) — set
-// S3_ENDPOINT to the provider's endpoint, or leave unset for AWS itself.
 const s3 = new S3Client({
   region: process.env.S3_REGION || "us-east-1",
   endpoint: process.env.S3_ENDPOINT || undefined,
-  forcePathStyle: Boolean(process.env.S3_ENDPOINT), // most non-AWS S3-compatible hosts need this
+  forcePathStyle: Boolean(process.env.S3_ENDPOINT),
   credentials: {
     accessKeyId: process.env.S3_ACCESS_KEY_ID as string,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY as string,
@@ -14,14 +13,7 @@ const s3 = new S3Client({
 });
 
 const BUCKET = process.env.S3_BUCKET as string;
-const PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL as string; // CDN or public bucket URL prefix
 
-/**
- * Uploads one page image in its original format. Deliberately does NOT
- * convert to WebP/AVIF here — per the performance spec, that conversion
- * happens on the fly via Next.js Image Optimization when the page is
- * served, not baked in at upload time.
- */
 export async function uploadPageImage(
   comicId: string,
   chapterNumber: number,
@@ -38,9 +30,22 @@ export async function uploadPageImage(
       Key: key,
       Body: file,
       ContentType: contentType,
-      CacheControl: "public, max-age=31536000, immutable",
+      CacheControl: "private, max-age=31536000, immutable",
     })
   );
 
-  return `${PUBLIC_BASE_URL}/${key}`;
+  return key; 
+}
+
+/**
+ * @param key مسیر فایل در باکت
+ * @param expiresInSec زمان انقضا (پیش‌فرض ۳۰ دقیقه = ۱۸۰۰ ثانیه)
+ */
+export async function getSignedImageUrl(key: string, expiresInSec: number = 1800): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+  });
+
+  return await getSignedUrl(s3, command, { expiresIn: expiresInSec });
 }

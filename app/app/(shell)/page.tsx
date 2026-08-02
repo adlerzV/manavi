@@ -1,14 +1,15 @@
 import Link from "next/link";
+import Image from "next/image";
+import type { AgeRating } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ComicCard } from "@/components/catalog/comic-card";
+import { getAllowedAgeRatings } from "@/lib/content-filter";
 
 export const revalidate = 300;
 
-const PUBLIC_WHERE = { ageRating: "NORMAL" as const };
-
-async function getFeatured() {
+async function getFeatured(allowedRatings: AgeRating[]) {
   return prisma.comic.findFirst({
-    where: PUBLIC_WHERE,
+    where: { ageRating: { in: allowedRatings } },
     orderBy: { bookmarks: { _count: "desc" } },
     select: {
       id: true,
@@ -21,9 +22,12 @@ async function getFeatured() {
   });
 }
 
-async function getPopular(excludeId?: string) {
+async function getPopular(allowedRatings: AgeRating[], excludeId?: string) {
   return prisma.comic.findMany({
-    where: { ...PUBLIC_WHERE, id: excludeId ? { not: excludeId } : undefined },
+    where: {
+      ageRating: { in: allowedRatings },
+      id: excludeId ? { not: excludeId } : undefined,
+    },
     orderBy: { bookmarks: { _count: "desc" } },
     take: 12,
     select: {
@@ -42,27 +46,26 @@ async function getPopular(excludeId?: string) {
   });
 }
 
-async function getLatestUpdates() {
+async function getLatestUpdates(allowedRatings: AgeRating[]) {
   const rows = await prisma.chapter.findMany({
-    where: { publishedAt: { not: null }, comic: PUBLIC_WHERE },
+    where: { publishedAt: { not: null }, comic: { ageRating: { in: allowedRatings } } },
     orderBy: { publishedAt: "desc" },
     distinct: ["comicId"],
     take: 12,
     select: {
       chapterNumber: true,
-      comic: {
-        select: { id: true, title: true, slug: true, coverImage: true, dominantColor: true },
-      },
+      comic: { select: { id: true, title: true, slug: true, coverImage: true, dominantColor: true } },
     },
   });
   return rows.map((r) => ({ ...r.comic, latestChapter: r.chapterNumber }));
 }
 
-export default async function HomePage() {
-  const featured = await getFeatured();
+export default async function AppHomePage() {
+  const allowedRatings = await getAllowedAgeRatings();
+  const featured = await getFeatured(allowedRatings);
   const [popular, latest] = await Promise.all([
-    getPopular(featured?.id),
-    getLatestUpdates(),
+    getPopular(allowedRatings, featured?.id),
+    getLatestUpdates(allowedRatings),
   ]);
 
   return (
@@ -75,24 +78,22 @@ export default async function HomePage() {
           }}
         >
           <div className="mx-auto flex max-w-4xl flex-col items-start gap-4 sm:flex-row sm:items-end">
-            <img
+            <Image
               src={featured.coverImage}
               alt={featured.title}
+              width={160}
+              height={240}
               className="h-48 w-32 flex-shrink-0 rounded-md object-cover shadow-lg sm:h-60 sm:w-40"
             />
             <div className="flex-1">
-              <p className="text-xs uppercase tracking-wide text-text-muted">Featured</p>
-              <h1 className="mt-1 text-2xl font-semibold text-text-main sm:text-3xl">
-                {featured.title}
-              </h1>
-              <p className="mt-2 line-clamp-2 max-w-md text-sm text-text-muted">
-                {featured.description}
-              </p>
+              <p className="text-xs uppercase tracking-wide text-text-muted">پیشنهاد ویژه</p>
+              <h1 className="mt-1 text-2xl font-semibold text-text-main sm:text-3xl">{featured.title}</h1>
+              <p className="mt-2 line-clamp-2 max-w-md text-sm text-text-muted">{featured.description}</p>
               <Link
-                href={`/comic/${featured.slug}`}
+                href={`/app/comic/${featured.slug}`}
                 className="mt-4 inline-block rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
               >
-                View title
+                مشاهده عنوان
               </Link>
             </div>
           </div>
@@ -100,7 +101,7 @@ export default async function HomePage() {
       )}
 
       <section className="mx-auto max-w-4xl px-4 py-8">
-        <h2 className="mb-4 text-lg font-medium text-text-main">Popular</h2>
+        <h2 className="mb-4 text-lg font-medium text-text-main">محبوب‌ترین‌ها</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {popular.map((comic) => (
             <ComicCard
@@ -116,7 +117,7 @@ export default async function HomePage() {
       </section>
 
       <section className="mx-auto max-w-4xl px-4 py-8">
-        <h2 className="mb-4 text-lg font-medium text-text-main">Latest updates</h2>
+        <h2 className="mb-4 text-lg font-medium text-text-main">تازه‌های به‌روزرسانی</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {latest.map((comic) => (
             <ComicCard
