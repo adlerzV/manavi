@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { uploadChapter } from "@/app/admin/actions/Upload chapter";
+import { uploadChapter } from "@/app/admin/actions/Upload-chapter";
 
 interface ComicOption {
   id: string;

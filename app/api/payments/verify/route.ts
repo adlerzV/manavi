@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Transaction } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyPayment } from "@/lib/zarinpal";
+
+function resultPath(transaction: Pick<Transaction, "type" | "receiverId"> | null): string {
+  if (transaction?.type === "DONATION" && transaction.receiverId) {
+    return `/app/team/${transaction.receiverId}`;
+  }
+  return "/app/shop";
+}
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -21,9 +29,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${redirectBase}/app/shop?payment=error`);
   }
 
+  const path = resultPath(transaction);
+
   if (status !== "OK") {
     await prisma.transaction.update({ where: { id: transaction.id }, data: { status: "FAILED" } });
-    return NextResponse.redirect(`${redirectBase}/app/shop?payment=cancelled`);
+    return NextResponse.redirect(`${redirectBase}${path}?payment=cancelled`);
   }
 
   try {
@@ -55,9 +65,9 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    return NextResponse.redirect(`${redirectBase}/app/shop?payment=success`);
+    return NextResponse.redirect(`${redirectBase}${path}?payment=success`);
   } catch {
     await prisma.transaction.update({ where: { id: transaction.id }, data: { status: "FAILED" } });
-    return NextResponse.redirect(`${redirectBase}/app/shop?payment=error`);
+    return NextResponse.redirect(`${redirectBase}${path}?payment=error`);
   }
 }

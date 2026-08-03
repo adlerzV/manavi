@@ -33,3 +33,7 @@ export function findCoinPackage(id: string) {
 
 export const COIN_CHAPTER_UNLOCK_COST = 15;
 export const AD_UNLOCK_HOURS = 24;
+
+export const DONATION_PRESETS_TOMAN = [10000, 25000, 50000, 100000];
+export const MIN_DONATION_TOMAN = 5000;
+export const MAX_DONATION_TOMAN = 5000000;

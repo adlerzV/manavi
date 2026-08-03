@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { createPublisher } from "@/app/admin/actions/Catalog actions";
+import { createPublisher } from "@/app/admin/actions/catalog-actions";
 
 export function CreatePublisherForm() {
   const [name, setName] = useState("");

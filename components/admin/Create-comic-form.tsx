@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { createComic } from "@/app/admin/actions/Catalog actions";
+import { createComic } from "@/app/admin/actions/catalog-actions";
 
 interface LicenseOption {
   id: string;

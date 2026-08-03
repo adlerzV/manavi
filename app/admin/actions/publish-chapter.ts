@@ -5,17 +5,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifySessionToken } from "@/lib/session";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
+import { notifyNewChapter } from "@/lib/telegram-bot";
 
 interface PublishChapterResult {
   success: boolean;
   error?: string;
 }
 
-/**
- * ADMIN can publish anything. A PUBLISHER user can only publish chapters
- * for comics whose license belongs to their own Publisher record — a
- * publisher account should never be able to publish someone else's title.
- */
 async function requirePublishAccess(comicId: string): Promise<void> {
   const cookieStore = await cookies();
   const token = cookieStore.get("session")?.value;
@@ -60,8 +56,9 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
       where: { id: chapterId },
       select: {
         id: true,
+        chapterNumber: true,
         publishedAt: true,
-        comic: { select: { id: true, slug: true } },
+        comic: { select: { id: true, slug: true, title: true } },
       },
     });
 
@@ -73,9 +70,6 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
     }
 
     await requirePublishAccess(chapter.comic.id);
-
-    // Re-check right now — status/dates may have changed since the chapter
-    // was uploaded, so never trust a check done earlier in the flow.
     await assertLicenseActive(chapter.comic.id);
 
     await prisma.chapter.update({
@@ -83,10 +77,23 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
       data: { publishedAt: new Date() },
     });
 
-    // On-demand ISR revalidation, per the caching requirement from step 1 —
-    // no polling, the public pages just get invalidated on actual change.
-    revalidatePath(`/comic/${chapter.comic.slug}`);
-    revalidatePath(`/read/${chapterId}`);
+    revalidatePath(`/app/comic/${chapter.comic.slug}`);
+    revalidatePath(`/app/read/${chapterId}`);
+    revalidatePath("/app");
+    revalidatePath("/app/explore");
+    const bookmarks = await prisma.bookmark.findMany({
+      where: { comicId: chapter.comic.id },
+      select: { user: { select: { telegramId: true } } },
+    });
+    if (bookmarks.length > 0) {
+      notifyNewChapter({
+        telegramIds: bookmarks.map((b) => b.user.telegramId),
+        comicTitle: chapter.comic.title,
+        comicSlug: chapter.comic.slug,
+        chapterNumber: chapter.chapterNumber,
+        chapterId,
+      }).catch(() => {});
+    }
 
     return { success: true };
   } catch (err) {

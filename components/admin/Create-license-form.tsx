@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { createLicense } from "@/app/admin/actions/Catalog actions";
+import { createLicense } from "@/app/admin/actions/catalog-actions";
 
 interface PublisherOption {
   id: string;

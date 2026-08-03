@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
+import { DonateButton } from "@/components/team/donate-button";
 
 interface PageProps {
   params: Promise<{ userId: string }>;
