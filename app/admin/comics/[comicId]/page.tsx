@@ -1,7 +1,7 @@
 // app/admin/comics/[comicId]/page.tsx
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { UploadChapterForm } from "@/components/admin/Upload-chapter-form";
+import { UploadChapterForm } from "@/components/admin/upload-chapter-form";
 import { ChapterPublishButton } from "@/components/admin/chapter-publish-button";
 
 interface PageProps {

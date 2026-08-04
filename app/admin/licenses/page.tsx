@@ -1,6 +1,6 @@
 // app/admin/licenses/page.tsx
 import { prisma } from "@/lib/prisma";
-import { CreateLicenseForm } from "@/components/admin/Create-license-form";
+import { CreateLicenseForm } from "@/components/admin/create-license-form";
 import { LicenseRowActions } from "@/components/admin/license-row-actions";
 
 export default async function AdminLicensesPage() {

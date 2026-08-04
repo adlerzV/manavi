@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { uploadPageImage } from "@/lib/s3";
+import { processInBatches } from "@/lib/batch-upload";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -12,7 +13,7 @@ interface ActionResult<T = undefined> {
 }
 
 const MAX_PAGES = 300;
-const MAX_PAGE_SIZE_BYTES = 15 * 1024 * 1024; // 15MB per page
+const MAX_PAGE_SIZE_BYTES = 15 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function uploadChapter(
@@ -59,11 +60,6 @@ export async function uploadChapter(
     if (!comic) {
       return { success: false, error: "Comic not found" };
     }
-    // This is a looser check than assertLicenseActive on purpose: uploading
-    // is just staging a draft, not making it visible to readers, so a
-    // PENDING license (contract signed, start date not reached yet) is
-    // fine here. EXPIRED/TERMINATED is not. The strict, current-validity
-    // check runs again at publish time and at read time.
     if (comic.license.status === "EXPIRED" || comic.license.status === "TERMINATED") {
       return {
         success: false,
@@ -71,13 +67,10 @@ export async function uploadChapter(
       };
     }
 
-    const pageUrls: string[] = [];
-    for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
+    const pageUrls = await processInBatches(pages, 5, async (page, i) => {
       const buffer = Buffer.from(await page.arrayBuffer());
-      const url = await uploadPageImage(comicId, chapterNumber, i, buffer, page.type);
-      pageUrls.push(url);
-    }
+      return await uploadPageImage(comicId, chapterNumber, i, buffer, page.type);
+    });
 
     const chapter = await prisma.chapter.create({
       data: {
@@ -85,8 +78,6 @@ export async function uploadChapter(
         chapterNumber,
         title: typeof title === "string" && title.trim() ? title.trim() : null,
         pages: pageUrls,
-        // publishedAt stays null on purpose — publishing is a separate,
-        // deliberate step handled by publishChapter, not a side effect of upload.
       },
     });
 

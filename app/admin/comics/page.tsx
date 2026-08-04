@@ -1,7 +1,7 @@
 // app/admin/comics/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { CreateComicForm } from "@/components/admin/Create-comic-form";
+import { CreateComicForm } from "@/components/admin/create-comic-form";
 
 export default async function AdminComicsPage() {
   const [comics, licenses] = await Promise.all([
