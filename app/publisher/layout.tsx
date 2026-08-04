@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LayoutDashboard, BookOpen, UserCircle, Users, Wallet } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
+import { SidebarNav, type SidebarNavItem } from "@/components/dashboard/sidebar-nav";
 
-const NAV = [
-  { href: "/publisher", label: "داشبورد" },
-  { href: "/publisher/comics", label: "آثار من" },
-  { href: "/publisher/profile", label: "پروفایل" },
-  { href: "/publisher/team", label: "تیم" },
-  { href: "/publisher/payouts", label: "تسویه‌حساب" },
+const NAV: SidebarNavItem[] = [
+  { href: "/publisher", label: "داشبورد", icon: LayoutDashboard },
+  { href: "/publisher/comics", label: "آثار من", icon: BookOpen },
+  { href: "/publisher/profile", label: "پروفایل", icon: UserCircle },
+  { href: "/publisher/team", label: "تیم", icon: Users },
+  { href: "/publisher/payouts", label: "تسویه‌حساب", icon: Wallet },
 ];
 
 export default async function PublisherLayout({ children }: { children: ReactNode }) {
@@ -19,15 +20,7 @@ export default async function PublisherLayout({ children }: { children: ReactNod
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} className="text-sm text-text-main hover:text-primary">
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <SidebarNav items={NAV} title="پنل ناشر مناوی" />
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
     </div>
   );

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { createPublisher } from "@/app/admin/actions/catalog-actions";
 
-export function CreatePublisherForm() {
+export function CreatePublisherForm({ onCreated }: { onCreated?: () => void }) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [legalEntity, setLegalEntity] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -22,6 +24,8 @@ export function CreatePublisherForm() {
       setName("");
       setLegalEntity("");
       setContactEmail("");
+      router.refresh();
+      setTimeout(() => onCreated?.(), 1000);
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong");

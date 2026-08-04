@@ -26,6 +26,9 @@ model User {
   isBanned          Boolean         @default(false)
   bannedAt          DateTime?
   banReason         String?
+  bio               String?
+  avatarUrl         String?
+  donationLink      String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -177,10 +180,11 @@ enum ComicStatus {
 }
 
 model Genre {
-  id     String       @id @default(uuid())
-  name   String       @unique
-  slug   String       @unique
-  comics ComicGenre[]
+  id       String       @id @default(uuid())
+  name     String       @unique
+  slug     String       @unique
+  imageUrl String?
+  comics   ComicGenre[]
 }
 
 model ComicGenre {
@@ -456,4 +460,13 @@ enum CreatorApplicationStatus {
   REVIEWING
   ACCEPTED
   REJECTED
+}
+
+model SearchTerm {
+  id        String   @id @default(uuid())
+  term      String   @unique
+  count     Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@index([count])
 }

@@ -1,5 +1,5 @@
-// app/admin/licenses/page.tsx
 import { prisma } from "@/lib/prisma";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CreateLicenseForm } from "@/components/admin/create-license-form";
 import { LicenseRowActions } from "@/components/admin/license-row-actions";
 
@@ -14,7 +14,9 @@ export default async function AdminLicensesPage() {
 
   return (
     <div className="space-y-8">
-      <CreateLicenseForm publishers={publishers} />
+      <CollapsibleSection triggerLabel="افزودن لایسنس جدید">
+        {(close) => <CreateLicenseForm publishers={publishers} onCreated={close} />}
+      </CollapsibleSection>
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">لیست لایسنس‌ها</h2>
         <div className="divide-y divide-border rounded-md border border-border">

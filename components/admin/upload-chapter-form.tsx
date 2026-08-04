@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { uploadChapter } from "@/app/admin/actions/upload-chapter";
 import { BatchPageUploader } from "./batch-page-uploader";
 
@@ -9,7 +10,8 @@ interface ComicOption {
   title: string;
 }
 
-export function UploadChapterForm({ comics }: { comics: ComicOption[] }) {
+export function UploadChapterForm({ comics, onCreated }: { comics: ComicOption[]; onCreated?: () => void }) {
+  const router = useRouter();
   const [comicId, setComicId] = useState(comics[0]?.id ?? "");
   const [chapterNumber, setChapterNumber] = useState("");
   const [title, setTitle] = useState("");
@@ -41,6 +43,8 @@ export function UploadChapterForm({ comics }: { comics: ComicOption[] }) {
       setChapterNumber("");
       setTitle("");
       setFiles([]);
+      router.refresh();
+      setTimeout(() => onCreated?.(), 1000);
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong");

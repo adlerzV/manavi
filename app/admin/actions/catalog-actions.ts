@@ -124,6 +124,7 @@ export async function createComic(input: {
   ageRating: "NORMAL" | "EIGHTEEN_PLUS" | "NSFW";
   contentType: ContentType;
   readingMode: ReadingMode;
+  genreIds?: string[];
 }): Promise<ActionResult<{ id: string }>> {
   try {
     await requireAdmin();
@@ -157,15 +158,21 @@ export async function createComic(input: {
         ageRating: input.ageRating,
         contentType: input.contentType,
         readingMode: input.readingMode,
+        genres: input.genreIds?.length
+          ? { create: input.genreIds.map((genreId) => ({ genreId })) }
+          : undefined,
       },
     });
 
     revalidatePath("/admin/comics");
+    revalidatePath("/app/explore");
+    revalidatePath("/app");
     return { success: true, data: { id: comic.id } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 }
+
 export async function updateComic(
   comicId: string,
   input: {
@@ -180,6 +187,7 @@ export async function updateComic(
     readingMode: ReadingMode;
     isFeaturedOnHome: boolean;
     featuredBadge?: string;
+    genreIds?: string[];
   }
 ): Promise<ActionResult> {
   try {
@@ -195,28 +203,38 @@ export async function updateComic(
     const coverChanged = existing.coverImage !== input.coverImage;
     const dominantColor = coverChanged ? await extractDominantColor(input.coverImage) : undefined;
 
-    const comic = await prisma.comic.update({
-      where: { id: comicId },
-      data: {
-        title: input.title.trim(),
-        slug: input.slug.trim(),
-        description: input.description.trim(),
-        coverImage: input.coverImage,
-        bannerImage: input.bannerImage || null,
-        ...(dominantColor !== undefined ? { dominantColor } : {}),
-        licenseId: input.licenseId,
-        ageRating: input.ageRating,
-        contentType: input.contentType,
-        readingMode: input.readingMode,
-        isFeaturedOnHome: input.isFeaturedOnHome,
-        featuredBadge: input.featuredBadge?.trim() || null,
-      },
+    const comic = await prisma.$transaction(async (tx) => {
+      if (input.genreIds) {
+        await tx.comicGenre.deleteMany({ where: { comicId } });
+        if (input.genreIds.length > 0) {
+          await tx.comicGenre.createMany({ data: input.genreIds.map((genreId) => ({ comicId, genreId })) });
+        }
+      }
+
+      return tx.comic.update({
+        where: { id: comicId },
+        data: {
+          title: input.title.trim(),
+          slug: input.slug.trim(),
+          description: input.description.trim(),
+          coverImage: input.coverImage,
+          bannerImage: input.bannerImage || null,
+          ...(dominantColor !== undefined ? { dominantColor } : {}),
+          licenseId: input.licenseId,
+          ageRating: input.ageRating,
+          contentType: input.contentType,
+          readingMode: input.readingMode,
+          isFeaturedOnHome: input.isFeaturedOnHome,
+          featuredBadge: input.featuredBadge?.trim() || null,
+        },
+      });
     });
 
     revalidatePath("/admin/comics");
     revalidatePath(`/admin/comics/${comicId}`);
     revalidatePath(`/app/comic/${comic.slug}`);
     revalidatePath("/app");
+    revalidatePath("/app/explore");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
@@ -271,7 +289,7 @@ export async function removeChapterPage(chapterId: string, pageIndex: number): P
     const nextPages = chapter.pages.filter((_, i) => i !== pageIndex);
 
     await prisma.chapter.update({ where: { id: chapterId }, data: { pages: nextPages } });
-    await deleteObject(removedKey).catch(() => {}); // best-effort — رکورد دیتابیس مهم‌تر از پاکسازی فوری S3 است
+    await deleteObject(removedKey).catch(() => {});
 
     revalidatePath(`/admin/comics/${chapter.comicId}`);
     revalidatePath(`/publisher/comics/${chapter.comicId}`);

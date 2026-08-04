@@ -1,18 +1,20 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LayoutDashboard, Building2, FileSignature, BookOpen, Users, Receipt, BarChart3, Wallet, Megaphone, Tags } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
+import { SidebarNav, type SidebarNavItem } from "@/components/dashboard/sidebar-nav";
 
-const NAV = [
-  { href: "/admin", label: "داشبورد" },
-  { href: "/admin/publishers", label: "ناشران" },
-  { href: "/admin/licenses", label: "لایسنس‌ها" },
-  { href: "/admin/comics", label: "عناوین" },
-  { href: "/admin/users", label: "کاربران" },
-  { href: "/admin/transactions", label: "تراکنش‌ها" },
-  { href: "/admin/analytics", label: "آمار" },
-  { href: "/admin/payouts", label: "تسویه‌حساب" },
-  { href: "/admin/broadcast", label: "پیام همگانی" },
+const NAV: SidebarNavItem[] = [
+  { href: "/admin", label: "داشبورد", icon: LayoutDashboard },
+  { href: "/admin/publishers", label: "ناشران", icon: Building2 },
+  { href: "/admin/licenses", label: "لایسنس‌ها", icon: FileSignature },
+  { href: "/admin/comics", label: "عناوین", icon: BookOpen },
+  { href: "/admin/genres", label: "دسته‌بندی‌ها", icon: Tags },
+  { href: "/admin/users", label: "کاربران", icon: Users },
+  { href: "/admin/transactions", label: "تراکنش‌ها", icon: Receipt },
+  { href: "/admin/analytics", label: "آمار", icon: BarChart3 },
+  { href: "/admin/payouts", label: "تسویه‌حساب", icon: Wallet },
+  { href: "/admin/broadcast", label: "پیام همگانی", icon: Megaphone },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -23,15 +25,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} className="text-sm text-text-main hover:text-primary">
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <SidebarNav items={NAV} title="پنل مدیریت مناوی" />
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
     </div>
   );

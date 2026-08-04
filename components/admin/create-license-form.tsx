@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { createLicense } from "@/app/admin/actions/catalog-actions";
 
 interface PublisherOption {
@@ -8,7 +9,8 @@ interface PublisherOption {
   name: string;
 }
 
-export function CreateLicenseForm({ publishers }: { publishers: PublisherOption[] }) {
+export function CreateLicenseForm({ publishers, onCreated }: { publishers: PublisherOption[]; onCreated?: () => void }) {
+  const router = useRouter();
   const [publisherId, setPublisherId] = useState(publishers[0]?.id ?? "");
   const [territory, setTerritory] = useState("");
   const [royaltyPercentage, setRoyaltyPercentage] = useState("50");
@@ -36,6 +38,8 @@ export function CreateLicenseForm({ publishers }: { publishers: PublisherOption[
       setStatus("done");
       setTerritory("");
       setContractReference("");
+      router.refresh();
+      setTimeout(() => onCreated?.(), 1000);
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong");

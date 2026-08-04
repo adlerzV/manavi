@@ -1,5 +1,5 @@
-// app/admin/publishers/page.tsx
 import { prisma } from "@/lib/prisma";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CreatePublisherForm } from "@/components/admin/create-publisher-form";
 
 export default async function AdminPublishersPage() {
@@ -10,7 +10,9 @@ export default async function AdminPublishersPage() {
 
   return (
     <div className="space-y-8">
-      <CreatePublisherForm />
+      <CollapsibleSection triggerLabel="افزودن ناشر جدید">
+        {(close) => <CreatePublisherForm onCreated={close} />}
+      </CollapsibleSection>
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">لیست ناشران</h2>
         <div className="divide-y divide-border rounded-md border border-border">
