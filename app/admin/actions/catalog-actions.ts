@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { extractDominantColor } from "@/lib/color";
-import { LicenseStatus } from "@prisma/client";
+import { LicenseStatus, ContentType, ReadingMode } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -121,6 +121,8 @@ export async function createComic(input: {
   bannerImage?: string;
   licenseId: string;
   ageRating: "NORMAL" | "EIGHTEEN_PLUS" | "NSFW";
+  contentType: ContentType;
+  readingMode: ReadingMode;
 }): Promise<ActionResult<{ id: string }>> {
   try {
     await requireAdmin();
@@ -152,6 +154,8 @@ export async function createComic(input: {
         dominantColor,
         licenseId: input.licenseId,
         ageRating: input.ageRating,
+        contentType: input.contentType,
+        readingMode: input.readingMode,
       },
     });
 

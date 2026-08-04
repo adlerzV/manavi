@@ -13,3 +13,8 @@ export function getTelegramLinks(): TelegramLinks | null {
     nativeLink: `tg://resolve?domain=${TELEGRAM_BOT_USERNAME}&appname=${TELEGRAM_MINI_APP_SHORT_NAME}`,
   };
 }
+
+export function getReferralLink(code: string): string | null {
+  if (!TELEGRAM_BOT_USERNAME || !TELEGRAM_MINI_APP_SHORT_NAME) return null;
+  return `https://t.me/${TELEGRAM_BOT_USERNAME}/${TELEGRAM_MINI_APP_SHORT_NAME}?startapp=${encodeURIComponent(code)}`;
+}

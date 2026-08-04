@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateReferralCode } from "@/lib/referral";
 
 const ADMIN_TELEGRAM_ID = 1000000001n;
 const USER_TELEGRAM_ID = 1000000002n;
@@ -17,6 +18,7 @@ export async function GET() {
       firstName: "Admin",
       username: "dev_admin",
       role: "ADMIN",
+      referralCode: generateReferralCode(),
     },
   });
 
@@ -29,6 +31,7 @@ export async function GET() {
       username: "dev_reader",
       role: "USER",
       coinsBalance: 100,
+      referralCode: generateReferralCode(),
     },
   });
 
@@ -47,7 +50,7 @@ export async function GET() {
         territory: ["GLOBAL"],
         royaltyPercentage: 50,
         status: "ACTIVE",
-        startDate: new Date(Date.now() - 24 * 60 * 60 * 1000), // دیروز
+        startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
       },
     });
   }
@@ -62,6 +65,8 @@ export async function GET() {
         coverImage: "https://picsum.photos/seed/manavi-cover/400/600",
         bannerImage: "https://picsum.photos/seed/manavi-banner/1200/400",
         ageRating: "NORMAL",
+        contentType: "MANHWA",
+        readingMode: "VERTICAL",
         licenseId: license.id,
       },
     });

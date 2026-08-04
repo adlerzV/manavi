@@ -3,6 +3,14 @@ import Image from "next/image";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ContentPreferenceForm } from "@/components/profile/content-preference-form";
+import { DailyCheckinCard } from "@/components/gamification/daily-checkin-card";
+import { ReferralCard } from "@/components/gamification/referral-card";
+import { ComicCard } from "@/components/catalog/comic-card";
+import { getReferralLink } from "@/lib/site-config";
+
+function isSameCalendarDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
 
 export default async function ProfilePage() {
   const user = await getSessionUser();
@@ -29,6 +37,43 @@ export default async function ProfilePage() {
     }),
   ]);
 
+  const seedComicIds = Array.from(
+    new Set([...readHistory.map((h) => h.comicId), ...bookmarks.map((b) => b.comicId)])
+  );
+
+  const recommendations = seedComicIds.length
+    ? await prisma.comic.findMany({
+        where: {
+          id: { notIn: seedComicIds },
+          genres: {
+            some: {
+              genre: {
+                comics: { some: { comicId: { in: seedComicIds } } },
+              },
+            },
+          },
+        },
+        orderBy: { bookmarks: { _count: "desc" } },
+        take: 8,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          coverImage: true,
+          dominantColor: true,
+          chapters: {
+            where: { publishedAt: { not: null } },
+            orderBy: { chapterNumber: "desc" },
+            take: 1,
+            select: { chapterNumber: true },
+          },
+        },
+      })
+    : [];
+
+  const alreadyClaimedToday = Boolean(user.lastCheckinAt && isSameCalendarDay(user.lastCheckinAt, new Date()));
+  const referralLink = getReferralLink(user.referralCode);
+
   return (
     <main className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-10">
@@ -43,6 +88,18 @@ export default async function ProfilePage() {
             <p className="text-sm text-text-muted">موجودی سکه: {user.coinsBalance.toLocaleString("fa-IR")}</p>
           </div>
         </div>
+
+        <section>
+          <DailyCheckinCard currentStreak={user.currentStreak} alreadyClaimedToday={alreadyClaimedToday} />
+        </section>
+
+        <section>
+          <ReferralCard
+            referralLink={referralLink}
+            referralCode={user.referralCode}
+            referralCount={user.referralCount}
+          />
+        </section>
 
         <section>
           <h2 className="mb-3 text-sm font-medium text-text-main">تنظیمات محتوا</h2>
@@ -67,6 +124,24 @@ export default async function ProfilePage() {
             {readHistory.length === 0 && <p className="text-sm text-text-muted">هنوز چیزی نخوانده‌اید.</p>}
           </div>
         </section>
+
+        {recommendations.length > 0 && (
+          <section>
+            <h2 className="mb-3 text-sm font-medium text-text-main">پیشنهاد برای شما</h2>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {recommendations.map((comic) => (
+                <ComicCard
+                  key={comic.id}
+                  slug={comic.slug}
+                  title={comic.title}
+                  coverImage={comic.coverImage}
+                  dominantColor={comic.dominantColor}
+                  latestChapter={comic.chapters[0]?.chapterNumber ?? null}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         <section>
           <h2 className="mb-3 text-sm font-medium text-text-main">بوکمارک‌ها</h2>

@@ -3,6 +3,51 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { validateTelegramInitData, InvalidInitDataError } from "@/lib/telegram";
 import { createSessionToken } from "@/lib/session";
+import { generateReferralCode } from "@/lib/referral";
+import { REFERRAL_REWARD_COINS, REFERRAL_WELCOME_BONUS_COINS } from "@/lib/gamification";
+
+async function createUserWithReferral(input: {
+  telegramId: bigint;
+  firstName: string;
+  lastName: string | null;
+  username: string | null;
+  referrerId: string | null;
+}) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const referralCode = generateReferralCode();
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            telegramId: input.telegramId,
+            firstName: input.firstName,
+            lastName: input.lastName,
+            username: input.username,
+            referralCode,
+            referredById: input.referrerId,
+            coinsBalance: input.referrerId ? REFERRAL_WELCOME_BONUS_COINS : 0,
+          },
+        });
+
+        if (input.referrerId) {
+          await tx.user.update({
+            where: { id: input.referrerId },
+            data: {
+              coinsBalance: { increment: REFERRAL_REWARD_COINS },
+              referralCount: { increment: 1 },
+            },
+          });
+        }
+
+        return created;
+      });
+    } catch (err) {
+      const isUniqueViolation = err instanceof Error && err.message.includes("Unique constraint");
+      if (!isUniqueViolation || attempt === 4) throw err;
+    }
+  }
+  throw new Error("Failed to allocate a unique referral code");
+}
 
 export async function POST(req: NextRequest) {
   let initData: unknown;
@@ -27,28 +72,39 @@ export async function POST(req: NextRequest) {
     throw err;
   }
 
-  const { user } = validated;
+  const { user, startParam } = validated;
 
-  const dbUser = await prisma.user.upsert({
-    where: { telegramId: BigInt(user.id) },
-    update: {
-      firstName: user.first_name,
-      lastName: user.last_name ?? null,
-      username: user.username ?? null,
-    },
-    create: {
+  const existing = await prisma.user.findUnique({ where: { telegramId: BigInt(user.id) } });
+
+  let dbUser;
+  if (existing) {
+    dbUser = await prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        firstName: user.first_name,
+        lastName: user.last_name ?? null,
+        username: user.username ?? null,
+      },
+    });
+  } else {
+    const referrer = startParam
+      ? await prisma.user.findUnique({ where: { referralCode: startParam } })
+      : null;
+
+    dbUser = await createUserWithReferral({
       telegramId: BigInt(user.id),
       firstName: user.first_name,
       lastName: user.last_name ?? null,
       username: user.username ?? null,
-    },
-  });
+      referrerId: referrer?.id ?? null,
+    });
+  }
 
   const sessionToken = createSessionToken(dbUser.id);
   const cookieStore = await cookies();
   cookieStore.set("session", sessionToken, {
     httpOnly: true,
-    secure: false,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 30 * 24 * 60 * 60,
     path: "/",

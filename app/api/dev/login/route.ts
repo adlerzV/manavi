@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   const url = new URL(req.url);
-  const as = url.searchParams.get("as"); // "admin" یا "user"
+  const as = url.searchParams.get("as");
   const redirectTo = url.searchParams.get("redirect") ?? "/";
 
   const telegramId = as === "admin" ? ADMIN_TELEGRAM_ID : USER_TELEGRAM_ID;
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const cookieStore = await cookies();
   cookieStore.set("session", token, {
     httpOnly: true,
-    secure: false, // لوکال روی http هستی
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 30 * 24 * 60 * 60,
     path: "/",

@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { getChapterAccessList, userHasChapterAccess } from "@/lib/chapters";
+import { getSignedImageUrls } from "@/lib/s3";
 import { ChapterReader } from "@/components/reader/chapter-reader";
 import { LockedChapterGate } from "@/components/reader/locked-chapter-gate";
 import { CommentSection } from "@/components/comments/comment-section";
+import { getChapterReactionSummary } from "@/app/actions/reactions";
 
 interface PageProps {
   params: Promise<{ chapterId: string }>;
@@ -22,7 +24,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
       title: true,
       pages: true,
       publishedAt: true,
-      comic: { select: { id: true, title: true, slug: true } },
+      comic: { select: { id: true, title: true, slug: true, readingMode: true, contentType: true } },
     },
   });
 
@@ -61,24 +63,29 @@ export default async function ReadChapterPage({ params }: PageProps) {
   const nextChapterId =
     currentIndex >= 0 && currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1].id : null;
 
-  const readHistory = user
-    ? await prisma.readHistory.findUnique({
-        where: { userId_comicId: { userId: user.id, comicId: chapter.comic.id } },
-      })
-    : null;
+  const [readHistory, pageUrls, reactionData, comments] = await Promise.all([
+    user
+      ? prisma.readHistory.findUnique({
+          where: { userId_comicId: { userId: user.id, comicId: chapter.comic.id } },
+        })
+      : Promise.resolve(null),
+    getSignedImageUrls(chapter.pages),
+    getChapterReactionSummary(chapterId, user?.id ?? null),
+    prisma.comment.findMany({
+      where: { chapterId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        content: true,
+        isSpoiler: true,
+        createdAt: true,
+        user: { select: { firstName: true, lastName: true, username: true } },
+      },
+    }),
+  ]);
 
-  const comments = await prisma.comment.findMany({
-    where: { chapterId },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    select: {
-      id: true,
-      content: true,
-      isSpoiler: true,
-      createdAt: true,
-      user: { select: { firstName: true, lastName: true, username: true } },
-    },
-  });
+  const resumeMatch = readHistory?.lastChapterId === chapter.id;
 
   return (
     <>
@@ -88,11 +95,16 @@ export default async function ReadChapterPage({ params }: PageProps) {
         comicSlug={chapter.comic.slug}
         comicTitle={chapter.comic.title}
         chapterNumber={chapter.chapterNumber}
-        pages={chapter.pages}
+        pages={pageUrls}
+        readingMode={chapter.comic.readingMode}
         prevChapterId={prevChapterId}
         nextChapterId={nextChapterId}
         chapterOptions={sortedChapters.map((c) => ({ id: c.id, chapterNumber: c.chapterNumber, title: c.title }))}
-        initialPage={readHistory?.lastChapterId === chapter.id ? readHistory.lastPage : 1}
+        initialPage={resumeMatch ? readHistory.lastPage : 1}
+        initialScrollFraction={resumeMatch ? readHistory.scrollFraction : 0}
+        reactionSummary={reactionData.summary}
+        initialUserReaction={reactionData.userReaction}
+        isAuthenticated={Boolean(user)}
       />
       <div className="bg-background">
         <CommentSection

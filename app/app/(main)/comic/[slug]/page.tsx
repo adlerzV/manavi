@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 import { AgeGate } from "@/components/catalog/age-gate";
 import { BookmarkButton } from "@/components/catalog/bookmark-button";
 import { getChapterAccessList } from "@/lib/chapters";
+import { CONTENT_TYPE_LABELS } from "@/lib/reading";
 
 export const revalidate = 300;
 
@@ -72,8 +73,13 @@ export default async function ComicDetailPage({ params }: PageProps) {
           />
           <div className="flex-1">
             <h1 className="text-2xl font-semibold text-text-main">{comic.title}</h1>
-            <p className="mt-1 text-sm text-text-muted">
-              {comic.status} · {sortedChapters.length} چپتر
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-text-muted">
+              <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-primary">
+                {CONTENT_TYPE_LABELS[comic.contentType]}
+              </span>
+              <span>{comic.status}</span>
+              <span>·</span>
+              <span>{sortedChapters.length} چپتر</span>
             </p>
             {comic.genres.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">

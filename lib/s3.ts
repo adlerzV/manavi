@@ -34,18 +34,24 @@ export async function uploadPageImage(
     })
   );
 
-  return key; 
+  return key;
 }
 
-/**
- * @param key مسیر فایل در باکت
- * @param expiresInSec زمان انقضا (پیش‌فرض ۳۰ دقیقه = ۱۸۰۰ ثانیه)
- */
-export async function getSignedImageUrl(key: string, expiresInSec: number = 1800): Promise<string> {
+export async function getSignedImageUrl(key: string, expiresInSec: number = 21600): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: BUCKET,
     Key: key,
   });
 
   return await getSignedUrl(s3, command, { expiresIn: expiresInSec });
+}
+
+export async function getSignedImageUrls(keys: string[], expiresInSec: number = 21600): Promise<string[]> {
+  return Promise.all(
+    keys.map((key) =>
+      key.startsWith("http://") || key.startsWith("https://")
+        ? Promise.resolve(key)
+        : getSignedImageUrl(key, expiresInSec)
+    )
+  );
 }

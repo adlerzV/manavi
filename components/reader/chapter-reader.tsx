@@ -1,16 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { ChevronLeft, ChevronRight, ArrowRight, PlayCircle, PauseCircle } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import type { ReadingMode } from "@prisma/client";
 import { updateReadHistory } from "@/app/actions/read-history";
+import { VerticalReader } from "./vertical-reader";
+import { HorizontalReader } from "./horizontal-reader";
+import { ReadingModeToggle } from "./reading-mode-toggle";
+import { ChapterReactions } from "./chapter-reactions";
+import { getStoredReadingModeOverride, setStoredReadingModeOverride } from "@/lib/reading";
 
 interface ChapterOption {
   id: string;
   chapterNumber: number;
   title: string | null;
+}
+
+interface ReactionSummary {
+  emoji: string;
+  count: number;
 }
 
 interface ChapterReaderProps {
@@ -20,13 +30,16 @@ interface ChapterReaderProps {
   comicTitle: string;
   chapterNumber: number;
   pages: string[];
+  readingMode: ReadingMode;
   prevChapterId: string | null;
   nextChapterId: string | null;
   chapterOptions: ChapterOption[];
   initialPage: number;
+  initialScrollFraction: number;
+  reactionSummary: ReactionSummary[];
+  initialUserReaction: string | null;
+  isAuthenticated: boolean;
 }
-
-const SCROLL_SPEEDS = [0.5, 1, 1.5, 2, 3];
 
 export function ChapterReader({
   chapterId,
@@ -35,70 +48,49 @@ export function ChapterReader({
   comicTitle,
   chapterNumber,
   pages,
+  readingMode,
   prevChapterId,
   nextChapterId,
   chapterOptions,
   initialPage,
+  initialScrollFraction,
+  reactionSummary,
+  initialUserReaction,
+  isAuthenticated,
 }: ChapterReaderProps) {
   const router = useRouter();
   const [controlsVisible, setControlsVisible] = useState(true);
-  const [currentPage, setCurrentPage] = useState(initialPage);
-  const [autoScroll, setAutoScroll] = useState(false);
-  const [speedIndex, setSpeedIndex] = useState(1);
-  const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const autoScrollFrame = useRef<number | null>(null);
+  const [effectiveMode, setEffectiveMode] = useState<ReadingMode>(readingMode);
+  const [horizontalPage, setHorizontalPage] = useState(initialPage);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible) {
-          const index = Number((visible.target as HTMLElement).dataset.pageIndex);
-          if (!Number.isNaN(index)) {
-            setCurrentPage(index + 1);
-          }
-        }
-      },
-      { threshold: [0.5] }
-    );
-
-    pageRefs.current.forEach((el) => {
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [pages.length]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      updateReadHistory(comicId, chapterId, currentPage).catch(() => {});
-    }, 2000);
-    return () => clearTimeout(timeout);
-  }, [currentPage, comicId, chapterId]);
-
-  useEffect(() => {
-    if (!autoScroll) {
-      if (autoScrollFrame.current) cancelAnimationFrame(autoScrollFrame.current);
-      return;
-    }
-
-    const speed = SCROLL_SPEEDS[speedIndex];
-    function step() {
-      window.scrollBy(0, speed);
-      autoScrollFrame.current = requestAnimationFrame(step);
-    }
-    autoScrollFrame.current = requestAnimationFrame(step);
-
-    return () => {
-      if (autoScrollFrame.current) cancelAnimationFrame(autoScrollFrame.current);
-    };
-  }, [autoScroll, speedIndex]);
+    const stored = getStoredReadingModeOverride(comicId);
+    if (stored) setEffectiveMode(stored);
+  }, [comicId]);
 
   const toggleControls = useCallback(() => {
     setControlsVisible((prev) => !prev);
   }, []);
+
+  function handleModeChange(mode: ReadingMode) {
+    setEffectiveMode(mode);
+    setStoredReadingModeOverride(comicId, mode);
+  }
+
+  const persistProgress = useCallback(
+    (page: number, fraction: number) => {
+      updateReadHistory(comicId, chapterId, page, fraction).catch(() => {});
+    },
+    [comicId, chapterId]
+  );
+
+  useEffect(() => {
+    if (effectiveMode !== "HORIZONTAL") return;
+    const timeout = setTimeout(() => {
+      persistProgress(horizontalPage, 0);
+    }, 1200);
+    return () => clearTimeout(timeout);
+  }, [effectiveMode, horizontalPage, persistProgress]);
 
   return (
     <div className="relative min-h-screen bg-black">
@@ -114,32 +106,41 @@ export function ChapterReader({
           <p className="text-sm font-medium text-white">{comicTitle}</p>
           <p className="text-xs text-white/60">چپتر {chapterNumber}</p>
         </div>
-        <div className="w-6" />
+        <ReadingModeToggle mode={effectiveMode} onChange={handleModeChange} />
       </div>
 
-      <div onClick={toggleControls} className="mx-auto flex max-w-2xl flex-col">
-        {pages.map((url, index) => (
-          <div
-            key={url}
-            data-page-index={index}
-            ref={(el) => {
-              pageRefs.current[index] = el;
-            }}
-            className="relative w-full"
-          >
-            <Image
-              src={url}
-              alt={`صفحه ${index + 1}`}
-              width={800}
-              height={1200}
-              sizes="(max-width: 768px) 100vw, 700px"
-              className="h-auto w-full"
-              priority={index < 3}
-              loading={index < 3 ? "eager" : "lazy"}
-            />
-          </div>
-        ))}
-      </div>
+      {effectiveMode === "VERTICAL" ? (
+        <VerticalReader
+          pages={pages}
+          initialPage={initialPage}
+          initialScrollFraction={initialScrollFraction}
+          onProgress={persistProgress}
+          onToggleControls={toggleControls}
+          controlsVisible={controlsVisible}
+        />
+      ) : (
+        <HorizontalReader
+          pages={pages}
+          currentPage={horizontalPage}
+          onPageChange={setHorizontalPage}
+          onRequestPrevChapter={() => prevChapterId && router.push(`/app/read/${prevChapterId}`)}
+          onRequestNextChapter={() => nextChapterId && router.push(`/app/read/${nextChapterId}`)}
+          hasPrevChapter={Boolean(prevChapterId)}
+          hasNextChapter={Boolean(nextChapterId)}
+          onToggleControls={toggleControls}
+        />
+      )}
+
+      {effectiveMode === "VERTICAL" && (
+        <div className="bg-black">
+          <ChapterReactions
+            chapterId={chapterId}
+            initialSummary={reactionSummary}
+            initialUserReaction={initialUserReaction}
+            isAuthenticated={isAuthenticated}
+          />
+        </div>
+      )}
 
       <div
         className={`fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-2 bg-black/80 px-4 py-3 backdrop-blur-sm transition-transform duration-200 ${
@@ -173,35 +174,6 @@ export function ChapterReader({
           </Link>
         ) : (
           <div className="w-9" />
-        )}
-      </div>
-
-      <div
-        className={`fixed left-4 top-20 z-40 flex flex-col items-center gap-2 transition-opacity duration-200 ${
-          controlsVisible ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setAutoScroll((prev) => !prev);
-          }}
-          className="rounded-full bg-black/70 p-2 text-white"
-        >
-          {autoScroll ? <PauseCircle size={24} /> : <PlayCircle size={24} />}
-        </button>
-        {autoScroll && (
-          <select
-            value={speedIndex}
-            onChange={(e) => setSpeedIndex(Number(e.target.value))}
-            className="rounded-md bg-black/70 px-1 py-1 text-xs text-white"
-          >
-            {SCROLL_SPEEDS.map((speed, index) => (
-              <option key={speed} value={index} className="text-black">
-                {speed}x
-              </option>
-            ))}
-          </select>
         )}
       </div>
     </div>

@@ -14,6 +14,7 @@ declare global {
     initData: string;
     initDataUnsafe: {
       user?: TelegramWebAppUser;
+      start_param?: string;
       [key: string]: unknown;
     };
     colorScheme: "light" | "dark";

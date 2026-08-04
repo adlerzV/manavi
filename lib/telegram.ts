@@ -5,7 +5,6 @@ if (!BOT_TOKEN) {
   throw new Error("TELEGRAM_BOT_TOKEN is not set");
 }
 
-// Reject initData older than this — prevents replaying a captured payload.
 const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
 
 export interface TelegramUser {
@@ -21,6 +20,7 @@ export interface ValidatedInitData {
   user: TelegramUser;
   authDate: Date;
   queryId?: string;
+  startParam?: string;
 }
 
 export class InvalidInitDataError extends Error {
@@ -30,16 +30,6 @@ export class InvalidInitDataError extends Error {
   }
 }
 
-/**
- * Validates the initData string sent by the Telegram Mini App client.
- * Algorithm per https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
- *
- *   secret_key = HMAC_SHA256(key = "WebAppData", data = bot_token)
- *   hash       = HEX( HMAC_SHA256(key = secret_key, data = data_check_string) )
- *
- * Throws InvalidInitDataError on any failure — callers should catch it and
- * respond 401, never fall back to trusting the payload.
- */
 export function validateTelegramInitData(initData: string): ValidatedInitData {
   const params = new URLSearchParams(initData);
 
@@ -85,7 +75,6 @@ export function validateTelegramInitData(initData: string): ValidatedInitData {
     throw new InvalidInitDataError("auth_date is too old — possible replay");
   }
   if (ageSeconds < -60) {
-    // small allowance for clock skew between client and server
     throw new InvalidInitDataError("auth_date is in the future");
   }
 
@@ -109,5 +98,6 @@ export function validateTelegramInitData(initData: string): ValidatedInitData {
     user,
     authDate,
     queryId: params.get("query_id") ?? undefined,
+    startParam: params.get("start_param") ?? undefined,
   };
 }

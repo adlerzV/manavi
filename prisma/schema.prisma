@@ -17,20 +17,31 @@ model User {
   subscriptionEnd   DateTime?
   coinsBalance      Int             @default(0)
   contentPreference AgeRating       @default(NORMAL)
+  referralCode      String          @unique
+  referredById      String?
+  referralCount     Int             @default(0)
+  currentStreak     Int             @default(0)
+  longestStreak     Int             @default(0)
+  lastCheckinAt     DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
-  donationsReceived Transaction[] @relation("Receiver")
+  referredBy        User?           @relation("Referrals", fields: [referredById], references: [id])
+  referrals         User[]          @relation("Referrals")
+
+  donationsReceived Transaction[]     @relation("Receiver")
   comments          Comment[]
-  transactionsSent  Transaction[]   @relation("Payer")
+  transactionsSent  Transaction[]     @relation("Payer")
   bookmarks         Bookmark[]
   readHistory       ReadHistory[]
   staffRoles        ComicStaff[]
   chapterStaffRoles ChapterStaff[]
   chapterUnlocks    ChapterUnlock[]
+  chapterReactions  ChapterReaction[]
   publisherProfile  Publisher?
 
   @@index([role])
+  @@index([referredById])
 }
 
 enum Role {
@@ -83,6 +94,18 @@ model License {
   @@index([status])
 }
 
+enum ContentType {
+  MANHWA
+  MANGA
+  COMIC
+  WEBTOON
+}
+
+enum ReadingMode {
+  VERTICAL
+  HORIZONTAL
+}
+
 model Comic {
   id            String        @id @default(uuid())
   title         String
@@ -93,6 +116,8 @@ model Comic {
   dominantColor String?
   ageRating     AgeRating     @default(NORMAL)
   status        ComicStatus   @default(ONGOING)
+  contentType   ContentType   @default(MANHWA)
+  readingMode   ReadingMode   @default(VERTICAL)
   createdAt     DateTime      @default(now())
 
   licenseId     String
@@ -181,10 +206,11 @@ model Chapter {
   publishedAt   DateTime?
   createdAt     DateTime  @default(now())
 
-  comic    Comic           @relation(fields: [comicId], references: [id])
-  comments Comment[]
-  staff    ChapterStaff[]
-  unlocks  ChapterUnlock[]
+  comic     Comic             @relation(fields: [comicId], references: [id])
+  comments  Comment[]
+  staff     ChapterStaff[]
+  unlocks   ChapterUnlock[]
+  reactions ChapterReaction[]
 
   @@index([comicId, chapterNumber])
 }
@@ -212,6 +238,20 @@ model ChapterUnlock {
   @@id([userId, chapterId])
 }
 
+model ChapterReaction {
+  id        String   @id @default(uuid())
+  chapterId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  chapter Chapter @relation(fields: [chapterId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([chapterId, userId])
+  @@index([chapterId])
+}
+
 model Comment {
   id        String   @id @default(uuid())
   chapterId String
@@ -237,13 +277,14 @@ model Bookmark {
 }
 
 model ReadHistory {
-  userId        String
-  comicId       String
-  lastChapterId String
-  lastPage      Int      @default(1)
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id])
-  comic Comic @relation(fields: [comicId], references: [id])
+  userId         String
+  comicId        String
+  lastChapterId  String
+  lastPage       Int      @default(1)
+  scrollFraction Float    @default(0)
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id])
+  comic          Comic    @relation(fields: [comicId], references: [id])
 
   @@id([userId, comicId])
 }

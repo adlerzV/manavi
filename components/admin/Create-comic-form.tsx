@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import type { ContentType, ReadingMode } from "@prisma/client";
 import { createComic } from "@/app/admin/actions/catalog-actions";
+import { CONTENT_TYPE_LABELS, READING_MODE_LABELS, suggestReadingMode } from "@/lib/reading";
 
 interface LicenseOption {
   id: string;
@@ -9,6 +11,9 @@ interface LicenseOption {
   territory: string[];
   status: string;
 }
+
+const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
+const READING_MODES: ReadingMode[] = ["VERTICAL", "HORIZONTAL"];
 
 export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
   const eligible = licenses.filter((l) => l.status !== "EXPIRED" && l.status !== "TERMINATED");
@@ -20,8 +25,18 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
   const [bannerImage, setBannerImage] = useState("");
   const [licenseId, setLicenseId] = useState(eligible[0]?.id ?? "");
   const [ageRating, setAgeRating] = useState<"NORMAL" | "EIGHTEEN_PLUS" | "NSFW">("NORMAL");
+  const [contentType, setContentType] = useState<ContentType>("MANHWA");
+  const [readingMode, setReadingMode] = useState<ReadingMode>("VERTICAL");
+  const [readingModeTouched, setReadingModeTouched] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  function handleContentTypeChange(next: ContentType) {
+    setContentType(next);
+    if (!readingModeTouched) {
+      setReadingMode(suggestReadingMode(next));
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -36,6 +51,8 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
       bannerImage: bannerImage || undefined,
       licenseId,
       ageRating,
+      contentType,
+      readingMode,
     });
 
     if (result.success) {
@@ -45,6 +62,7 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
       setDescription("");
       setCoverImage("");
       setBannerImage("");
+      setReadingModeTouched(false);
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong");
@@ -151,20 +169,61 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
         </div>
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm text-text-muted" htmlFor="comic-age-rating">
-          Age rating
-        </label>
-        <select
-          id="comic-age-rating"
-          value={ageRating}
-          onChange={(e) => setAgeRating(e.target.value as typeof ageRating)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
-        >
-          <option value="NORMAL">Normal</option>
-          <option value="EIGHTEEN_PLUS">18+</option>
-          <option value="NSFW">NSFW</option>
-        </select>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1">
+          <label className="text-sm text-text-muted" htmlFor="comic-age-rating">
+            Age rating
+          </label>
+          <select
+            id="comic-age-rating"
+            value={ageRating}
+            onChange={(e) => setAgeRating(e.target.value as typeof ageRating)}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
+          >
+            <option value="NORMAL">Normal</option>
+            <option value="EIGHTEEN_PLUS">18+</option>
+            <option value="NSFW">NSFW</option>
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm text-text-muted" htmlFor="comic-content-type">
+            Content type
+          </label>
+          <select
+            id="comic-content-type"
+            value={contentType}
+            onChange={(e) => handleContentTypeChange(e.target.value as ContentType)}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
+          >
+            {CONTENT_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {CONTENT_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm text-text-muted" htmlFor="comic-reading-mode">
+            Reading mode
+          </label>
+          <select
+            id="comic-reading-mode"
+            value={readingMode}
+            onChange={(e) => {
+              setReadingMode(e.target.value as ReadingMode);
+              setReadingModeTouched(true);
+            }}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
+          >
+            {READING_MODES.map((mode) => (
+              <option key={mode} value={mode}>
+                {READING_MODE_LABELS[mode]}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {status === "error" && <p className="text-sm text-red-400">{error}</p>}
