@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { getChapterAccessList, userHasChapterAccess } from "@/lib/chapters";
 import { getSignedImageUrls } from "@/lib/s3";
+import { recordChapterView } from "@/lib/analytics";
 import { ChapterReader } from "@/components/reader/chapter-reader";
 import { LockedChapterGate } from "@/components/reader/locked-chapter-gate";
 import { CommentSection } from "@/components/comments/comment-section";
@@ -24,7 +25,9 @@ export default async function ReadChapterPage({ params }: PageProps) {
       title: true,
       pages: true,
       publishedAt: true,
-      comic: { select: { id: true, title: true, slug: true, readingMode: true, contentType: true } },
+      comic: {
+        select: { id: true, title: true, slug: true, readingMode: true, contentType: true, license: { select: { publisherId: true } } },
+      },
     },
   });
 
@@ -51,7 +54,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
   const locked = entry?.locked ?? false;
 
   if (locked) {
-    const hasAccess = await userHasChapterAccess(user?.id ?? null, chapterId);
+    const hasAccess = await userHasChapterAccess(user?.id ?? null, chapterId, user?.role);
     if (!hasAccess) {
       return <LockedChapterGate chapterId={chapterId} coinsBalance={user?.coinsBalance ?? 0} />;
     }
@@ -60,27 +63,38 @@ export default async function ReadChapterPage({ params }: PageProps) {
   const sortedChapters = [...accessList].sort((a, b) => a.chapterNumber - b.chapterNumber);
   const currentIndex = sortedChapters.findIndex((c) => c.id === chapterId);
   const prevChapterId = currentIndex > 0 ? sortedChapters[currentIndex - 1].id : null;
-  const nextChapterId =
-    currentIndex >= 0 && currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1].id : null;
+  const nextChapterId = currentIndex >= 0 && currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1].id : null;
+
+  let canReply = user?.role === "ADMIN";
+  if (!canReply && user?.publisherProfile) {
+    canReply = user.publisherProfile.id === chapter.comic.license.publisherId;
+  }
+  if (!canReply && user) {
+    const staffLink = await prisma.publisherStaff.findFirst({ where: { userId: user.id, publisherId: chapter.comic.license.publisherId } });
+    canReply = Boolean(staffLink);
+  }
+
+  recordChapterView(chapterId, chapter.comic.id).catch(() => {});
 
   const [readHistory, pageUrls, reactionData, comments] = await Promise.all([
-    user
-      ? prisma.readHistory.findUnique({
-          where: { userId_comicId: { userId: user.id, comicId: chapter.comic.id } },
-        })
-      : Promise.resolve(null),
+    user ? prisma.readHistory.findUnique({ where: { userId_comicId: { userId: user.id, comicId: chapter.comic.id } } }) : Promise.resolve(null),
     getSignedImageUrls(chapter.pages),
     getChapterReactionSummary(chapterId, user?.id ?? null),
     prisma.comment.findMany({
-      where: { chapterId },
+      where: { chapterId, parentId: null },
       orderBy: { createdAt: "desc" },
       take: 50,
       select: {
         id: true,
         content: true,
         isSpoiler: true,
+        isStaffReply: true,
         createdAt: true,
         user: { select: { firstName: true, lastName: true, username: true } },
+        replies: {
+          orderBy: { createdAt: "asc" },
+          select: { id: true, content: true, isSpoiler: true, isStaffReply: true, createdAt: true, user: { select: { firstName: true, lastName: true, username: true } } },
+        },
       },
     }),
   ]);
@@ -109,7 +123,12 @@ export default async function ReadChapterPage({ params }: PageProps) {
       <div className="bg-background">
         <CommentSection
           chapterId={chapter.id}
-          initialComments={comments.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() }))}
+          initialComments={comments.map((c) => ({
+            ...c,
+            createdAt: c.createdAt.toISOString(),
+            replies: c.replies.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+          }))}
+          canReply={canReply}
         />
       </div>
     </>

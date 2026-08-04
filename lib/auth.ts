@@ -26,3 +26,34 @@ export async function requireAdmin(): Promise<SessionUser> {
   }
   return user;
 }
+
+export async function requireUploadAccess(comicId: string): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+  if (user.role === "ADMIN") {
+    return user;
+  }
+
+  const comic = await prisma.comic.findUnique({
+    where: { id: comicId },
+    select: { license: { select: { publisherId: true } } },
+  });
+  if (!comic) {
+    throw new Error("Comic not found");
+  }
+
+  if (user.publisherProfile?.id === comic.license.publisherId) {
+    return user;
+  }
+
+  const staffLink = await prisma.publisherStaff.findFirst({
+    where: { userId: user.id, publisherId: comic.license.publisherId, canUpload: true },
+  });
+  if (staffLink) {
+    return user;
+  }
+
+  throw new Error("Not authorized to upload for this comic");
+}

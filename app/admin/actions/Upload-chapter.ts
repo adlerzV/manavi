@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireUploadAccess } from "@/lib/auth";
 import { uploadPageImage } from "@/lib/s3";
 import { processInBatches } from "@/lib/batch-upload";
 
@@ -16,12 +16,8 @@ const MAX_PAGES = 300;
 const MAX_PAGE_SIZE_BYTES = 15 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-export async function uploadChapter(
-  formData: FormData
-): Promise<ActionResult<{ chapterId: string }>> {
+export async function uploadChapter(formData: FormData): Promise<ActionResult<{ chapterId: string }>> {
   try {
-    await requireAdmin();
-
     const comicId = formData.get("comicId");
     const chapterNumberRaw = formData.get("chapterNumber");
     const title = formData.get("title");
@@ -30,6 +26,9 @@ export async function uploadChapter(
     if (typeof comicId !== "string" || !comicId) {
       return { success: false, error: "comicId is required" };
     }
+
+    await requireUploadAccess(comicId);
+
     if (typeof chapterNumberRaw !== "string" || Number.isNaN(Number(chapterNumberRaw))) {
       return { success: false, error: "A valid chapterNumber is required" };
     }
@@ -46,10 +45,7 @@ export async function uploadChapter(
         return { success: false, error: `Unsupported file type: ${page.type}` };
       }
       if (page.size > MAX_PAGE_SIZE_BYTES) {
-        return {
-          success: false,
-          error: `${page.name} exceeds the ${MAX_PAGE_SIZE_BYTES / 1024 / 1024}MB limit`,
-        };
+        return { success: false, error: `${page.name} exceeds the ${MAX_PAGE_SIZE_BYTES / 1024 / 1024}MB limit` };
       }
     }
 
@@ -61,10 +57,7 @@ export async function uploadChapter(
       return { success: false, error: "Comic not found" };
     }
     if (comic.license.status === "EXPIRED" || comic.license.status === "TERMINATED") {
-      return {
-        success: false,
-        error: `Cannot upload — license is ${comic.license.status.toLowerCase()}`,
-      };
+      return { success: false, error: `Cannot upload — license is ${comic.license.status.toLowerCase()}` };
     }
 
     const pageUrls = await processInBatches(pages, 5, async (page, i) => {
@@ -78,6 +71,7 @@ export async function uploadChapter(
         chapterNumber,
         title: typeof title === "string" && title.trim() ? title.trim() : null,
         pages: pageUrls,
+        status: "DRAFT",
       },
     });
 

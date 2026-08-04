@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/moderation";
 
 interface CreateCommentInput {
   chapterId: string;
@@ -27,6 +28,14 @@ export async function createComment(input: CreateCommentInput): Promise<CreateCo
   if (!user) {
     return { success: false, error: "برای ارسال نظر باید وارد شوید" };
   }
+  if (user.isBanned) {
+    return { success: false, error: "حساب شما مسدود شده است" };
+  }
+
+  const allowed = await checkRateLimit(`comment:${user.id}`, 10);
+  if (!allowed) {
+    return { success: false, error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" };
+  }
 
   const content = input.content.trim();
   if (!content) {
@@ -37,25 +46,11 @@ export async function createComment(input: CreateCommentInput): Promise<CreateCo
   }
 
   const comment = await prisma.comment.create({
-    data: {
-      chapterId: input.chapterId,
-      userId: user.id,
-      content,
-      isSpoiler: input.isSpoiler,
-    },
-    select: {
-      id: true,
-      content: true,
-      isSpoiler: true,
-      createdAt: true,
-      user: { select: { firstName: true, lastName: true, username: true } },
-    },
+    data: { chapterId: input.chapterId, userId: user.id, content, isSpoiler: input.isSpoiler },
+    select: { id: true, content: true, isSpoiler: true, createdAt: true, user: { select: { firstName: true, lastName: true, username: true } } },
   });
 
   revalidatePath(`/app/read/${input.chapterId}`);
 
-  return {
-    success: true,
-    comment: { ...comment, createdAt: comment.createdAt.toISOString() },
-  };
+  return { success: true, comment: { ...comment, createdAt: comment.createdAt.toISOString() } };
 }

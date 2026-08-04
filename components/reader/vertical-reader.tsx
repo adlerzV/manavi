@@ -99,7 +99,7 @@ export function VerticalReader({
   }, [currentPage, onProgress]);
 
   useEffect(() => {
-    const nextIndexes = [currentPage, currentPage + 1];
+    const nextIndexes = [currentPage, currentPage + 1, currentPage + 2];
     nextIndexes.forEach((idx) => {
       const url = pages[idx];
       if (!url) return;

@@ -37,14 +37,23 @@ async function requirePublishAccess(comicId: string): Promise<void> {
     return;
   }
 
-  if (user.role === "PUBLISHER" && user.publisherProfile) {
-    const comic = await prisma.comic.findUnique({
-      where: { id: comicId },
-      select: { license: { select: { publisherId: true } } },
-    });
-    if (comic?.license.publisherId === user.publisherProfile.id) {
-      return;
-    }
+  const comic = await prisma.comic.findUnique({
+    where: { id: comicId },
+    select: { license: { select: { publisherId: true } } },
+  });
+  if (!comic) {
+    throw new Error("Comic not found");
+  }
+
+  if (user.role === "PUBLISHER" && user.publisherProfile?.id === comic.license.publisherId) {
+    return;
+  }
+
+  const staffLink = await prisma.publisherStaff.findFirst({
+    where: { userId: user.id, publisherId: comic.license.publisherId, canUpload: true },
+  });
+  if (staffLink) {
+    return;
   }
 
   throw new Error("Not authorized to publish this chapter");
@@ -74,15 +83,16 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
 
     await prisma.chapter.update({
       where: { id: chapterId },
-      data: { publishedAt: new Date() },
+      data: { publishedAt: new Date(), status: "PUBLISHED", scheduledAt: null },
     });
 
     revalidatePath(`/app/comic/${chapter.comic.slug}`);
     revalidatePath(`/app/read/${chapterId}`);
     revalidatePath("/app");
     revalidatePath("/app/explore");
+
     const bookmarks = await prisma.bookmark.findMany({
-      where: { comicId: chapter.comic.id },
+      where: { comicId: chapter.comic.id, notifyOnNewChapter: true },
       select: { user: { select: { telegramId: true } } },
     });
     if (bookmarks.length > 0) {
@@ -100,9 +110,6 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
     if (err instanceof LicenseInactiveError) {
       return { success: false, error: `Cannot publish: ${err.reason}` };
     }
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Unknown error",
-    };
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 }

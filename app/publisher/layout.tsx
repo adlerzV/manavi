@@ -4,18 +4,15 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 
 const NAV = [
-  { href: "/admin", label: "داشبورد" },
-  { href: "/admin/publishers", label: "ناشران" },
-  { href: "/admin/licenses", label: "لایسنس‌ها" },
-  { href: "/admin/comics", label: "عناوین" },
-  { href: "/admin/users", label: "کاربران" },
-  { href: "/admin/analytics", label: "آمار" },
-  { href: "/admin/payouts", label: "تسویه‌حساب" },
+  { href: "/publisher", label: "داشبورد" },
+  { href: "/publisher/profile", label: "پروفایل" },
+  { href: "/publisher/team", label: "تیم" },
+  { href: "/publisher/payouts", label: "تسویه‌حساب" },
 ];
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+export default async function PublisherLayout({ children }: { children: ReactNode }) {
   const user = await getSessionUser();
-  if (!user || user.role !== "ADMIN") {
+  if (!user || (!user.publisherProfile && user.role !== "ADMIN")) {
     redirect("/");
   }
 

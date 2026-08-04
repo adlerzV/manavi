@@ -37,12 +37,30 @@ export async function uploadPageImage(
   return key;
 }
 
-export async function getSignedImageUrl(key: string, expiresInSec: number = 21600): Promise<string> {
-  const command = new GetObjectCommand({
-    Bucket: BUCKET,
-    Key: key,
-  });
+export async function uploadChapterThumbnail(
+  comicId: string,
+  chapterNumber: number,
+  file: Buffer,
+  contentType: string
+): Promise<string> {
+  const extension = contentType.split("/")[1] || "bin";
+  const key = `comics/${comicId}/chapters/${chapterNumber}/thumbnail-${randomUUID()}.${extension}`;
 
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: file,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    })
+  );
+
+  return key;
+}
+
+export async function getSignedImageUrl(key: string, expiresInSec: number = 21600): Promise<string> {
+  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
   return await getSignedUrl(s3, command, { expiresIn: expiresInSec });
 }
 

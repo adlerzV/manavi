@@ -33,8 +33,13 @@ export async function getChapterAccessList(comicId: string): Promise<ChapterAcce
   });
 }
 
-export async function userHasChapterAccess(userId: string | null, chapterId: string): Promise<boolean> {
+export async function userHasChapterAccess(
+  userId: string | null,
+  chapterId: string,
+  role?: string
+): Promise<boolean> {
   if (!userId) return false;
+  if (role === "ADMIN") return true;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
