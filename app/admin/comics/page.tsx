@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CreateComicForm } from "@/components/admin/create-comic-form";
+import { getAllGenres } from "@/lib/genres";
 
 interface PageProps {
   searchParams: Promise<{ q?: string }>;
@@ -9,7 +11,7 @@ interface PageProps {
 export default async function AdminComicsPage({ searchParams }: PageProps) {
   const { q } = await searchParams;
 
-  const [comics, licenses] = await Promise.all([
+  const [comics, licenses, genres] = await Promise.all([
     prisma.comic.findMany({
       where: q ? { title: { contains: q, mode: "insensitive" } } : undefined,
       orderBy: { createdAt: "desc" },
@@ -22,6 +24,7 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
       where: { status: { notIn: ["EXPIRED", "TERMINATED"] } },
       include: { publisher: { select: { name: true } } },
     }),
+    getAllGenres(),
   ]);
 
   const licenseOptions = licenses.map((l) => ({
@@ -33,7 +36,15 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-8">
-      <CreateComicForm licenses={licenseOptions} />
+      <CollapsibleSection triggerLabel="افزودن عنوان جدید">
+        {(close) => (
+          <CreateComicForm
+            licenses={licenseOptions}
+            genres={genres.map((g) => ({ id: g.id, name: g.name }))}
+            onCreated={close}
+          />
+        )}
+      </CollapsibleSection>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-medium text-text-main">لیست عناوین</h2>

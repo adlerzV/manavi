@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import type { ContentType, ReadingMode } from "@prisma/client";
 import { createComic } from "@/app/admin/actions/catalog-actions";
 import { CONTENT_TYPE_LABELS, READING_MODE_LABELS, suggestReadingMode } from "@/lib/reading";
@@ -12,10 +13,16 @@ interface LicenseOption {
   status: string;
 }
 
+interface GenreOption {
+  id: string;
+  name: string;
+}
+
 const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
 const READING_MODES: ReadingMode[] = ["VERTICAL", "HORIZONTAL"];
 
-export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
+export function CreateComicForm({ licenses, genres, onCreated }: { licenses: LicenseOption[]; genres: GenreOption[]; onCreated?: () => void }) {
+  const router = useRouter();
   const eligible = licenses.filter((l) => l.status !== "EXPIRED" && l.status !== "TERMINATED");
 
   const [title, setTitle] = useState("");
@@ -28,6 +35,7 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
   const [contentType, setContentType] = useState<ContentType>("MANHWA");
   const [readingMode, setReadingMode] = useState<ReadingMode>("VERTICAL");
   const [readingModeTouched, setReadingModeTouched] = useState(false);
+  const [genreIds, setGenreIds] = useState<string[]>([]);
   const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +44,10 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
     if (!readingModeTouched) {
       setReadingMode(suggestReadingMode(next));
     }
+  }
+
+  function toggleGenre(genreId: string) {
+    setGenreIds((prev) => (prev.includes(genreId) ? prev.filter((id) => id !== genreId) : [...prev, genreId]));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -53,6 +65,7 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
       ageRating,
       contentType,
       readingMode,
+      genreIds,
     });
 
     if (result.success) {
@@ -62,7 +75,10 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
       setDescription("");
       setCoverImage("");
       setBannerImage("");
+      setGenreIds([]);
       setReadingModeTouched(false);
+      router.refresh();
+      setTimeout(() => onCreated?.(), 1000);
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong");
@@ -224,6 +240,28 @@ export function CreateComicForm({ licenses }: { licenses: LicenseOption[] }) {
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <span className="text-sm text-text-muted">Genres</span>
+        {genres.length === 0 ? (
+          <p className="text-xs text-text-muted">No genres yet — add one from the Genres page.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {genres.map((genre) => (
+              <button
+                type="button"
+                key={genre.id}
+                onClick={() => toggleGenre(genre.id)}
+                className={`rounded-full border px-3 py-1 text-xs ${
+                  genreIds.includes(genre.id) ? "border-primary bg-primary/10 text-primary" : "border-border text-text-muted"
+                }`}
+              >
+                {genre.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {status === "error" && <p className="text-sm text-red-400">{error}</p>}

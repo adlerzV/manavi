@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSignedImageUrls } from "@/lib/s3";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { UploadChapterForm } from "@/components/admin/upload-chapter-form";
 import { ChapterStatusPanel } from "@/components/admin/chapter-status-panel";
 import { ChapterThumbnailCropper } from "@/components/admin/chapter-thumbnail-cropper";
@@ -47,7 +48,9 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-8">
       <h1 className="text-xl font-semibold text-text-main">{comic.title}</h1>
-      <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} />
+      <CollapsibleSection triggerLabel="آپلود چپتر جدید">
+        {(close) => <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} onCreated={close} />}
+      </CollapsibleSection>
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">چپترها</h2>
         <div className="divide-y divide-border rounded-md border border-border">

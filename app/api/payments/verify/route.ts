@@ -3,8 +3,15 @@ import type { Transaction } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyPayment } from "@/lib/zarinpal";
 
-function resultPath(transaction: Pick<Transaction, "type" | "receiverId"> | null): string {
+async function resultPath(transaction: Pick<Transaction, "type" | "receiverId"> | null): Promise<string> {
   if (transaction?.type === "DONATION" && transaction.receiverId) {
+    const publisherProfile = await prisma.publisher.findUnique({
+      where: { contractUserId: transaction.receiverId },
+      select: { id: true },
+    });
+    if (publisherProfile) {
+      return `/app/publisher/${publisherProfile.id}`;
+    }
     return `/app/team/${transaction.receiverId}`;
   }
   return "/app/shop";
@@ -29,7 +36,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${redirectBase}/app/shop?payment=error`);
   }
 
-  const path = resultPath(transaction);
+  const path = await resultPath(transaction);
 
   if (status !== "OK") {
     await prisma.transaction.update({ where: { id: transaction.id }, data: { status: "FAILED" } });

@@ -2,7 +2,11 @@ import Link from "next/link";
 import type { AgeRating } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ComicCard } from "@/components/catalog/comic-card";
+import { GenreGrid } from "@/components/catalog/genre-grid";
+import { TopSearches } from "@/components/catalog/top-searches";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
+import { getVisibleGenres } from "@/lib/genres";
+import { recordSearchTerm, getTopSearchTerms } from "@/app/actions/search";
 
 export const revalidate = 60;
 
@@ -18,35 +22,43 @@ export default async function ExplorePage({ searchParams }: PageProps) {
   const effectiveRatings: AgeRating[] =
     requestedRating && allowedRatings.includes(requestedRating) ? [requestedRating] : allowedRatings;
 
-  const genres = await prisma.genre.findMany({ orderBy: { name: "asc" } });
+  if (q?.trim()) {
+    await recordSearchTerm(q.trim());
+  }
 
-  const comics = await prisma.comic.findMany({
-    where: {
-      ageRating: { in: effectiveRatings },
-      title: q ? { contains: q, mode: "insensitive" } : undefined,
-      genres: genre ? { some: { genreId: genre } } : undefined,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 40,
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      coverImage: true,
-      dominantColor: true,
-      chapters: {
-        where: { publishedAt: { not: null } },
-        orderBy: { chapterNumber: "desc" },
-        take: 1,
-        select: { chapterNumber: true },
+  const [genres, topSearches, comics] = await Promise.all([
+    getVisibleGenres(allowedRatings),
+    getTopSearchTerms(10),
+    prisma.comic.findMany({
+      where: {
+        ageRating: { in: effectiveRatings },
+        title: q ? { contains: q, mode: "insensitive" } : undefined,
+        genres: genre ? { some: { genreId: genre } } : undefined,
       },
-    },
-  });
+      orderBy: { createdAt: "desc" },
+      take: 40,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        coverImage: true,
+        dominantColor: true,
+        chapters: {
+          where: { publishedAt: { not: null } },
+          orderBy: { chapterNumber: "desc" },
+          take: 1,
+          select: { chapterNumber: true },
+        },
+      },
+    }),
+  ]);
+
+  const showingResults = Boolean(q || genre);
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-4xl">
-        <form className="mb-6 flex gap-2">
+        <form className="mb-4 flex gap-2">
           <input
             type="text"
             name="q"
@@ -59,27 +71,32 @@ export default async function ExplorePage({ searchParams }: PageProps) {
           </button>
         </form>
 
-        <div className="mb-6 flex flex-wrap gap-2">
-          <Link
-            href="/app/explore"
-            className={`rounded-full px-3 py-1 text-xs ${
-              !genre ? "bg-primary text-primary-foreground" : "bg-surface text-text-muted"
-            }`}
-          >
-            همه
-          </Link>
-          {genres.map((g) => (
-            <Link
-              key={g.id}
-              href={`/app/explore?genre=${g.id}`}
-              className={`rounded-full px-3 py-1 text-xs ${
-                genre === g.id ? "bg-primary text-primary-foreground" : "bg-surface text-text-muted"
-              }`}
-            >
-              {g.name}
+        {!showingResults && topSearches.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-2 text-xs font-medium text-text-muted">بیشترین جستجوها</h2>
+            <TopSearches terms={topSearches} />
+          </div>
+        )}
+
+        {!showingResults && genres.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-2 text-xs font-medium text-text-muted">دسته‌بندی‌ها</h2>
+            <GenreGrid genres={genres} />
+          </div>
+        )}
+
+        {showingResults && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Link href="/app/explore" className="rounded-full bg-surface px-3 py-1 text-xs text-text-muted">
+              پاک کردن فیلتر
             </Link>
-          ))}
-        </div>
+            {genre && (
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+                {genres.find((g) => g.id === genre)?.name ?? "دسته‌بندی"}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {comics.map((comic) => (
@@ -92,7 +109,7 @@ export default async function ExplorePage({ searchParams }: PageProps) {
               latestChapter={comic.chapters[0]?.chapterNumber ?? null}
             />
           ))}
-          {comics.length === 0 && <p className="col-span-full text-sm text-text-muted">موردی یافت نشد.</p>}
+          {comics.length === 0 && showingResults && <p className="col-span-full text-sm text-text-muted">موردی یافت نشد.</p>}
         </div>
       </div>
     </main>

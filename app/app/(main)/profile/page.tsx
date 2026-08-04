@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { EditProfileForm } from "@/components/profile/edit-profile-form";
 import { ContentPreferenceForm } from "@/components/profile/content-preference-form";
 import { DailyCheckinCard } from "@/components/gamification/daily-checkin-card";
 import { ReferralCard } from "@/components/gamification/referral-card";
@@ -78,8 +80,12 @@ export default async function ProfilePage() {
     <main className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-10">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-xl font-medium text-text-main">
-            {user.firstName.charAt(0)}
+          <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface text-xl font-medium text-text-main">
+            {user.avatarUrl ? (
+              <Image src={user.avatarUrl} alt={user.firstName} fill sizes="64px" className="object-cover" />
+            ) : (
+              user.firstName.charAt(0)
+            )}
           </div>
           <div>
             <h1 className="text-lg font-semibold text-text-main">
@@ -88,6 +94,19 @@ export default async function ProfilePage() {
             <p className="text-sm text-text-muted">موجودی سکه: {user.coinsBalance.toLocaleString("fa-IR")}</p>
           </div>
         </div>
+
+        <section>
+          <CollapsibleSection triggerLabel="ویرایش پروفایل">
+            {(close) => (
+              <EditProfileForm
+                initialBio={user.bio}
+                initialAvatarUrl={user.avatarUrl}
+                initialDonationLink={user.donationLink}
+                onSaved={close}
+              />
+            )}
+          </CollapsibleSection>
+        </section>
 
         <section>
           <DailyCheckinCard currentStreak={user.currentStreak} alreadyClaimedToday={alreadyClaimedToday} />

@@ -13,39 +13,46 @@ const ROLE_LABELS: Record<string, string> = {
   LOCALIZATION_SPECIALIST: "مترجم",
   EDITOR: "ادیتور",
   CLEANER: "کلینر",
+  TYPIST: "تایپیست",
 };
 
 export default async function TeamProfilePage({ params }: PageProps) {
   const { userId } = await params;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      username: true,
-      staffRoles: {
-        select: { roleTitle: true, comic: { select: { id: true, title: true, slug: true, coverImage: true } } },
+  const [profileUser, sessionUser] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        bio: true,
+        avatarUrl: true,
+        donationLink: true,
+        staffRoles: {
+          select: { roleTitle: true, comic: { select: { id: true, title: true, slug: true, coverImage: true } } },
+        },
       },
-    },
-  });
+    }),
+    getSessionUser(),
+  ]);
 
-  if (!user) {
+  if (!profileUser) {
     notFound();
   }
 
   const chapterCounts = await prisma.chapterStaff.groupBy({
     by: ["roleTitle"],
-    where: { userId: user.id, chapter: { publishedAt: { not: null } } },
+    where: { userId: profileUser.id, chapter: { publishedAt: { not: null } } },
     _count: { _all: true },
   });
 
-  const comicsByTitle = new Map<
+  const comicsByTitle = new Map
     string,
     { id: string; title: string; slug: string; coverImage: string; roles: Set<string> }
   >();
-  for (const entry of user.staffRoles) {
+  for (const entry of profileUser.staffRoles) {
     const existing = comicsByTitle.get(entry.comic.id);
     if (existing) {
       existing.roles.add(entry.roleTitle);
@@ -54,20 +61,45 @@ export default async function TeamProfilePage({ params }: PageProps) {
     }
   }
 
+  const isOwnProfile = sessionUser?.id === profileUser.id;
+
   return (
     <main className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-xl font-medium text-text-main">
-            {user.firstName.charAt(0)}
+          <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface text-xl font-medium text-text-main">
+            {profileUser.avatarUrl ? (
+              <Image src={profileUser.avatarUrl} alt={profileUser.firstName} fill sizes="64px" className="object-cover" />
+            ) : (
+              profileUser.firstName.charAt(0)
+            )}
           </div>
           <div>
             <h1 className="text-xl font-semibold text-text-main">
-              {user.firstName} {user.lastName ?? ""}
+              {profileUser.firstName} {profileUser.lastName ?? ""}
             </h1>
-            {user.username && <p className="text-sm text-text-muted">@{user.username}</p>}
+            {profileUser.username && <p className="text-sm text-text-muted">@{profileUser.username}</p>}
           </div>
         </div>
+
+        {profileUser.bio && <p className="mt-4 max-w-xl text-sm text-text-muted">{profileUser.bio}</p>}
+
+        {!isOwnProfile && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <DonateButton receiverId={profileUser.id} authenticated={Boolean(sessionUser)} />
+            {profileUser.donationLink && (
+              <a href={profileUser.donationLink} target="_blank" rel="noreferrer" className="text-xs text-primary underline">
+                لینک دونیت خارجی
+              </a>
+            )}
+          </div>
+        )}
+
+        {isOwnProfile && (
+          <Link href="/app/profile" className="mt-4 inline-block text-xs text-primary underline">
+            ویرایش پروفایل
+          </Link>
+        )}
 
         <div className="mt-6 grid grid-cols-3 gap-3">
           {chapterCounts.map((c) => (

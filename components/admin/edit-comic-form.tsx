@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import type { ContentType, ReadingMode } from "@prisma/client";
 import { updateComic } from "@/app/admin/actions/catalog-actions";
 import { CONTENT_TYPE_LABELS, READING_MODE_LABELS } from "@/lib/reading";
@@ -10,6 +11,11 @@ interface LicenseOption {
   publisherName: string;
   territory: string[];
   status: string;
+}
+
+interface GenreOption {
+  id: string;
+  name: string;
 }
 
 interface EditComicFormProps {
@@ -28,12 +34,16 @@ interface EditComicFormProps {
     featuredBadge: string | null;
   };
   licenses: LicenseOption[];
+  genres: GenreOption[];
+  initialGenreIds: string[];
+  onSaved?: () => void;
 }
 
 const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
 const READING_MODES: ReadingMode[] = ["VERTICAL", "HORIZONTAL", "DOUBLE_PAGE"];
 
-export function EditComicForm({ comic, licenses }: EditComicFormProps) {
+export function EditComicForm({ comic, licenses, genres, initialGenreIds, onSaved }: EditComicFormProps) {
+  const router = useRouter();
   const [title, setTitle] = useState(comic.title);
   const [slug, setSlug] = useState(comic.slug);
   const [description, setDescription] = useState(comic.description);
@@ -45,12 +55,17 @@ export function EditComicForm({ comic, licenses }: EditComicFormProps) {
   const [readingMode, setReadingMode] = useState<ReadingMode>(comic.readingMode);
   const [isFeaturedOnHome, setIsFeaturedOnHome] = useState(comic.isFeaturedOnHome);
   const [featuredBadge, setFeaturedBadge] = useState(comic.featuredBadge ?? "");
+  const [genreIds, setGenreIds] = useState<string[]>(initialGenreIds);
   const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
   const licenseOptions = licenses.some((l) => l.id === comic.licenseId)
     ? licenses
     : [{ id: comic.licenseId, publisherName: "(لایسنس فعلی)", territory: [], status: "" }, ...licenses];
+
+  function toggleGenre(genreId: string) {
+    setGenreIds((prev) => (prev.includes(genreId) ? prev.filter((id) => id !== genreId) : [...prev, genreId]));
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -69,10 +84,13 @@ export function EditComicForm({ comic, licenses }: EditComicFormProps) {
       readingMode,
       isFeaturedOnHome,
       featuredBadge: featuredBadge || undefined,
+      genreIds,
     });
 
     if (result.success) {
       setStatus("done");
+      router.refresh();
+      setTimeout(() => onSaved?.(), 800);
     } else {
       setStatus("error");
       setError(result.error ?? "خطا در ذخیره‌سازی");
@@ -148,10 +166,32 @@ export function EditComicForm({ comic, licenses }: EditComicFormProps) {
         </div>
       </div>
 
+      <div className="space-y-2">
+        <span className="text-sm text-text-muted">دسته‌بندی‌ها</span>
+        {genres.length === 0 ? (
+          <p className="text-xs text-text-muted">هنوز دسته‌بندی‌ای ثبت نشده.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {genres.map((genre) => (
+              <button
+                type="button"
+                key={genre.id}
+                onClick={() => toggleGenre(genre.id)}
+                className={`rounded-full border px-3 py-1 text-xs ${
+                  genreIds.includes(genre.id) ? "border-primary bg-primary/10 text-primary" : "border-border text-text-muted"
+                }`}
+              >
+                {genre.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-end gap-4 rounded-md border border-border bg-background p-3">
         <label className="flex items-center gap-2 text-sm text-text-main">
           <input type="checkbox" checked={isFeaturedOnHome} onChange={(e) => setIsFeaturedOnHome(e.target.checked)} />
-          نمایش به‌عنوان بنر ویژه در صفحه اصلی
+          نمایش به‌عنوان هیرو در صفحه اصلی
         </label>
         <div className="flex-1 space-y-1">
           <label className="text-xs text-text-muted" htmlFor="edit-comic-badge">متن بج (مثلاً «چپتر جدید»)</label>

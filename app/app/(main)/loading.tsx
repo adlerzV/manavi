@@ -4,25 +4,40 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Loading() {
   return (
     <main className="min-h-screen bg-background">
-      <section className="px-4 pb-10 pt-16">
-        <div className="mx-auto flex max-w-4xl flex-col items-start gap-4 sm:flex-row sm:items-end">
-          <Skeleton className="h-48 w-32 flex-shrink-0 sm:h-60 sm:w-40" />
-          <div className="flex-1 space-y-3">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-7 w-2/3" />
-            <Skeleton className="h-4 w-full max-w-md" />
-          </div>
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/80 px-4 py-3">
+        <Skeleton className="h-7 w-24" />
+        <Skeleton className="h-8 w-20 rounded-full" />
+      </header>
+
+      <section className="px-4 pb-10 pt-8">
+        <Skeleton className="mx-auto aspect-[16/9] w-full max-w-4xl rounded-2xl sm:aspect-[21/9]" />
+      </section>
+
+      <section className="mx-auto max-w-4xl px-4 py-6">
+        <div className="mb-3 flex gap-2">
+          <Skeleton className="h-8 w-28 rounded-full" />
+          <Skeleton className="h-8 w-28 rounded-full" />
         </div>
+        <div className="mb-4 flex gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-6 w-16 flex-shrink-0 rounded-full" />
+          ))}
+        </div>
+        <ComicCardSkeletonGrid count={9} />
       </section>
 
-      <section className="mx-auto max-w-4xl px-4 py-8">
-        <Skeleton className="mb-4 h-5 w-32" />
-        <ComicCardSkeletonGrid />
+      <section className="mx-auto max-w-4xl px-4 py-6">
+        <Skeleton className="mb-3 h-5 w-40" />
+        <ComicCardSkeletonGrid count={9} />
       </section>
 
-      <section className="mx-auto max-w-4xl px-4 py-8">
-        <Skeleton className="mb-4 h-5 w-32" />
-        <ComicCardSkeletonGrid />
+      <section className="mx-auto max-w-4xl px-4 py-6">
+        <Skeleton className="mb-3 h-5 w-32" />
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-52 flex-shrink-0 rounded-md" />
+          ))}
+        </div>
       </section>
     </main>
   );

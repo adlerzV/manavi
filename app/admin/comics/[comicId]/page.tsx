@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSignedImageUrls } from "@/lib/s3";
+import { getAllGenres } from "@/lib/genres";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { UploadChapterForm } from "@/components/admin/upload-chapter-form";
 import { ChapterStatusPanel } from "@/components/admin/chapter-status-panel";
 import { ChapterThumbnailCropper } from "@/components/admin/chapter-thumbnail-cropper";
@@ -30,6 +32,7 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
       readingMode: true,
       isFeaturedOnHome: true,
       featuredBadge: true,
+      genres: { select: { genreId: true } },
       chapters: {
         orderBy: { chapterNumber: "desc" },
         select: { id: true, chapterNumber: true, title: true, status: true, scheduledAt: true, isLocked: true, pages: true },
@@ -39,10 +42,13 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
 
   if (!comic) notFound();
 
-  const licenses = await prisma.license.findMany({
-    where: { status: { notIn: ["EXPIRED", "TERMINATED"] } },
-    include: { publisher: { select: { name: true } } },
-  });
+  const [licenses, genres] = await Promise.all([
+    prisma.license.findMany({
+      where: { status: { notIn: ["EXPIRED", "TERMINATED"] } },
+      include: { publisher: { select: { name: true } } },
+    }),
+    getAllGenres(),
+  ]);
   const licenseOptions = licenses.map((l) => ({ id: l.id, publisherName: l.publisher.name, territory: l.territory, status: l.status }));
 
   const chaptersWithPreviews = await Promise.all(
@@ -56,9 +62,21 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
     <div className="space-y-8">
       <h1 className="text-xl font-semibold text-text-main">{comic.title}</h1>
 
-      <EditComicForm comic={comic} licenses={licenseOptions} />
+      <CollapsibleSection triggerLabel="ویرایش اطلاعات عنوان" defaultOpen>
+        {(close) => (
+          <EditComicForm
+            comic={comic}
+            licenses={licenseOptions}
+            genres={genres.map((g) => ({ id: g.id, name: g.name }))}
+            initialGenreIds={comic.genres.map((g) => g.genreId)}
+            onSaved={close}
+          />
+        )}
+      </CollapsibleSection>
 
-      <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} />
+      <CollapsibleSection triggerLabel="آپلود چپتر جدید">
+        {(close) => <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} onCreated={close} />}
+      </CollapsibleSection>
 
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">چپترها</h2>

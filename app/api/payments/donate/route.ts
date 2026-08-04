@@ -1,4 +1,3 @@
-// app/api/payments/donate/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
@@ -24,14 +23,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
   }
 
-  const isTeamMember = await prisma.user.findFirst({
+  const isEligibleReceiver = await prisma.user.findFirst({
     where: {
       id: receiverId,
-      OR: [{ staffRoles: { some: {} } }, { chapterStaffRoles: { some: {} } }],
+      OR: [
+        { staffRoles: { some: {} } },
+        { chapterStaffRoles: { some: {} } },
+        { publisherProfile: { isNot: null } },
+      ],
     },
     select: { id: true },
   });
-  if (!isTeamMember) {
+  if (!isEligibleReceiver) {
     return NextResponse.json({ error: "Recipient is not eligible for donations" }, { status: 400 });
   }
 
