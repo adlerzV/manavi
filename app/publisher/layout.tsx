@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 
 const NAV = [
   { href: "/publisher", label: "داشبورد" },
+  { href: "/publisher/comics", label: "آثار من" },
   { href: "/publisher/profile", label: "پروفایل" },
   { href: "/publisher/team", label: "تیم" },
   { href: "/publisher/payouts", label: "تسویه‌حساب" },

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 
 interface ProtectedImageProps {
@@ -14,23 +15,21 @@ interface ProtectedImageProps {
   className?: string;
 }
 
-export function ProtectedImage({
-  src,
-  alt,
-  priority,
-  loading,
-  sizes,
-  fill,
-  width,
-  height,
-  className,
-}: ProtectedImageProps) {
+export function ProtectedImage({ src, alt, priority, loading, sizes, fill, width, height, className }: ProtectedImageProps) {
+  const [loaded, setLoaded] = useState(false);
+
   return (
     <div
       onContextMenu={(e) => e.preventDefault()}
       className={fill ? "absolute inset-0" : "relative"}
       style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none" }}
     >
+      {!loaded && (
+        <div
+          className="absolute inset-0 animate-pulse bg-white/5"
+          style={!fill ? { aspectRatio: width && height ? `${width} / ${height}` : "2 / 3" } : undefined}
+        />
+      )}
       <Image
         src={src}
         alt={alt}
@@ -42,7 +41,8 @@ export function ProtectedImage({
         height={fill ? undefined : height}
         draggable={false}
         onDragStart={(e) => e.preventDefault()}
-        className={`pointer-events-none select-none ${className ?? ""}`}
+        onLoad={() => setLoaded(true)}
+        className={`pointer-events-none select-none transition-opacity duration-200 ${loaded ? "opacity-100" : "opacity-0"} ${className ?? ""}`}
       />
     </div>
   );

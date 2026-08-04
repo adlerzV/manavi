@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
-const yekanFont = localFont({
-  src: "./fonts/Yekan.woff",
-  variable: "--font-yekan",
+const vazirFont = localFont({
+  src: "./fonts/Vazirmatn-Medium.woff2",
+  variable: "--font-vazir", // 👈 نام متغیر اصلاح شد
   display: "swap",
 });
 
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fa" dir="rtl" className={yekanFont.variable}>
+    <html lang="fa" dir="rtl" className={vazirFont.variable}>
       <body className="font-sans bg-background text-text-main antialiased">
         {children}
       </body>

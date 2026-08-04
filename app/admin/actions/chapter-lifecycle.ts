@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { notifyNewChapter } from "@/lib/telegram-bot";
 
@@ -14,7 +14,6 @@ interface ActionResult<T = undefined> {
 
 export async function scheduleChapter(chapterId: string, scheduledAt: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
     const date = new Date(scheduledAt);
     if (date <= new Date()) {
       return { success: false, error: "زمان زمان‌بندی باید در آینده باشد" };
@@ -27,6 +26,7 @@ export async function scheduleChapter(chapterId: string, scheduledAt: string): P
     if (!chapter) return { success: false, error: "چپتر یافت نشد" };
     if (chapter.publishedAt) return { success: false, error: "چپتر قبلاً منتشر شده است" };
 
+    await requireUploadAccess(chapter.comic.id);
     await assertLicenseActive(chapter.comic.id);
 
     await prisma.chapter.update({
@@ -35,6 +35,7 @@ export async function scheduleChapter(chapterId: string, scheduledAt: string): P
     });
 
     revalidatePath("/admin/comics");
+    revalidatePath("/publisher/comics");
     return { success: true };
   } catch (err) {
     if (err instanceof LicenseInactiveError) {
@@ -46,12 +47,17 @@ export async function scheduleChapter(chapterId: string, scheduledAt: string): P
 
 export async function cancelSchedule(chapterId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { comicId: true } });
+    if (!chapter) return { success: false, error: "چپتر یافت نشد" };
+
+    await requireUploadAccess(chapter.comicId);
+
     await prisma.chapter.update({
       where: { id: chapterId },
       data: { status: "DRAFT", scheduledAt: null },
     });
     revalidatePath("/admin/comics");
+    revalidatePath("/publisher/comics");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
@@ -105,9 +111,14 @@ export async function runScheduledPublish(): Promise<ActionResult<{ published: n
 
 export async function reorderChapterPages(chapterId: string, orderedPages: string[]): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { comicId: true } });
+    if (!chapter) return { success: false, error: "چپتر یافت نشد" };
+
+    await requireUploadAccess(chapter.comicId);
+
     await prisma.chapter.update({ where: { id: chapterId }, data: { pages: orderedPages } });
     revalidatePath("/admin/comics");
+    revalidatePath("/publisher/comics");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireUploadAccess } from "@/lib/auth";
+import { deleteObject } from "@/lib/s3";
 import { extractDominantColor } from "@/lib/color";
 import { LicenseStatus, ContentType, ReadingMode } from "@prisma/client";
 
@@ -161,6 +162,120 @@ export async function createComic(input: {
 
     revalidatePath("/admin/comics");
     return { success: true, data: { id: comic.id } };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+export async function updateComic(
+  comicId: string,
+  input: {
+    title: string;
+    slug: string;
+    description: string;
+    coverImage: string;
+    bannerImage?: string;
+    licenseId: string;
+    ageRating: "NORMAL" | "EIGHTEEN_PLUS" | "NSFW";
+    contentType: ContentType;
+    readingMode: ReadingMode;
+    isFeaturedOnHome: boolean;
+    featuredBadge?: string;
+  }
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    if (!input.title.trim() || !input.slug.trim() || !input.licenseId) {
+      return { success: false, error: "عنوان، اسلاگ و لایسنس الزامی است" };
+    }
+
+    const existing = await prisma.comic.findUnique({ where: { id: comicId }, select: { coverImage: true } });
+    if (!existing) return { success: false, error: "عنوان یافت نشد" };
+
+    const coverChanged = existing.coverImage !== input.coverImage;
+    const dominantColor = coverChanged ? await extractDominantColor(input.coverImage) : undefined;
+
+    const comic = await prisma.comic.update({
+      where: { id: comicId },
+      data: {
+        title: input.title.trim(),
+        slug: input.slug.trim(),
+        description: input.description.trim(),
+        coverImage: input.coverImage,
+        bannerImage: input.bannerImage || null,
+        ...(dominantColor !== undefined ? { dominantColor } : {}),
+        licenseId: input.licenseId,
+        ageRating: input.ageRating,
+        contentType: input.contentType,
+        readingMode: input.readingMode,
+        isFeaturedOnHome: input.isFeaturedOnHome,
+        featuredBadge: input.featuredBadge?.trim() || null,
+      },
+    });
+
+    revalidatePath("/admin/comics");
+    revalidatePath(`/admin/comics/${comicId}`);
+    revalidatePath(`/app/comic/${comic.slug}`);
+    revalidatePath("/app");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function updateChapter(
+  chapterId: string,
+  input: { title?: string; chapterNumber: number; isLocked: boolean }
+): Promise<ActionResult> {
+  try {
+    if (!Number.isFinite(input.chapterNumber) || input.chapterNumber <= 0) {
+      return { success: false, error: "شماره چپتر نامعتبر است" };
+    }
+
+    const existing = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { comicId: true } });
+    if (!existing) return { success: false, error: "چپتر یافت نشد" };
+
+    await requireUploadAccess(existing.comicId);
+
+    const chapter = await prisma.chapter.update({
+      where: { id: chapterId },
+      data: {
+        title: input.title?.trim() || null,
+        chapterNumber: input.chapterNumber,
+        isLocked: input.isLocked,
+      },
+      select: { comic: { select: { id: true, slug: true } } },
+    });
+
+    revalidatePath(`/admin/comics/${chapter.comic.id}`);
+    revalidatePath(`/publisher/comics/${chapter.comic.id}`);
+    revalidatePath(`/app/comic/${chapter.comic.slug}`);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function removeChapterPage(chapterId: string, pageIndex: number): Promise<ActionResult> {
+  try {
+    const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { pages: true, comicId: true } });
+    if (!chapter) return { success: false, error: "چپتر یافت نشد" };
+
+    await requireUploadAccess(chapter.comicId);
+
+    if (pageIndex < 0 || pageIndex >= chapter.pages.length) {
+      return { success: false, error: "صفحه یافت نشد" };
+    }
+
+    const removedKey = chapter.pages[pageIndex];
+    const nextPages = chapter.pages.filter((_, i) => i !== pageIndex);
+
+    await prisma.chapter.update({ where: { id: chapterId }, data: { pages: nextPages } });
+    await deleteObject(removedKey).catch(() => {}); // best-effort — رکورد دیتابیس مهم‌تر از پاکسازی فوری S3 است
+
+    revalidatePath(`/admin/comics/${chapter.comicId}`);
+    revalidatePath(`/publisher/comics/${chapter.comicId}`);
+    return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }

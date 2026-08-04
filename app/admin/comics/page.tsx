@@ -1,13 +1,22 @@
-// app/admin/comics/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CreateComicForm } from "@/components/admin/create-comic-form";
 
-export default async function AdminComicsPage() {
+interface PageProps {
+  searchParams: Promise<{ q?: string }>;
+}
+
+export default async function AdminComicsPage({ searchParams }: PageProps) {
+  const { q } = await searchParams;
+
   const [comics, licenses] = await Promise.all([
     prisma.comic.findMany({
+      where: q ? { title: { contains: q, mode: "insensitive" } } : undefined,
       orderBy: { createdAt: "desc" },
-      include: { license: { select: { status: true } }, chapters: { select: { id: true, publishedAt: true } } },
+      include: {
+        license: { select: { status: true } },
+        chapters: { select: { id: true, publishedAt: true } },
+      },
     }),
     prisma.license.findMany({
       where: { status: { notIn: ["EXPIRED", "TERMINATED"] } },
@@ -25,8 +34,23 @@ export default async function AdminComicsPage() {
   return (
     <div className="space-y-8">
       <CreateComicForm licenses={licenseOptions} />
-      <div className="space-y-2">
-        <h2 className="text-lg font-medium text-text-main">لیست عناوین</h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-lg font-medium text-text-main">لیست عناوین</h2>
+          <form className="flex gap-2">
+            <input
+              type="text"
+              name="q"
+              defaultValue={q}
+              placeholder="جستجوی عنوان..."
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-text-main outline-none focus:border-primary"
+            />
+            <button className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground">
+              جستجو
+            </button>
+          </form>
+        </div>
+
         <div className="divide-y divide-border rounded-md border border-border">
           {comics.map((c) => {
             const published = c.chapters.filter((ch) => ch.publishedAt).length;
@@ -43,7 +67,9 @@ export default async function AdminComicsPage() {
               </Link>
             );
           })}
-          {comics.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">هنوز عنوانی ثبت نشده.</p>}
+          {comics.length === 0 && (
+            <p className="px-4 py-3 text-sm text-text-muted">هنوز عنوانی ثبت نشده.</p>
+          )}
         </div>
       </div>
     </div>

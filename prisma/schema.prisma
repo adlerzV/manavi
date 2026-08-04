@@ -129,6 +129,7 @@ enum ContentType {
 enum ReadingMode {
   VERTICAL
   HORIZONTAL
+  DOUBLE_PAGE
 }
 
 model Comic {
@@ -146,6 +147,8 @@ model Comic {
   viewCount     Int         @default(0)
   createdAt     DateTime    @default(now())
 
+  isFeaturedOnHome Boolean @default(false)
+  featuredBadge    String?
   licenseId String
   license   License @relation(fields: [licenseId], references: [id])
 

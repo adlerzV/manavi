@@ -9,8 +9,10 @@ const NAV = [
   { href: "/admin/licenses", label: "لایسنس‌ها" },
   { href: "/admin/comics", label: "عناوین" },
   { href: "/admin/users", label: "کاربران" },
+  { href: "/admin/transactions", label: "تراکنش‌ها" },
   { href: "/admin/analytics", label: "آمار" },
   { href: "/admin/payouts", label: "تسویه‌حساب" },
+  { href: "/admin/broadcast", label: "پیام همگانی" },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

@@ -108,6 +108,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
         comicId={chapter.comic.id}
         comicSlug={chapter.comic.slug}
         comicTitle={chapter.comic.title}
+        contentType={chapter.comic.contentType}
         chapterNumber={chapter.chapterNumber}
         pages={pageUrls}
         readingMode={chapter.comic.readingMode}

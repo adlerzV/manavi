@@ -1,0 +1,23 @@
+import Link from "next/link";
+import Image from "next/image";
+
+interface HomeComicCardProps {
+  slug: string;
+  title: string;
+  coverImage: string;
+  latestChapter: number | null;
+}
+
+export function HomeComicCard({ slug, title, coverImage, latestChapter }: HomeComicCardProps) {
+  return (
+    <Link href={`/app/comic/${slug}`} className="block">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface transition-transform active:scale-[0.97]">
+        <Image src={coverImage} alt={title} fill sizes="(max-width: 768px) 33vw, 200px" className="object-cover" />
+        {latestChapter !== null && (
+          <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">چپتر {latestChapter}</span>
+        )}
+      </div>
+      <p className="mt-1.5 truncate text-xs text-text-main">{title}</p>
+    </Link>
+  );
+}

@@ -9,6 +9,8 @@ interface VerticalReaderProps {
   initialPage: number;
   initialScrollFraction: number;
   onProgress: (page: number, scrollFraction: number) => void;
+  onPageChange?: (page: number) => void;
+  seekToPage?: number | null;
   onToggleControls: () => void;
   controlsVisible: boolean;
 }
@@ -20,6 +22,8 @@ export function VerticalReader({
   initialPage,
   initialScrollFraction,
   onProgress,
+  onPageChange,
+  seekToPage,
   onToggleControls,
   controlsVisible,
 }: VerticalReaderProps) {
@@ -47,6 +51,13 @@ export function VerticalReader({
   }, [initialPage, initialScrollFraction]);
 
   useEffect(() => {
+    if (seekToPage == null) return;
+    const target = pageRefs.current[seekToPage - 1];
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [seekToPage]);
+
+  useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -56,6 +67,7 @@ export function VerticalReader({
           const index = Number((visible.target as HTMLElement).dataset.pageIndex);
           if (!Number.isNaN(index)) {
             setCurrentPage(index + 1);
+            onPageChange?.(index + 1);
           }
         }
       },
@@ -67,7 +79,7 @@ export function VerticalReader({
     });
 
     return () => observer.disconnect();
-  }, [pages.length]);
+  }, [pages.length, onPageChange]);
 
   useEffect(() => {
     let frame: number | null = null;
@@ -113,14 +125,12 @@ export function VerticalReader({
       if (autoScrollFrame.current) cancelAnimationFrame(autoScrollFrame.current);
       return;
     }
-
     const speed = SCROLL_SPEEDS[speedIndex];
     function step() {
       window.scrollBy(0, speed);
       autoScrollFrame.current = requestAnimationFrame(step);
     }
     autoScrollFrame.current = requestAnimationFrame(step);
-
     return () => {
       if (autoScrollFrame.current) cancelAnimationFrame(autoScrollFrame.current);
     };
@@ -130,14 +140,7 @@ export function VerticalReader({
     <>
       <div onClick={onToggleControls} className="mx-auto flex max-w-2xl flex-col">
         {pages.map((url, index) => (
-          <div
-            key={url}
-            data-page-index={index}
-            ref={(el) => {
-              pageRefs.current[index] = el;
-            }}
-            className="relative w-full"
-          >
+          <div key={url} data-page-index={index} ref={(el) => { pageRefs.current[index] = el; }} className="relative w-full">
             <ProtectedImage
               src={url}
               alt={`صفحه ${index + 1}`}
@@ -145,37 +148,21 @@ export function VerticalReader({
               height={1200}
               sizes="(max-width: 768px) 100vw, 700px"
               className="h-auto w-full"
-              priority={index < 2}
-              loading={index < 2 ? "eager" : "lazy"}
+              priority={index < 5}
+              loading={index < 5 ? "eager" : "lazy"}
             />
           </div>
         ))}
       </div>
 
-      <div
-        className={`fixed left-4 top-20 z-40 flex flex-col items-center gap-2 transition-opacity duration-200 ${
-          controlsVisible ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setAutoScroll((prev) => !prev);
-          }}
-          className="rounded-full bg-black/70 p-2 text-white"
-        >
+      <div className={`fixed left-4 top-20 z-40 flex flex-col items-center gap-2 transition-opacity duration-200 ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
+        <button onClick={(e) => { e.stopPropagation(); setAutoScroll((prev) => !prev); }} className="rounded-full bg-black/70 p-2 text-white">
           {autoScroll ? <PauseCircle size={24} /> : <PlayCircle size={24} />}
         </button>
         {autoScroll && (
-          <select
-            value={speedIndex}
-            onChange={(e) => setSpeedIndex(Number(e.target.value))}
-            className="rounded-md bg-black/70 px-1 py-1 text-xs text-white"
-          >
+          <select value={speedIndex} onChange={(e) => setSpeedIndex(Number(e.target.value))} className="rounded-md bg-black/70 px-1 py-1 text-xs text-white">
             {SCROLL_SPEEDS.map((speed, index) => (
-              <option key={speed} value={index} className="text-black">
-                {speed}x
-              </option>
+              <option key={speed} value={index} className="text-black">{speed}x</option>
             ))}
           </select>
         )}

@@ -5,7 +5,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-yekan)", "sans-serif"],
+        // 👈 نام دقیق همان متغیری که در layout نوشتی قرار گرفت
+        sans: ["var(--font-vazir)", "sans-serif"],
       },
       colors: {
         background: "#121212",

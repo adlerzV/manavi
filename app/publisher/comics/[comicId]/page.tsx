@@ -1,10 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSignedImageUrls } from "@/lib/s3";
 import { UploadChapterForm } from "@/components/admin/upload-chapter-form";
 import { ChapterStatusPanel } from "@/components/admin/chapter-status-panel";
 import { ChapterThumbnailCropper } from "@/components/admin/chapter-thumbnail-cropper";
-import { EditComicForm } from "@/components/admin/edit-comic-form";
 import { EditChapterForm } from "@/components/admin/edit-chapter-form";
 import { ChapterPagesManager } from "@/components/admin/chapter-pages-manager";
 
@@ -12,38 +12,30 @@ interface PageProps {
   params: Promise<{ comicId: string }>;
 }
 
-export default async function AdminComicDetailPage({ params }: PageProps) {
+export default async function PublisherComicDetailPage({ params }: PageProps) {
   const { comicId } = await params;
+  const user = await getSessionUser();
+  if (!user?.publisherProfile) redirect("/publisher");
 
   const comic = await prisma.comic.findUnique({
     where: { id: comicId },
     select: {
       id: true,
       title: true,
-      slug: true,
-      description: true,
-      coverImage: true,
-      bannerImage: true,
-      licenseId: true,
-      ageRating: true,
-      contentType: true,
-      readingMode: true,
-      isFeaturedOnHome: true,
-      featuredBadge: true,
+      license: { select: { publisherId: true } },
       chapters: {
         orderBy: { chapterNumber: "desc" },
         select: { id: true, chapterNumber: true, title: true, status: true, scheduledAt: true, isLocked: true, pages: true },
       },
     },
   });
-
   if (!comic) notFound();
 
-  const licenses = await prisma.license.findMany({
-    where: { status: { notIn: ["EXPIRED", "TERMINATED"] } },
-    include: { publisher: { select: { name: true } } },
-  });
-  const licenseOptions = licenses.map((l) => ({ id: l.id, publisherName: l.publisher.name, territory: l.territory, status: l.status }));
+  const isOwner = comic.license.publisherId === user.publisherProfile.id;
+  const isStaff = isOwner
+    ? true
+    : Boolean(await prisma.publisherStaff.findFirst({ where: { userId: user.id, publisherId: comic.license.publisherId, canUpload: true } }));
+  if (!isOwner && !isStaff) redirect("/publisher/comics");
 
   const chaptersWithPreviews = await Promise.all(
     comic.chapters.map(async (ch) => ({
@@ -55,21 +47,14 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-8">
       <h1 className="text-xl font-semibold text-text-main">{comic.title}</h1>
-
-      <EditComicForm comic={comic} licenses={licenseOptions} />
-
       <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} />
-
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">چپترها</h2>
         <div className="divide-y divide-border rounded-md border border-border">
           {chaptersWithPreviews.map((ch) => (
             <div key={ch.id} className="space-y-3 px-4 py-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-text-main">
-                  چپتر {ch.chapterNumber}{ch.title ? ` — ${ch.title}` : ""}
-                  {ch.isLocked && <span className="mr-2 text-xs text-accent">(قفل دستی)</span>}
-                </span>
+                <span className="text-sm text-text-main">چپتر {ch.chapterNumber}{ch.title ? ` — ${ch.title}` : ""}</span>
                 <ChapterStatusPanel chapterId={ch.id} status={ch.status} scheduledAt={ch.scheduledAt ? ch.scheduledAt.toISOString() : null} />
               </div>
               <EditChapterForm chapterId={ch.id} initialTitle={ch.title} initialChapterNumber={ch.chapterNumber} initialIsLocked={ch.isLocked} />
