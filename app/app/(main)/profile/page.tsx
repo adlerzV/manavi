@@ -96,16 +96,13 @@ export default async function ProfilePage() {
         </div>
 
         <section>
-          <CollapsibleSection triggerLabel="ویرایش پروفایل">
-            {(close) => (
+            <CollapsibleSection triggerLabel="ویرایش پروفایل">
               <EditProfileForm
                 initialBio={user.bio}
                 initialAvatarUrl={user.avatarUrl}
                 initialDonationLink={user.donationLink}
-                onSaved={close}
               />
-            )}
-          </CollapsibleSection>
+            </CollapsibleSection>
         </section>
 
         <section>
@@ -147,8 +144,8 @@ export default async function ProfilePage() {
         {recommendations.length > 0 && (
           <section>
             <h2 className="mb-3 text-sm font-medium text-text-main">پیشنهاد برای شما</h2>
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-              {recommendations.map((comic) => (
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+                {recommendations.map((comic) => (
                 <ComicCard
                   key={comic.id}
                   slug={comic.slug}
@@ -164,8 +161,8 @@ export default async function ProfilePage() {
 
         <section>
           <h2 className="mb-3 text-sm font-medium text-text-main">بوکمارک‌ها</h2>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-            {bookmarks.map((b) => (
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+              {bookmarks.map((b) => (
               <Link key={b.comicId} href={`/app/comic/${b.comic.slug}`} className="block">
                 <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
                   <Image src={b.comic.coverImage} alt={b.comic.title} fill className="object-cover" />

@@ -15,7 +15,7 @@ interface VerticalReaderProps {
   controlsVisible: boolean;
 }
 
-const SCROLL_SPEEDS = [0.5, 1, 1.5, 2, 3];
+const SCROLL_SPEEDS = [ 1, 2, 3, 5, 10];
 
 export function VerticalReader({
   pages,
@@ -160,9 +160,9 @@ export function VerticalReader({
           {autoScroll ? <PauseCircle size={24} /> : <PlayCircle size={24} />}
         </button>
         {autoScroll && (
-          <select value={speedIndex} onChange={(e) => setSpeedIndex(Number(e.target.value))} className="rounded-md bg-black/70 px-1 py-1 text-xs text-white">
+          <select value={speedIndex} onChange={(e) => setSpeedIndex(Number(e.target.value))} className="rounded-md bg-black/80 px-1 py-1 text-xs text-white">
             {SCROLL_SPEEDS.map((speed, index) => (
-              <option key={speed} value={index} className="text-black">{speed}x</option>
+              <option key={speed} value={index} className="bg-neutral-900 text-white">{speed}x</option>
             ))}
           </select>
         )}

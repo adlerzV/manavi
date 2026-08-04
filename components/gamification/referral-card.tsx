@@ -8,16 +8,41 @@ interface ReferralCardProps {
   referralCount: number;
 }
 
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    throw new Error("Clipboard API unavailable");
+  } catch {
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      textarea.style.top = "0";
+      textarea.style.left = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
 export function ReferralCard({ referralLink, referralCode, referralCount }: ReferralCardProps) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
 
   async function handleCopy() {
     if (!referralLink) return;
-    try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    const ok = await copyText(referralLink);
+    setCopyState(ok ? "copied" : "error");
+    setTimeout(() => setCopyState("idle"), 2000);
   }
 
   const shareUrl = referralLink
@@ -35,8 +60,8 @@ export function ReferralCard({ referralLink, referralCode, referralCount }: Refe
 
       <div className="mb-3 flex items-center justify-between rounded-md border border-border bg-background px-3 py-2">
         <span className="truncate text-xs text-text-muted">{referralCode}</span>
-        <button onClick={handleCopy} className="text-xs font-medium text-primary">
-          {copied ? "کپی شد" : "کپی کد"}
+        <button onClick={handleCopy} disabled={!referralLink} className="whitespace-nowrap text-xs font-medium text-primary disabled:opacity-50">
+          {copyState === "copied" ? "کپی شد" : copyState === "error" ? "کپی نشد، دستی کپی کنید" : "کپی کد"}
         </button>
       </div>
 

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { DonateButton } from "@/components/team/donate-button";
+import { BackButton } from "@/components/navigation/back-button";
+
 
 interface PageProps {
   params: Promise<{ userId: string }>;
@@ -66,6 +68,9 @@ export default async function TeamProfilePage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-3xl">
+            <div className="mb-4">
+      <BackButton fallbackHref="/app" variant="plain" />
+    </div>
         <div className="flex items-center gap-4">
           <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface text-xl font-medium text-text-main">
             {profileUser.avatarUrl ? (
@@ -114,8 +119,8 @@ export default async function TeamProfilePage({ params }: PageProps) {
         </div>
 
         <h2 className="mb-3 mt-8 text-sm font-medium text-text-main">پروژه‌ها</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {Array.from(comicsByTitle.values()).map((comic) => (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {Array.from(comicsByTitle.values()).map((comic) => (
             <Link key={comic.id} href={`/app/comic/${comic.slug}`} className="block">
               <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
                 <Image

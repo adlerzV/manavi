@@ -4,14 +4,16 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { uploadChapter } from "@/app/admin/actions/upload-chapter";
 import { BatchPageUploader } from "./batch-page-uploader";
+import { useCollapsibleClose } from "@/components/ui/collapsible-section";
 
 interface ComicOption {
   id: string;
   title: string;
 }
 
-export function UploadChapterForm({ comics, onCreated }: { comics: ComicOption[]; onCreated?: () => void }) {
+export function UploadChapterForm({ comics }: { comics: ComicOption[] }) {
   const router = useRouter();
+  const close = useCollapsibleClose();
   const [comicId, setComicId] = useState(comics[0]?.id ?? "");
   const [chapterNumber, setChapterNumber] = useState("");
   const [title, setTitle] = useState("");
@@ -44,7 +46,7 @@ export function UploadChapterForm({ comics, onCreated }: { comics: ComicOption[]
       setTitle("");
       setFiles([]);
       router.refresh();
-      setTimeout(() => onCreated?.(), 1000);
+      setTimeout(() => close?.(), 1000);
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong");

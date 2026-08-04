@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ContentType, ReadingMode } from "@prisma/client";
 import { updateComic } from "@/app/admin/actions/catalog-actions";
 import { CONTENT_TYPE_LABELS, READING_MODE_LABELS } from "@/lib/reading";
+import { useCollapsibleClose } from "@/components/ui/collapsible-section";
 
 interface LicenseOption {
   id: string;
@@ -36,14 +37,15 @@ interface EditComicFormProps {
   licenses: LicenseOption[];
   genres: GenreOption[];
   initialGenreIds: string[];
-  onSaved?: () => void;
 }
 
 const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
 const READING_MODES: ReadingMode[] = ["VERTICAL", "HORIZONTAL", "DOUBLE_PAGE"];
 
-export function EditComicForm({ comic, licenses, genres, initialGenreIds, onSaved }: EditComicFormProps) {
+export function EditComicForm({ comic, licenses, genres, initialGenreIds }: EditComicFormProps) {
   const router = useRouter();
+  const close = useCollapsibleClose();
+
   const [title, setTitle] = useState(comic.title);
   const [slug, setSlug] = useState(comic.slug);
   const [description, setDescription] = useState(comic.description);
@@ -90,7 +92,7 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds, onSave
     if (result.success) {
       setStatus("done");
       router.refresh();
-      setTimeout(() => onSaved?.(), 800);
+      setTimeout(() => close?.(), 800);
     } else {
       setStatus("error");
       setError(result.error ?? "خطا در ذخیره‌سازی");

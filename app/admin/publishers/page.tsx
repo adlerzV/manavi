@@ -11,7 +11,7 @@ export default async function AdminPublishersPage() {
   return (
     <div className="space-y-8">
       <CollapsibleSection triggerLabel="افزودن ناشر جدید">
-        {(close) => <CreatePublisherForm onCreated={close} />}
+        <CreatePublisherForm />
       </CollapsibleSection>
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">لیست ناشران</h2>

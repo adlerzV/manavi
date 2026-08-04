@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ContentType, ReadingMode } from "@prisma/client";
 import { createComic } from "@/app/admin/actions/catalog-actions";
 import { CONTENT_TYPE_LABELS, READING_MODE_LABELS, suggestReadingMode } from "@/lib/reading";
+import { useCollapsibleClose } from "@/components/ui/collapsible-section"; 
 
 interface LicenseOption {
   id: string;
@@ -21,8 +22,9 @@ interface GenreOption {
 const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
 const READING_MODES: ReadingMode[] = ["VERTICAL", "HORIZONTAL"];
 
-export function CreateComicForm({ licenses, genres, onCreated }: { licenses: LicenseOption[]; genres: GenreOption[]; onCreated?: () => void }) {
+export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[]; genres: GenreOption[] }) {
   const router = useRouter();
+  const close = useCollapsibleClose();
   const eligible = licenses.filter((l) => l.status !== "EXPIRED" && l.status !== "TERMINATED");
 
   const [title, setTitle] = useState("");
@@ -78,7 +80,7 @@ export function CreateComicForm({ licenses, genres, onCreated }: { licenses: Lic
       setGenreIds([]);
       setReadingModeTouched(false);
       router.refresh();
-      setTimeout(() => onCreated?.(), 1000);
+      setTimeout(() => close?.(), 1000);
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong");

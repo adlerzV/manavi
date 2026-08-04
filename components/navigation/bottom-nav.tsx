@@ -11,8 +11,14 @@ const ITEMS = [
   { href: "/app/profile", label: "پروفایل", icon: User },
 ] as const;
 
+const HIDDEN_PREFIXES = ["/app/comic/"];
+
 export function BottomNav() {
   const pathname = usePathname();
+
+  if (HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return null;
+  }
 
   return (
     <nav

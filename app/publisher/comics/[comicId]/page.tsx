@@ -26,7 +26,17 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
       license: { select: { publisherId: true } },
       chapters: {
         orderBy: { chapterNumber: "desc" },
-        select: { id: true, chapterNumber: true, title: true, status: true, scheduledAt: true, isLocked: true, pages: true },
+        select: {
+          id: true,
+          chapterNumber: true,
+          title: true,
+          status: true,
+          scheduledAt: true,
+          isLocked: true,
+          pages: true,
+          accessType: true,
+          coinCost: true,
+        },
       },
     },
   });
@@ -49,7 +59,7 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
     <div className="space-y-8">
       <h1 className="text-xl font-semibold text-text-main">{comic.title}</h1>
       <CollapsibleSection triggerLabel="آپلود چپتر جدید">
-        {(close) => <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} onCreated={close} />}
+        <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} />
       </CollapsibleSection>
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">چپترها</h2>
@@ -60,7 +70,14 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
                 <span className="text-sm text-text-main">چپتر {ch.chapterNumber}{ch.title ? ` — ${ch.title}` : ""}</span>
                 <ChapterStatusPanel chapterId={ch.id} status={ch.status} scheduledAt={ch.scheduledAt ? ch.scheduledAt.toISOString() : null} />
               </div>
-              <EditChapterForm chapterId={ch.id} initialTitle={ch.title} initialChapterNumber={ch.chapterNumber} initialIsLocked={ch.isLocked} />
+              <EditChapterForm
+                chapterId={ch.id}
+                initialTitle={ch.title}
+                initialChapterNumber={ch.chapterNumber}
+                initialIsLocked={ch.isLocked}
+                initialAccessType={ch.accessType}
+                initialCoinCost={ch.coinCost}
+              />
               <ChapterThumbnailCropper chapterId={ch.id} />
               <ChapterPagesManager chapterId={ch.id} pageKeys={ch.pages} previewUrls={ch.previewUrls} />
             </div>

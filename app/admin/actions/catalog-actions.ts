@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { deleteObject } from "@/lib/s3";
 import { extractDominantColor } from "@/lib/color";
-import { LicenseStatus, ContentType, ReadingMode } from "@prisma/client";
+import { LicenseStatus, ContentType, ReadingMode, ChapterAccessType } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -243,11 +243,20 @@ export async function updateComic(
 
 export async function updateChapter(
   chapterId: string,
-  input: { title?: string; chapterNumber: number; isLocked: boolean }
+  input: {
+    title?: string;
+    chapterNumber: number;
+    isLocked: boolean;
+    accessType?: ChapterAccessType;
+    coinCost?: number | null;
+  }
 ): Promise<ActionResult> {
   try {
     if (!Number.isFinite(input.chapterNumber) || input.chapterNumber <= 0) {
       return { success: false, error: "شماره چپتر نامعتبر است" };
+    }
+    if (input.coinCost != null && (!Number.isFinite(input.coinCost) || input.coinCost < 0)) {
+      return { success: false, error: "قیمت سکه نامعتبر است" };
     }
 
     const existing = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { comicId: true } });
@@ -261,6 +270,8 @@ export async function updateChapter(
         title: input.title?.trim() || null,
         chapterNumber: input.chapterNumber,
         isLocked: input.isLocked,
+        ...(input.accessType ? { accessType: input.accessType } : {}),
+        coinCost: input.coinCost ?? null,
       },
       select: { comic: { select: { id: true, slug: true } } },
     });

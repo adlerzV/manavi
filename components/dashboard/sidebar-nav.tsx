@@ -3,13 +3,41 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  Building2,
+  FileSignature,
+  BookOpen,
+  Users,
+  Receipt,
+  BarChart3,
+  Wallet,
+  Megaphone,
+  Tags,
+  UserCircle,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+
+const ICONS: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Building2,
+  FileSignature,
+  BookOpen,
+  Users,
+  Receipt,
+  BarChart3,
+  Wallet,
+  Megaphone,
+  Tags,
+  UserCircle,
+};
 
 export interface SidebarNavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: keyof typeof ICONS;
 }
 
 interface SidebarNavProps {
@@ -53,7 +81,7 @@ export function SidebarNav({ items, title }: SidebarNavProps) {
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {items.map((item) => {
             const active = isActive(item.href);
-            const Icon = item.icon;
+            const Icon = ICONS[item.icon];
             return (
               <Link
                 key={item.href}
@@ -63,7 +91,7 @@ export function SidebarNav({ items, title }: SidebarNavProps) {
                   active ? "bg-primary/10 text-primary" : "text-text-main hover:bg-background"
                 }`}
               >
-                <Icon size={18} strokeWidth={active ? 2.4 : 1.8} />
+                {Icon && <Icon size={18} strokeWidth={active ? 2.4 : 1.8} />}
                 {item.label}
               </Link>
             );

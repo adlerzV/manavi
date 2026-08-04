@@ -3,11 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import type { ChapterAccessType } from "@prisma/client";
 import { unlockChapterWithCoins } from "@/app/actions/chapter-access";
-import { COIN_CHAPTER_UNLOCK_COST } from "@/lib/billing";
 import { RewardedAdButton } from "./rewarded-ad-button";
 
-export function LockedChapterGate({ chapterId, coinsBalance }: { chapterId: string; coinsBalance: number }) {
+interface LockedChapterGateProps {
+  chapterId: string;
+  coinsBalance: number;
+  accessType: ChapterAccessType;
+  coinCost: number;
+}
+
+export function LockedChapterGate({ chapterId, coinsBalance, accessType, coinCost }: LockedChapterGateProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,31 +35,44 @@ export function LockedChapterGate({ chapterId, coinsBalance }: { chapterId: stri
     setPending(false);
   }
 
+  const showSubscription = accessType === "SUBSCRIPTION" || accessType === "COIN_OR_SUBSCRIPTION";
+  const showCoinOptions = accessType === "COIN" || accessType === "COIN_OR_SUBSCRIPTION";
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-      <p className="text-lg font-medium text-text-main">این چپتر مخصوص مشترکین است</p>
+      <p className="text-lg font-medium text-text-main">
+        {accessType === "SUBSCRIPTION" ? "این چپتر مخصوص مشترکین ویژه است" : "این چپتر مخصوص مشترکین است"}
+      </p>
       <p className="max-w-sm text-sm text-text-muted">
-        برای خواندن ۱۰ چپتر آخر هر عنوان، اشتراک ویژه تهیه کنید یا از روش‌های زیر استفاده کنید.
+        {accessType === "SUBSCRIPTION"
+          ? "برای خواندن این چپتر، اشتراک ویژه تهیه کنید."
+          : "برای خواندن ۱۰ چپتر آخر هر عنوان، اشتراک ویژه تهیه کنید یا از روش‌های زیر استفاده کنید."}
       </p>
 
-      <Link
-        href="/app/shop"
-        className="w-full max-w-xs rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-      >
-        تهیه اشتراک ویژه
-      </Link>
+      {showSubscription && (
+        <Link
+          href="/app/shop"
+          className="w-full max-w-xs rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
+          تهیه اشتراک ویژه
+        </Link>
+      )}
 
-      <div className="w-full max-w-xs">
-        <RewardedAdButton chapterId={chapterId} onUnlocked={refresh} />
-      </div>
+      {showCoinOptions && (
+        <>
+          <div className="w-full max-w-xs">
+            <RewardedAdButton chapterId={chapterId} onUnlocked={refresh} />
+          </div>
 
-      <button
-        onClick={handleCoinUnlock}
-        disabled={pending || coinsBalance < COIN_CHAPTER_UNLOCK_COST}
-        className="w-full max-w-xs rounded-md border border-accent px-4 py-2 text-sm font-medium text-accent disabled:opacity-50"
-      >
-        باز کردن با {COIN_CHAPTER_UNLOCK_COST} سکه (موجودی: {coinsBalance})
-      </button>
+          <button
+            onClick={handleCoinUnlock}
+            disabled={pending || coinsBalance < coinCost}
+            className="w-full max-w-xs rounded-md border border-accent px-4 py-2 text-sm font-medium text-accent disabled:opacity-50"
+          >
+            باز کردن با {coinCost.toLocaleString("fa-IR")} سکه (موجودی: {coinsBalance.toLocaleString("fa-IR")})
+          </button>
+        </>
+      )}
 
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>

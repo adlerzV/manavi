@@ -35,7 +35,17 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
       genres: { select: { genreId: true } },
       chapters: {
         orderBy: { chapterNumber: "desc" },
-        select: { id: true, chapterNumber: true, title: true, status: true, scheduledAt: true, isLocked: true, pages: true },
+        select: {
+          id: true,
+          chapterNumber: true,
+          title: true,
+          status: true,
+          scheduledAt: true,
+          isLocked: true,
+          pages: true,
+          accessType: true,
+          coinCost: true,
+        },
       },
     },
   });
@@ -63,19 +73,16 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
       <h1 className="text-xl font-semibold text-text-main">{comic.title}</h1>
 
       <CollapsibleSection triggerLabel="ویرایش اطلاعات عنوان" defaultOpen>
-        {(close) => (
-          <EditComicForm
-            comic={comic}
-            licenses={licenseOptions}
-            genres={genres.map((g) => ({ id: g.id, name: g.name }))}
-            initialGenreIds={comic.genres.map((g) => g.genreId)}
-            onSaved={close}
-          />
-        )}
+        <EditComicForm
+          comic={comic}
+          licenses={licenseOptions}
+          genres={genres.map((g) => ({ id: g.id, name: g.name }))}
+          initialGenreIds={comic.genres.map((g) => g.genreId)}
+        />
       </CollapsibleSection>
 
       <CollapsibleSection triggerLabel="آپلود چپتر جدید">
-        {(close) => <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} onCreated={close} />}
+        <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} />
       </CollapsibleSection>
 
       <div className="space-y-2">
@@ -90,7 +97,14 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
                 </span>
                 <ChapterStatusPanel chapterId={ch.id} status={ch.status} scheduledAt={ch.scheduledAt ? ch.scheduledAt.toISOString() : null} />
               </div>
-              <EditChapterForm chapterId={ch.id} initialTitle={ch.title} initialChapterNumber={ch.chapterNumber} initialIsLocked={ch.isLocked} />
+              <EditChapterForm
+                chapterId={ch.id}
+                initialTitle={ch.title}
+                initialChapterNumber={ch.chapterNumber}
+                initialIsLocked={ch.isLocked}
+                initialAccessType={ch.accessType}
+                initialCoinCost={ch.coinCost}
+              />
               <ChapterThumbnailCropper chapterId={ch.id} />
               <ChapterPagesManager chapterId={ch.id} pageKeys={ch.pages} previewUrls={ch.previewUrls} />
             </div>

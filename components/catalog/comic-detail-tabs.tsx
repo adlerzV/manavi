@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
+
+interface ReadingCta {
+  chapterId: string;
+  label: string;
+}
 
 interface ComicDetailTabsProps {
   preview: ReactNode;
   episodes: ReactNode;
   similar: ReactNode;
   episodeCount: number;
+  readingCta: ReadingCta | null;
 }
 
 const TABS = [
@@ -17,11 +24,12 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-export function ComicDetailTabs({ preview, episodes, similar, episodeCount }: ComicDetailTabsProps) {
+export function ComicDetailTabs({ preview, episodes, similar, episodeCount, readingCta }: ComicDetailTabsProps) {
   const [active, setActive] = useState<TabId>("preview");
+  const showCta = Boolean(readingCta) && active !== "similar";
 
   return (
-    <div>
+    <div className={showCta ? "pb-24" : undefined}>
       <div className="sticky top-0 z-10 -mx-4 flex border-b border-border bg-background/95 px-4 backdrop-blur-sm">
         {TABS.map((tab) => (
           <button
@@ -44,6 +52,22 @@ export function ComicDetailTabs({ preview, episodes, similar, episodeCount }: Co
         {active === "episodes" && episodes}
         {active === "similar" && similar}
       </div>
+
+      {showCta && readingCta && (
+        <div
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur-lg"
+        >
+          <div className="mx-auto max-w-4xl px-4 py-3">
+            <Link
+              href={`/app/read/${readingCta.chapterId}`}
+              className="flex w-full items-center justify-center rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground"
+            >
+              {readingCta.label}
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

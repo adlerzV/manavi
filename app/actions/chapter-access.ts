@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { AD_UNLOCK_HOURS, COIN_CHAPTER_UNLOCK_COST } from "@/lib/billing";
+import { ChapterAccessType } from "@prisma/client";
 
 interface UnlockResult {
   success: boolean;
@@ -16,8 +17,11 @@ export async function unlockChapterWithAd(chapterId: string): Promise<UnlockResu
   const user = await getSessionUser();
   if (!user) return { success: false, error: "Not authenticated" };
 
-  const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { id: true } });
+  const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { id: true, accessType: true } });
   if (!chapter) return { success: false, error: "Chapter not found" };
+  if (chapter.accessType === ChapterAccessType.SUBSCRIPTION) {
+    return { success: false, error: "این چپتر فقط مخصوص مشترکین ویژه است" };
+  }
 
   const expiresAt = new Date(Date.now() + AD_UNLOCK_HOURS * 60 * 60 * 1000);
 
@@ -35,8 +39,16 @@ export async function unlockChapterWithCoins(chapterId: string): Promise<UnlockR
   const user = await getSessionUser();
   if (!user) return { success: false, error: "Not authenticated" };
 
-  const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { id: true, comicId: true } });
+  const chapter = await prisma.chapter.findUnique({
+    where: { id: chapterId },
+    select: { id: true, comicId: true, accessType: true, coinCost: true },
+  });
   if (!chapter) return { success: false, error: "Chapter not found" };
+  if (chapter.accessType === ChapterAccessType.SUBSCRIPTION) {
+    return { success: false, error: "این چپتر فقط مخصوص مشترکین ویژه است" };
+  }
+
+  const cost = chapter.coinCost ?? COIN_CHAPTER_UNLOCK_COST;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -44,8 +56,8 @@ export async function unlockChapterWithCoins(chapterId: string): Promise<UnlockR
       if (existing && existing.expiresAt === null) return;
 
       const debited = await tx.user.updateMany({
-        where: { id: user.id, coinsBalance: { gte: COIN_CHAPTER_UNLOCK_COST } },
-        data: { coinsBalance: { decrement: COIN_CHAPTER_UNLOCK_COST } },
+        where: { id: user.id, coinsBalance: { gte: cost } },
+        data: { coinsBalance: { decrement: cost } },
       });
       if (debited.count === 0) throw new InsufficientCoinsError();
 
@@ -56,7 +68,7 @@ export async function unlockChapterWithCoins(chapterId: string): Promise<UnlockR
       });
 
       await tx.transaction.create({
-        data: { type: "CHAPTER_UNLOCK", status: "PAID", amount: COIN_CHAPTER_UNLOCK_COST, currency: "COIN", payerId: user.id, comicId: chapter.comicId },
+        data: { type: "CHAPTER_UNLOCK", status: "PAID", amount: cost, currency: "COIN", payerId: user.id, comicId: chapter.comicId },
       });
     });
   } catch (err) {

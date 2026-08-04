@@ -15,7 +15,7 @@ export default async function AdminLicensesPage() {
   return (
     <div className="space-y-8">
       <CollapsibleSection triggerLabel="افزودن لایسنس جدید">
-        {(close) => <CreateLicenseForm publishers={publishers} onCreated={close} />}
+        <CreateLicenseForm publishers={publishers} />
       </CollapsibleSection>
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">لیست لایسنس‌ها</h2>

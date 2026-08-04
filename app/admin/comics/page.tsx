@@ -37,13 +37,10 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-8">
       <CollapsibleSection triggerLabel="افزودن عنوان جدید">
-        {(close) => (
-          <CreateComicForm
-            licenses={licenseOptions}
-            genres={genres.map((g) => ({ id: g.id, name: g.name }))}
-            onCreated={close}
-          />
-        )}
+        <CreateComicForm
+          licenses={licenseOptions}
+          genres={genres.map((g) => ({ id: g.id, name: g.name }))}
+        />
       </CollapsibleSection>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">

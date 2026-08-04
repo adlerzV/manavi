@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
@@ -37,6 +37,8 @@ interface ChapterReaderProps {
 }
 
 const DESKTOP_BREAKPOINT_PX = 768;
+const SCROLL_HIDE_THRESHOLD_PX = 8;
+const SCROLL_TOP_SAFE_ZONE_PX = 60;
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -64,14 +66,41 @@ export function ChapterReader({
   const [horizontalPage, setHorizontalPage] = useState(initialPage);
   const [verticalCurrentPage, setVerticalCurrentPage] = useState(initialPage);
   const [verticalSeek, setVerticalSeek] = useState<number | null>(null);
+  const lastScrollYRef = useRef(0);
 
   useEffect(() => {
     const stored = getStoredReadingModeOverride(comicId);
     if (stored) setEffectiveMode(stored);
   }, [comicId]);
 
-  // دو‌صفحه‌ای روی موبایل معنی نداره — بدون گم کردن انتخاب ذخیره‌شده‌ی
-  // کاربر، موقتاً fallback به افقی می‌کنیم.
+  useEffect(() => {
+    lastScrollYRef.current = window.scrollY;
+    let ticking = false;
+
+    function handleScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const delta = currentY - lastScrollYRef.current;
+
+        if (currentY <= SCROLL_TOP_SAFE_ZONE_PX) {
+          setControlsVisible(true);
+        } else if (delta > SCROLL_HIDE_THRESHOLD_PX) {
+          setControlsVisible(false);
+        } else if (delta < -SCROLL_HIDE_THRESHOLD_PX) {
+          setControlsVisible(true);
+        }
+
+        lastScrollYRef.current = currentY;
+        ticking = false;
+      });
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const renderMode: ReadingMode = effectiveMode === "DOUBLE_PAGE" && !isDesktop ? "HORIZONTAL" : effectiveMode;
 
   const toggleControls = useCallback(() => setControlsVisible((prev) => !prev), []);
@@ -176,7 +205,7 @@ export function ChapterReader({
 
         <select value={chapterId} onChange={(e) => router.push(`/app/read/${e.target.value}`)} className="flex-1 rounded-md bg-white/10 px-2 py-2 text-sm text-white">
           {chapterOptions.map((option) => (
-            <option key={option.id} value={option.id} className="text-black">چپتر {option.chapterNumber}{option.title ? ` — ${option.title}` : ""}</option>
+            <option key={option.id} value={option.id} className="bg-neutral-900 text-white">چپتر {option.chapterNumber}{option.title ? ` — ${option.title}` : ""}</option>
           ))}
         </select>
 

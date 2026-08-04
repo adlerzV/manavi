@@ -1,15 +1,14 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { LayoutDashboard, BookOpen, UserCircle, Users, Wallet } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { SidebarNav, type SidebarNavItem } from "@/components/dashboard/sidebar-nav";
 
 const NAV: SidebarNavItem[] = [
-  { href: "/publisher", label: "داشبورد", icon: LayoutDashboard },
-  { href: "/publisher/comics", label: "آثار من", icon: BookOpen },
-  { href: "/publisher/profile", label: "پروفایل", icon: UserCircle },
-  { href: "/publisher/team", label: "تیم", icon: Users },
-  { href: "/publisher/payouts", label: "تسویه‌حساب", icon: Wallet },
+  { href: "/publisher", label: "داشبورد", icon: "LayoutDashboard" },
+  { href: "/publisher/comics", label: "آثار من", icon: "BookOpen" },
+  { href: "/publisher/profile", label: "پروفایل", icon: "UserCircle" },
+  { href: "/publisher/team", label: "تیم", icon: "Users" },
+  { href: "/publisher/payouts", label: "تسویه‌حساب", icon: "Wallet" },
 ];
 
 export default async function PublisherLayout({ children }: { children: ReactNode }) {

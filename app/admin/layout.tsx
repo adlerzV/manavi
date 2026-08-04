@@ -1,20 +1,19 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { LayoutDashboard, Building2, FileSignature, BookOpen, Users, Receipt, BarChart3, Wallet, Megaphone, Tags } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { SidebarNav, type SidebarNavItem } from "@/components/dashboard/sidebar-nav";
 
 const NAV: SidebarNavItem[] = [
-  { href: "/admin", label: "داشبورد", icon: LayoutDashboard },
-  { href: "/admin/publishers", label: "ناشران", icon: Building2 },
-  { href: "/admin/licenses", label: "لایسنس‌ها", icon: FileSignature },
-  { href: "/admin/comics", label: "عناوین", icon: BookOpen },
-  { href: "/admin/genres", label: "دسته‌بندی‌ها", icon: Tags },
-  { href: "/admin/users", label: "کاربران", icon: Users },
-  { href: "/admin/transactions", label: "تراکنش‌ها", icon: Receipt },
-  { href: "/admin/analytics", label: "آمار", icon: BarChart3 },
-  { href: "/admin/payouts", label: "تسویه‌حساب", icon: Wallet },
-  { href: "/admin/broadcast", label: "پیام همگانی", icon: Megaphone },
+  { href: "/admin", label: "داشبورد", icon: "LayoutDashboard" },
+  { href: "/admin/publishers", label: "ناشران", icon: "Building2" },
+  { href: "/admin/licenses", label: "لایسنس‌ها", icon: "FileSignature" },
+  { href: "/admin/comics", label: "عناوین", icon: "BookOpen" },
+  { href: "/admin/genres", label: "دسته‌بندی‌ها", icon: "Tags" },
+  { href: "/admin/users", label: "کاربران", icon: "Users" },
+  { href: "/admin/transactions", label: "تراکنش‌ها", icon: "Receipt" },
+  { href: "/admin/analytics", label: "آمار", icon: "BarChart3" },
+  { href: "/admin/payouts", label: "تسویه‌حساب", icon: "Wallet" },
+  { href: "/admin/broadcast", label: "پیام همگانی", icon: "Megaphone" },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

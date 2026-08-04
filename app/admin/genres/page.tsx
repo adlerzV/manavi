@@ -12,7 +12,7 @@ export default async function AdminGenresPage() {
   return (
     <div className="space-y-8">
       <CollapsibleSection triggerLabel="افزودن دسته‌بندی جدید">
-        {(close) => <CreateGenreForm onCreated={close} />}
+        <CreateGenreForm />
       </CollapsibleSection>
 
       <GenreManager

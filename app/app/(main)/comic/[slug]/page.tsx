@@ -10,7 +10,8 @@ import { ComicCard } from "@/components/catalog/comic-card";
 import { GenrePill } from "@/components/catalog/genre-pill";
 import { ComicDetailTabs } from "@/components/catalog/comic-detail-tabs";
 import { ChapterOnePreview } from "@/components/catalog/chapter-one-preview";
-import { getChapterAccessList } from "@/lib/chapters";
+import { BackButton } from "@/components/navigation/back-button";
+import { getChapterAccessList, type ChapterAccessInfo } from "@/lib/chapters";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
 import { CONTENT_TYPE_LABELS } from "@/lib/reading";
 
@@ -26,6 +27,15 @@ const STAFF_ROLE_LABELS: Record<string, string> = {
   CLEANER: "کلینر",
   TYPIST: "تایپیست",
 };
+
+function accessBadgeLabel(chapter: ChapterAccessInfo): string | null {
+  if (!chapter.locked) {
+    return chapter.accessType === "FREE" ? "رایگان" : null;
+  }
+  if (chapter.accessType === "SUBSCRIPTION") return "فقط اشتراک ویژه";
+  if (chapter.accessType === "COIN") return `🪙 ${chapter.coinCost.toLocaleString("fa-IR")}`;
+  return `ویژه یا 🪙 ${chapter.coinCost.toLocaleString("fa-IR")}`;
+}
 
 export default async function ComicDetailPage({ params }: PageProps) {
   const { slug } = await params;
@@ -54,7 +64,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
   const licenseActive = comic.license.status === "ACTIVE";
   const firstChapter = sortedChapters[0];
 
-  const [bookmarked, similarComics, firstChapterPages] = await Promise.all([
+  const [bookmarked, similarComics, firstChapterPages, readHistoryEntry] = await Promise.all([
     user
       ? prisma.bookmark.findUnique({ where: { userId_comicId: { userId: user.id, comicId: comic.id } } }).then(Boolean)
       : Promise.resolve(false),
@@ -82,7 +92,19 @@ export default async function ComicDetailPage({ params }: PageProps) {
           .findUnique({ where: { id: firstChapter.id }, select: { pages: true } })
           .then((c) => (c ? getSignedImageUrls(c.pages.slice(0, 3)) : []))
       : Promise.resolve([]),
+    user
+      ? prisma.readHistory.findUnique({ where: { userId_comicId: { userId: user.id, comicId: comic.id } } })
+      : Promise.resolve(null),
   ]);
+
+  const resumeChapter = readHistoryEntry ? sortedChapters.find((c) => c.id === readHistoryEntry.lastChapterId) ?? null : null;
+
+  const readingCta =
+    licenseActive && firstChapter
+      ? resumeChapter
+        ? { chapterId: resumeChapter.id, label: `ادامه خواندن — چپتر ${resumeChapter.chapterNumber.toLocaleString("fa-IR")}` }
+        : { chapterId: firstChapter.id, label: "شروع خواندن" }
+      : null;
 
   const content = (
     <>
@@ -97,6 +119,9 @@ export default async function ComicDetailPage({ params }: PageProps) {
           className="absolute inset-x-0 bottom-0 h-24"
           style={{ backgroundImage: "linear-gradient(to top, #121212, transparent)" }}
         />
+        <div className="absolute right-4 top-4 z-10">
+          <BackButton fallbackHref="/app" />
+        </div>
       </div>
 
       <div className="mx-auto -mt-16 max-w-4xl px-4 pb-4">
@@ -142,14 +167,6 @@ export default async function ComicDetailPage({ params }: PageProps) {
         </div>
 
         <div className="mt-4 flex items-center gap-3">
-          {licenseActive && firstChapter && (
-            <Link
-              href={`/app/read/${firstChapter.id}`}
-              className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground"
-            >
-              شروع خواندن
-            </Link>
-          )}
           <BookmarkButton comicId={comic.id} comicSlug={comic.slug} initialBookmarked={bookmarked} />
         </div>
 
@@ -163,6 +180,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
       <div className="mx-auto max-w-4xl px-4 pb-16">
         <ComicDetailTabs
           episodeCount={sortedChapters.length}
+          readingCta={readingCta}
           preview={
             <div className="space-y-6">
               <p className="text-sm leading-7 text-text-muted">{comic.description}</p>
@@ -196,19 +214,24 @@ export default async function ComicDetailPage({ params }: PageProps) {
           episodes={
             <div className="divide-y divide-border rounded-md border border-border">
               {licenseActive && newestFirstChapters.length > 0 ? (
-                newestFirstChapters.map((chapter) => (
-                  <Link
-                    key={chapter.id}
-                    href={`/app/read/${chapter.id}`}
-                    className="flex items-center justify-between px-4 py-3 text-sm hover:bg-surface"
-                  >
-                    <span className="text-text-main">
-                      چپتر {chapter.chapterNumber.toLocaleString("fa-IR")}
-                      {chapter.title ? ` — ${chapter.title}` : ""}
-                    </span>
-                    {chapter.locked && <span className="text-xs text-accent">ویژه مشترکین</span>}
-                  </Link>
-                ))
+                newestFirstChapters.map((chapter) => {
+                  const badge = accessBadgeLabel(chapter);
+                  return (
+                    <Link
+                      key={chapter.id}
+                      href={`/app/read/${chapter.id}`}
+                      className="flex items-center justify-between px-4 py-3 text-sm hover:bg-surface"
+                    >
+                      <span className="text-text-main">
+                        چپتر {chapter.chapterNumber.toLocaleString("fa-IR")}
+                        {chapter.title ? ` — ${chapter.title}` : ""}
+                      </span>
+                      {badge && (
+                        <span className={`text-xs ${chapter.locked ? "text-accent" : "text-primary"}`}>{badge}</span>
+                      )}
+                    </Link>
+                  );
+                })
               ) : (
                 <p className="px-4 py-3 text-sm text-text-muted">در حال حاضر چپتری موجود نیست.</p>
               )}
@@ -216,7 +239,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
           }
           similar={
             similarComics.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {similarComics.map((c) => (
                   <ComicCard
                     key={c.id}

@@ -98,8 +98,7 @@ export default async function ExplorePage({ searchParams }: PageProps) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {comics.map((comic) => (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">          {comics.map((comic) => (
             <ComicCard
               key={comic.id}
               slug={comic.slug}
