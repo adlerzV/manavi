@@ -18,13 +18,19 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
         : undefined,
       take: 50,
       orderBy: { createdAt: "desc" },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        slug: true,
         license: { select: { status: true } },
         _count: {
           select: {
-            chapters: true,
-            publishedChapters: true,
+            chapters: true, 
           },
+        },
+        chapters: {
+          where: { status: "PUBLISHED" },
+          select: { id: true }, 
         },
       },
     }),
@@ -71,7 +77,7 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
         <div className="divide-y divide-border rounded-md border border-border">
           {comics.map((c) => {
             const totalChapters = c._count.chapters;
-            const publishedChapters = c._count.publishedChapters;
+            const publishedChapters = c.chapters.length;
 
             return (
               <Link
