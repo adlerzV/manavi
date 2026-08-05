@@ -5,6 +5,7 @@ import { createSessionToken } from "@/lib/session";
 
 const ADMIN_TELEGRAM_ID = 1000000001n;
 const USER_TELEGRAM_ID = 1000000002n;
+const PUBLISHER_TELEGRAM_ID = 1000000003n;
 
 export async function GET(req: NextRequest) {
   if (process.env.NODE_ENV === "production") {
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
   const as = url.searchParams.get("as");
   const redirectTo = url.searchParams.get("redirect") ?? "/";
 
-  const telegramId = as === "admin" ? ADMIN_TELEGRAM_ID : USER_TELEGRAM_ID;
+  const telegramId = as === "admin" ? ADMIN_TELEGRAM_ID : as === "publisher" ? PUBLISHER_TELEGRAM_ID : USER_TELEGRAM_ID;
   const user = await prisma.user.findUnique({ where: { telegramId } });
 
   if (!user) {

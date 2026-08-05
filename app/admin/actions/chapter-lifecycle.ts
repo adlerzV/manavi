@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { notifyNewChapter } from "@/lib/telegram-bot";
+import { deleteObject } from "@/lib/s3";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -119,6 +120,42 @@ export async function reorderChapterPages(chapterId: string, orderedPages: strin
     await prisma.chapter.update({ where: { id: chapterId }, data: { pages: orderedPages } });
     revalidatePath("/admin/comics");
     revalidatePath("/publisher/comics");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function deleteChapter(chapterId: string): Promise<ActionResult> {
+  try {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: chapterId },
+      select: { pages: true, thumbnailImage: true, comicId: true, comic: { select: { slug: true } } },
+    });
+    if (!chapter) return { success: false, error: "چپتر یافت نشد" };
+
+    await requireUploadAccess(chapter.comicId);
+
+    await prisma.$transaction([
+      prisma.chapterReaction.deleteMany({ where: { chapterId } }),
+      prisma.chapterUnlock.deleteMany({ where: { chapterId } }),
+      prisma.chapterStaff.deleteMany({ where: { chapterId } }),
+      prisma.comment.deleteMany({ where: { chapterId } }),
+      prisma.chapter.delete({ where: { id: chapterId } }),
+    ]);
+
+    const keysToDelete = [...chapter.pages, chapter.thumbnailImage].filter(
+      (key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://")
+    );
+    await Promise.all(keysToDelete.map((key) => deleteObject(key).catch(() => {})));
+
+    revalidatePath("/admin/comics");
+    revalidatePath(`/admin/comics/${chapter.comicId}`);
+    revalidatePath("/publisher/comics");
+    revalidatePath(`/publisher/comics/${chapter.comicId}`);
+    revalidatePath(`/app/comic/${chapter.comic.slug}`);
+    revalidatePath("/app");
+    revalidatePath("/app/explore");
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };

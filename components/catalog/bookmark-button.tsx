@@ -3,38 +3,40 @@
 import { useState } from "react";
 import { Bookmark, Bell, BellOff } from "lucide-react";
 import { toggleBookmark, toggleBookmarkNotify } from "@/app/actions/bookmarks";
-import { useTelegramAuth } from "@/components/providers/telegram-auth-provider";
 
 interface BookmarkButtonProps {
   comicId: string;
   comicSlug: string;
+  authenticated: boolean;
   initialBookmarked: boolean;
   initialNotify?: boolean;
 }
 
-export function BookmarkButton({ comicId, comicSlug, initialBookmarked, initialNotify = true }: BookmarkButtonProps) {
-  const { user } = useTelegramAuth();
+export function BookmarkButton({ comicId, comicSlug, authenticated, initialBookmarked, initialNotify = true }: BookmarkButtonProps) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [notify, setNotify] = useState(initialNotify);
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleClick() {
-    if (!user || pending) return;
+    if (!authenticated || pending) return;
     const previous = bookmarked;
     setBookmarked(!previous);
     setPending(true);
+    setError(null);
     try {
       const result = await toggleBookmark(comicId, comicSlug);
       setBookmarked(result.bookmarked);
     } catch {
       setBookmarked(previous);
+      setError("خطا در ثبت بوکمارک");
     } finally {
       setPending(false);
     }
   }
 
   async function handleNotifyToggle() {
-    if (!user || pending) return;
+    if (!authenticated || pending) return;
     setPending(true);
     try {
       const result = await toggleBookmarkNotify(comicId);
@@ -49,7 +51,7 @@ export function BookmarkButton({ comicId, comicSlug, initialBookmarked, initialN
     <div className="flex items-center gap-2">
       <button
         onClick={handleClick}
-        disabled={!user || pending}
+        disabled={!authenticated || pending}
         className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
           bookmarked ? "border-primary bg-primary text-primary-foreground" : "border-border bg-surface text-text-main"
         }`}
@@ -62,6 +64,7 @@ export function BookmarkButton({ comicId, comicSlug, initialBookmarked, initialN
           {notify ? <Bell size={16} /> : <BellOff size={16} />}
         </button>
       )}
+      {error && <span className="text-xs text-red-400">{error}</span>}
     </div>
   );
 }

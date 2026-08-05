@@ -4,6 +4,7 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { getSignedImageUrls } from "@/lib/s3";
+import { getReadChapterIds, hasReadAnyChapter } from "@/lib/read-marks";
 import { AgeGate } from "@/components/catalog/age-gate";
 import { BookmarkButton } from "@/components/catalog/bookmark-button";
 import { ComicCard } from "@/components/catalog/comic-card";
@@ -64,7 +65,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
   const licenseActive = comic.license.status === "ACTIVE";
   const firstChapter = sortedChapters[0];
 
-  const [bookmarked, similarComics, firstChapterPages, readHistoryEntry] = await Promise.all([
+  const [bookmarked, similarComics, firstChapterPages, readHistoryEntry, readChapterIds, hasRead] = await Promise.all([
     user
       ? prisma.bookmark.findUnique({ where: { userId_comicId: { userId: user.id, comicId: comic.id } } }).then(Boolean)
       : Promise.resolve(false),
@@ -95,6 +96,8 @@ export default async function ComicDetailPage({ params }: PageProps) {
     user
       ? prisma.readHistory.findUnique({ where: { userId_comicId: { userId: user.id, comicId: comic.id } } })
       : Promise.resolve(null),
+    user ? getReadChapterIds(user.id, comic.id) : Promise.resolve(new Set<string>()),
+    user ? hasReadAnyChapter(user.id, comic.id) : Promise.resolve(false),
   ]);
 
   const resumeChapter = readHistoryEntry ? sortedChapters.find((c) => c.id === readHistoryEntry.lastChapterId) ?? null : null;
@@ -113,7 +116,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
         style={!comic.bannerImage ? { backgroundColor: comic.dominantColor ?? "#1E1E1E" } : undefined}
       >
         {comic.bannerImage && (
-          <Image src={comic.bannerImage} alt="" fill sizes="100vw" className="object-cover opacity-60" />
+          <Image src={comic.bannerImage} alt="" fill priority sizes="100vw" className="object-cover opacity-60" />
         )}
         <div
           className="absolute inset-x-0 bottom-0 h-24"
@@ -127,7 +130,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
       <div className="mx-auto -mt-16 max-w-4xl px-4 pb-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="relative h-56 w-40 flex-shrink-0 overflow-hidden rounded-md bg-surface shadow-lg">
-            <Image src={comic.coverImage} alt={comic.title} fill sizes="160px" className="object-cover" />
+            <Image src={comic.coverImage} alt={comic.title} fill priority sizes="160px" className="object-cover" />
           </div>
           <div className="flex-1">
             <h1 className="text-2xl font-semibold text-text-main">{comic.title}</h1>
@@ -167,7 +170,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
         </div>
 
         <div className="mt-4 flex items-center gap-3">
-          <BookmarkButton comicId={comic.id} comicSlug={comic.slug} initialBookmarked={bookmarked} />
+          <BookmarkButton comicId={comic.id} comicSlug={comic.slug} authenticated={Boolean(user)} initialBookmarked={bookmarked} />
         </div>
 
         {!licenseActive && (
@@ -181,6 +184,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
         <ComicDetailTabs
           episodeCount={sortedChapters.length}
           readingCta={readingCta}
+          defaultTab={hasRead ? "episodes" : "preview"}
           preview={
             <div className="space-y-6">
               <p className="text-sm leading-7 text-text-muted">{comic.description}</p>
@@ -216,18 +220,19 @@ export default async function ComicDetailPage({ params }: PageProps) {
               {licenseActive && newestFirstChapters.length > 0 ? (
                 newestFirstChapters.map((chapter) => {
                   const badge = accessBadgeLabel(chapter);
+                  const isRead = readChapterIds.has(chapter.id);
                   return (
                     <Link
                       key={chapter.id}
                       href={`/app/read/${chapter.id}`}
-                      className="flex items-center justify-between px-4 py-3 text-sm hover:bg-surface"
+                      className={`flex items-center justify-between px-4 py-3 text-sm hover:bg-surface ${isRead ? "opacity-50" : ""}`}
                     >
-                      <span className="text-text-main">
+                      <span className={isRead ? "text-text-muted" : "text-text-main"}>
                         چپتر {chapter.chapterNumber.toLocaleString("fa-IR")}
                         {chapter.title ? ` — ${chapter.title}` : ""}
                       </span>
                       {badge && (
-                        <span className={`text-xs ${chapter.locked ? "text-accent" : "text-primary"}`}>{badge}</span>
+                        <span className={`text-xs ${isRead ? "text-text-muted" : chapter.locked ? "text-accent" : "text-primary"}`}>{badge}</span>
                       )}
                     </Link>
                   );

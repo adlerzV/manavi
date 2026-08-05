@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background sm:pr-[68px]">
       <SidebarNav items={NAV} title="پنل مدیریت مناوی" />
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
     </div>

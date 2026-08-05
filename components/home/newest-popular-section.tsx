@@ -86,8 +86,15 @@ export function NewestPopularSection({ initialNewest, initialPopular, genres }: 
         <ComicCardSkeletonGrid count={9} />
       ) : (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-            {comics.map((comic) => (
-            <HomeComicCard key={comic.id} slug={comic.slug} title={comic.title} coverImage={comic.coverImage} latestChapter={comic.latestChapter} />
+            {comics.map((comic, index) => (
+            <HomeComicCard
+              key={comic.id}
+              slug={comic.slug}
+              title={comic.title}
+              coverImage={comic.coverImage}
+              latestChapter={comic.latestChapter}
+              priority={index < 4}
+            />
           ))}
           {comics.length === 0 && <p className="col-span-full text-sm text-text-muted">موردی یافت نشد.</p>}
         </div>

@@ -1,10 +1,26 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPublisherContext } from "@/lib/auth";
 import { PublisherProfileForm } from "@/components/publisher/profile-form";
 
 export default async function PublisherProfilePage() {
   const user = await getSessionUser();
-  if (!user?.publisherProfile) redirect("/publisher");
+  const context = await getPublisherContext(user);
+
+  if (!context) {
+    if (user?.role !== "ADMIN") redirect("/publisher");
+    return (
+      <div className="rounded-md border border-border bg-surface p-6 text-sm text-text-muted">
+        حساب شما به هیچ ناشری متصل نیست.
+      </div>
+    );
+  }
+  if (!context.isOwner || !user?.publisherProfile) {
+    return (
+      <div className="rounded-md border border-border bg-surface p-6 text-sm text-text-muted">
+        فقط ناشر اصلی می‌تواند پروفایل را ویرایش کند.
+      </div>
+    );
+  }
 
   return (
     <PublisherProfileForm

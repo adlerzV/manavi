@@ -1,17 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { publishChapter } from "@/app/admin/actions/publish-chapter";
-import { scheduleChapter, cancelSchedule } from "@/app/admin/actions/chapter-lifecycle";
+import { scheduleChapter, cancelSchedule, deleteChapter } from "@/app/admin/actions/chapter-lifecycle";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import type { ChapterStatus } from "@prisma/client";
 
 interface ChapterStatusPanelProps {
   chapterId: string;
   status: ChapterStatus;
   scheduledAt: string | null;
+  chapterLabel: string;
 }
 
-export function ChapterStatusPanel({ chapterId, status, scheduledAt }: ChapterStatusPanelProps) {
+export function ChapterStatusPanel({ chapterId, status, scheduledAt, chapterLabel }: ChapterStatusPanelProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [scheduleValue, setScheduleValue] = useState(scheduledAt ? scheduledAt.slice(0, 16) : "");
@@ -46,8 +50,24 @@ export function ChapterStatusPanel({ chapterId, status, scheduledAt }: ChapterSt
     });
   }
 
+  const deleteButton = (
+    <DeleteConfirmDialog
+      triggerLabel="حذف چپتر"
+      confirmTitle={`حذف ${chapterLabel}`}
+      confirmDescription="این عمل غیرقابل بازگشت است و تمام صفحات، نظرات و دسترسی‌های خریداری‌شده این چپتر حذف می‌شوند."
+      confirmValue={chapterLabel}
+      onConfirm={() => deleteChapter(chapterId)}
+      onDeleted={() => router.refresh()}
+    />
+  );
+
   if (status === "PUBLISHED") {
-    return <span className="text-xs text-primary">منتشرشده</span>;
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-primary">منتشرشده</span>
+        {deleteButton}
+      </div>
+    );
   }
 
   if (status === "SCHEDULED") {
@@ -59,15 +79,16 @@ export function ChapterStatusPanel({ chapterId, status, scheduledAt }: ChapterSt
         <button onClick={handleCancelSchedule} disabled={isPending} className="rounded-md border border-border px-2 py-1 text-xs text-text-muted disabled:opacity-50">
           لغو
         </button>
+        {deleteButton}
         {error && <span className="text-xs text-red-400">{error}</span>}
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button onClick={handlePublishNow} disabled={isPending} className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50">
-        انتشار فوری
+        {isPending ? "در حال انتشار…" : "انتشار فوری"}
       </button>
       <button onClick={() => setShowSchedule((prev) => !prev)} disabled={isPending} className="rounded-md border border-border px-3 py-1 text-xs text-text-main disabled:opacity-50">
         زمان‌بندی
@@ -85,6 +106,7 @@ export function ChapterStatusPanel({ chapterId, status, scheduledAt }: ChapterSt
           </button>
         </div>
       )}
+      {deleteButton}
       {error && <span className="text-xs text-red-400">{error}</span>}
     </div>
   );

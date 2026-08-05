@@ -309,3 +309,47 @@ export async function removeChapterPage(chapterId: string, pageIndex: number): P
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 }
+
+export async function deleteComic(comicId: string): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    const comic = await prisma.comic.findUnique({
+      where: { id: comicId },
+      select: {
+        slug: true,
+        chapters: { select: { id: true, pages: true, thumbnailImage: true } },
+      },
+    });
+    if (!comic) return { success: false, error: "عنوان یافت نشد" };
+
+    const chapterIds = comic.chapters.map((c) => c.id);
+
+    await prisma.$transaction([
+      prisma.chapterReaction.deleteMany({ where: { chapterId: { in: chapterIds } } }),
+      prisma.chapterUnlock.deleteMany({ where: { chapterId: { in: chapterIds } } }),
+      prisma.chapterStaff.deleteMany({ where: { chapterId: { in: chapterIds } } }),
+      prisma.comment.deleteMany({ where: { chapterId: { in: chapterIds } } }),
+      prisma.chapter.deleteMany({ where: { comicId } }),
+      prisma.comicGenre.deleteMany({ where: { comicId } }),
+      prisma.comicTag.deleteMany({ where: { comicId } }),
+      prisma.comicStaff.deleteMany({ where: { comicId } }),
+      prisma.bookmark.deleteMany({ where: { comicId } }),
+      prisma.readHistory.deleteMany({ where: { comicId } }),
+      prisma.comic.delete({ where: { id: comicId } }),
+    ]);
+
+    const keysToDelete = comic.chapters
+      .flatMap((c) => [...c.pages, c.thumbnailImage])
+      .filter((key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://"));
+    await Promise.all(keysToDelete.map((key) => deleteObject(key).catch(() => {})));
+
+    revalidatePath("/admin/comics");
+    revalidatePath("/app");
+    revalidatePath("/app/explore");
+    revalidatePath(`/app/comic/${comic.slug}`);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}

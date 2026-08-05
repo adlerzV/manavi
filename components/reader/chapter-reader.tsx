@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReadingMode, ContentType } from "@prisma/client";
 import { updateReadHistory } from "@/app/actions/read-history";
 import { VerticalReader } from "./vertical-reader";
@@ -11,7 +11,7 @@ import { HorizontalReader } from "./horizontal-reader";
 import { DoublePageReader } from "./double-page-reader";
 import { ReadingModeToggle } from "./reading-mode-toggle";
 import { EndOfChapter } from "./end-of-chapter";
-import { ReaderProgressBar } from "./reader-progress-bar";
+import { BackButton } from "@/components/navigation/back-button";
 import { getStoredReadingModeOverride, setStoredReadingModeOverride, getReadingDirection } from "@/lib/reading";
 
 interface ChapterOption { id: string; chapterNumber: number; title: string | null }
@@ -52,6 +52,33 @@ function useIsDesktop() {
   return isDesktop;
 }
 
+function useImmersiveReading() {
+  useEffect(() => {
+    const webApp = window.Telegram?.WebApp;
+    try {
+      webApp?.expand?.();
+      webApp?.requestFullscreen?.();
+      webApp?.disableVerticalSwipes?.();
+    } catch {}
+
+    const root = document.documentElement;
+    const canRequestFullscreen = !webApp && typeof root.requestFullscreen === "function";
+    if (canRequestFullscreen) {
+      root.requestFullscreen().catch(() => {});
+    }
+
+    return () => {
+      try {
+        webApp?.enableVerticalSwipes?.();
+        webApp?.exitFullscreen?.();
+      } catch {}
+      if (canRequestFullscreen && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, []);
+}
+
 export function ChapterReader({
   chapterId, comicId, comicSlug, comicTitle, contentType, chapterNumber, pages, readingMode,
   prevChapterId, nextChapterId, chapterOptions, initialPage, initialScrollFraction,
@@ -61,11 +88,12 @@ export function ChapterReader({
   const isDesktop = useIsDesktop();
   const direction = getReadingDirection(contentType);
 
+  useImmersiveReading();
+
   const [controlsVisible, setControlsVisible] = useState(true);
   const [effectiveMode, setEffectiveMode] = useState<ReadingMode>(readingMode);
   const [horizontalPage, setHorizontalPage] = useState(initialPage);
   const [verticalCurrentPage, setVerticalCurrentPage] = useState(initialPage);
-  const [verticalSeek, setVerticalSeek] = useState<number | null>(null);
   const lastScrollYRef = useRef(0);
 
   useEffect(() => {
@@ -123,28 +151,19 @@ export function ChapterReader({
     return () => clearTimeout(timeout);
   }, [renderMode, horizontalPage, persistProgress]);
 
-  const currentPage = renderMode === "VERTICAL" ? verticalCurrentPage : horizontalPage;
-
-  function handleJump(page: number) {
-    if (renderMode === "VERTICAL") setVerticalSeek(page);
-    else setHorizontalPage(page);
-  }
-
   const onRequestPrevChapter = () => prevChapterId && router.push(`/app/read/${prevChapterId}`);
   const onRequestNextChapter = () => nextChapterId && router.push(`/app/read/${nextChapterId}`);
 
   return (
-    <div className="relative min-h-screen bg-black">
-      <div className={`fixed inset-x-0 top-0 z-40 flex items-center justify-between bg-black/80 px-4 py-3 backdrop-blur-sm transition-transform duration-200 ${controlsVisible ? "translate-y-0" : "-translate-y-full"}`}>
-        <Link href={`/app/comic/${comicSlug}`} className="text-white"><ArrowRight size={22} /></Link>
+    <div className="relative min-h-screen bg-black overscroll-none">
+      <div className={`fixed inset-x-0 top-0 z-40 flex items-center justify-between bg-black/80 px-2 py-3 backdrop-blur-sm transition-transform duration-200 ${controlsVisible ? "translate-y-0" : "-translate-y-full"}`}>
+        <BackButton fallbackHref={`/app/comic/${comicSlug}`} variant="reader" />
         <div className="text-center">
           <p className="text-sm font-medium text-white">{comicTitle}</p>
           <p className="text-xs text-white/60">چپتر {chapterNumber}</p>
         </div>
         <ReadingModeToggle mode={effectiveMode} onChange={handleModeChange} />
       </div>
-
-      <ReaderProgressBar currentPage={currentPage} totalPages={pages.length} onJump={handleJump} visible={controlsVisible} />
 
       {renderMode === "VERTICAL" && (
         <VerticalReader
@@ -153,7 +172,7 @@ export function ChapterReader({
           initialScrollFraction={initialScrollFraction}
           onProgress={persistProgress}
           onPageChange={setVerticalCurrentPage}
-          seekToPage={verticalSeek}
+          seekToPage={null}
           onToggleControls={toggleControls}
           controlsVisible={controlsVisible}
         />

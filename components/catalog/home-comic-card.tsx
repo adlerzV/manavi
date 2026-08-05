@@ -6,13 +6,22 @@ interface HomeComicCardProps {
   title: string;
   coverImage: string;
   latestChapter: number | null;
+  priority?: boolean;
 }
 
-export function HomeComicCard({ slug, title, coverImage, latestChapter }: HomeComicCardProps) {
+export function HomeComicCard({ slug, title, coverImage, latestChapter, priority = false }: HomeComicCardProps) {
   return (
     <Link href={`/app/comic/${slug}`} className="block">
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface transition-transform active:scale-[0.97]">
-        <Image src={coverImage} alt={title} fill sizes="(max-width: 768px) 33vw, 200px" className="object-cover" />
+        <Image
+          src={coverImage}
+          alt={title}
+          fill
+          priority={priority}
+          loading={priority ? undefined : "lazy"}
+          sizes="(max-width: 768px) 33vw, 200px"
+          className="object-cover"
+        />
         {latestChapter !== null && (
           <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">چپتر {latestChapter}</span>
         )}

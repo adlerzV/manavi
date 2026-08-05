@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUploadAccess } from "@/lib/auth";
 import { uploadPageImage } from "@/lib/s3";
 import { processInBatches } from "@/lib/batch-upload";
+import { describeUploadError } from "@/lib/upload-error";
+import { ChapterAccessType } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -21,6 +23,8 @@ export async function uploadChapter(formData: FormData): Promise<ActionResult<{ 
     const comicId = formData.get("comicId");
     const chapterNumberRaw = formData.get("chapterNumber");
     const title = formData.get("title");
+    const accessTypeRaw = formData.get("accessType");
+    const coinCostRaw = formData.get("coinCost");
     const pages = formData.getAll("pages") as File[];
 
     if (typeof comicId !== "string" || !comicId) {
@@ -33,6 +37,18 @@ export async function uploadChapter(formData: FormData): Promise<ActionResult<{ 
       return { success: false, error: "A valid chapterNumber is required" };
     }
     const chapterNumber = Number(chapterNumberRaw);
+
+    const accessType: ChapterAccessType =
+      typeof accessTypeRaw === "string" && accessTypeRaw in ChapterAccessType
+        ? (accessTypeRaw as ChapterAccessType)
+        : ChapterAccessType.FREE;
+
+    const needsCoinCost = accessType === ChapterAccessType.COIN || accessType === ChapterAccessType.COIN_OR_SUBSCRIPTION;
+    const coinCost =
+      needsCoinCost && typeof coinCostRaw === "string" && coinCostRaw.trim() ? Number(coinCostRaw) : null;
+    if (coinCost != null && (!Number.isFinite(coinCost) || coinCost < 0)) {
+      return { success: false, error: "قیمت سکه نامعتبر است" };
+    }
 
     if (pages.length === 0) {
       return { success: false, error: "At least one page is required" };
@@ -72,12 +88,15 @@ export async function uploadChapter(formData: FormData): Promise<ActionResult<{ 
         title: typeof title === "string" && title.trim() ? title.trim() : null,
         pages: pageUrls,
         status: "DRAFT",
+        accessType,
+        coinCost,
       },
     });
 
     revalidatePath("/admin/comics");
+    revalidatePath("/publisher/comics");
     return { success: true, data: { chapterId: chapter.id } };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return { success: false, error: describeUploadError(err) };
   }
 }

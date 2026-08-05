@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPublisherContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSignedImageUrls } from "@/lib/s3";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -16,7 +16,8 @@ interface PageProps {
 export default async function PublisherComicDetailPage({ params }: PageProps) {
   const { comicId } = await params;
   const user = await getSessionUser();
-  if (!user?.publisherProfile) redirect("/publisher");
+  const context = await getPublisherContext(user);
+  if (!context) redirect("/publisher");
 
   const comic = await prisma.comic.findUnique({
     where: { id: comicId },
@@ -41,12 +42,7 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
     },
   });
   if (!comic) notFound();
-
-  const isOwner = comic.license.publisherId === user.publisherProfile.id;
-  const isStaff = isOwner
-    ? true
-    : Boolean(await prisma.publisherStaff.findFirst({ where: { userId: user.id, publisherId: comic.license.publisherId, canUpload: true } }));
-  if (!isOwner && !isStaff) redirect("/publisher/comics");
+  if (comic.license.publisherId !== context.publisherId) redirect("/publisher/comics");
 
   const chaptersWithPreviews = await Promise.all(
     comic.chapters.map(async (ch) => ({
@@ -68,7 +64,12 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
             <div key={ch.id} className="space-y-3 px-4 py-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-text-main">چپتر {ch.chapterNumber}{ch.title ? ` — ${ch.title}` : ""}</span>
-                <ChapterStatusPanel chapterId={ch.id} status={ch.status} scheduledAt={ch.scheduledAt ? ch.scheduledAt.toISOString() : null} />
+                <ChapterStatusPanel
+                  chapterId={ch.id}
+                  status={ch.status}
+                  scheduledAt={ch.scheduledAt ? ch.scheduledAt.toISOString() : null}
+                  chapterLabel={`چپتر ${ch.chapterNumber}${ch.title ? ` — ${ch.title}` : ""}`}
+                />
               </div>
               <EditChapterForm
                 chapterId={ch.id}

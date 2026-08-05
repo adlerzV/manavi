@@ -6,6 +6,7 @@ import type { ContentType, ReadingMode } from "@prisma/client";
 import { updateComic } from "@/app/admin/actions/catalog-actions";
 import { CONTENT_TYPE_LABELS, READING_MODE_LABELS } from "@/lib/reading";
 import { useCollapsibleClose } from "@/components/ui/collapsible-section";
+import { BannerUploader } from "@/components/admin/banner-uploader";
 
 interface LicenseOption {
   id: string;
@@ -190,15 +191,22 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds }: Edit
         )}
       </div>
 
-      <div className="flex items-end gap-4 rounded-md border border-border bg-background p-3">
+      <div className="space-y-3 rounded-md border border-border bg-background p-3">
         <label className="flex items-center gap-2 text-sm text-text-main">
           <input type="checkbox" checked={isFeaturedOnHome} onChange={(e) => setIsFeaturedOnHome(e.target.checked)} />
           نمایش به‌عنوان هیرو در صفحه اصلی
         </label>
-        <div className="flex-1 space-y-1">
-          <label className="text-xs text-text-muted" htmlFor="edit-comic-badge">متن بج (مثلاً «چپتر جدید»)</label>
-          <input id="edit-comic-badge" value={featuredBadge} onChange={(e) => setFeaturedBadge(e.target.value)} disabled={!isFeaturedOnHome} className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-main outline-none focus:border-primary disabled:opacity-50" />
-        </div>
+
+        {isFeaturedOnHome && (
+          <>
+            <div className="space-y-1">
+              <label className="text-xs text-text-muted" htmlFor="edit-comic-badge">متن بج (مثلاً «چپتر جدید»)</label>
+              <input id="edit-comic-badge" value={featuredBadge} onChange={(e) => setFeaturedBadge(e.target.value)} className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-main outline-none focus:border-primary" />
+            </div>
+
+            <BannerUploader comicId={comic.id} currentUrl={bannerImage} onUploaded={setBannerImage} />
+          </>
+        )}
       </div>
 
       {status === "error" && <p className="text-sm text-red-400">{error}</p>}

@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPublisherContext } from "@/lib/auth";
 
 export interface RoyaltySummary {
   licenseId: string;
@@ -13,12 +13,13 @@ export interface RoyaltySummary {
 
 export async function getRoyaltyDashboard(): Promise<{ summaries: RoyaltySummary[]; totalOwedCoins: number }> {
   const user = await getSessionUser();
-  if (!user?.publisherProfile) {
+  const context = await getPublisherContext(user);
+  if (!context) {
     return { summaries: [], totalOwedCoins: 0 };
   }
 
   const licenses = await prisma.license.findMany({
-    where: { publisherId: user.publisherProfile.id },
+    where: { publisherId: context.publisherId },
     include: { comics: { select: { id: true } } },
   });
 

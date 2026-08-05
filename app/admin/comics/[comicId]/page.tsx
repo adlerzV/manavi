@@ -9,6 +9,7 @@ import { ChapterThumbnailCropper } from "@/components/admin/chapter-thumbnail-cr
 import { EditComicForm } from "@/components/admin/edit-comic-form";
 import { EditChapterForm } from "@/components/admin/edit-chapter-form";
 import { ChapterPagesManager } from "@/components/admin/chapter-pages-manager";
+import { ComicDeleteButton } from "@/components/admin/comic-delete-button";
 
 interface PageProps {
   params: Promise<{ comicId: string }>;
@@ -70,7 +71,10 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-xl font-semibold text-text-main">{comic.title}</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold text-text-main">{comic.title}</h1>
+        <ComicDeleteButton comicId={comic.id} comicTitle={comic.title} />
+      </div>
 
       <CollapsibleSection triggerLabel="ویرایش اطلاعات عنوان" defaultOpen>
         <EditComicForm
@@ -95,7 +99,12 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
                   چپتر {ch.chapterNumber}{ch.title ? ` — ${ch.title}` : ""}
                   {ch.isLocked && <span className="mr-2 text-xs text-accent">(قفل دستی)</span>}
                 </span>
-                <ChapterStatusPanel chapterId={ch.id} status={ch.status} scheduledAt={ch.scheduledAt ? ch.scheduledAt.toISOString() : null} />
+                <ChapterStatusPanel
+                  chapterId={ch.id}
+                  status={ch.status}
+                  scheduledAt={ch.scheduledAt ? ch.scheduledAt.toISOString() : null}
+                  chapterLabel={`چپتر ${ch.chapterNumber}${ch.title ? ` — ${ch.title}` : ""}`}
+                />
               </div>
               <EditChapterForm
                 chapterId={ch.id}

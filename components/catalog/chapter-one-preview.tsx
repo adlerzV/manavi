@@ -1,5 +1,4 @@
-import Link from "next/link";
-import Image from "next/image";
+import { PreviewImage } from "./preview-image";
 
 interface ChapterOnePreviewProps {
   chapterId: string;
@@ -7,29 +6,27 @@ interface ChapterOnePreviewProps {
   previewImages: string[];
 }
 
-export function ChapterOnePreview({ chapterId, chapterNumber, previewImages }: ChapterOnePreviewProps) {
+export function ChapterOnePreview({ previewImages }: ChapterOnePreviewProps) {
+  if (previewImages.length === 0) {
+    return (
+      <div className="flex h-40 items-center justify-center rounded-md border border-border bg-surface text-xs text-text-muted">
+        پیش‌نمایشی موجود نیست
+      </div>
+    );
+  }
+
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-black">
-      <div className="relative h-[420px] w-full overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-border bg-surface">
+      <div className="relative max-h-[420px] overflow-hidden">
         <div className="flex flex-col">
           {previewImages.map((src, index) => (
-            <div key={index} className="relative w-full" style={{ aspectRatio: "2 / 3" }}>
-              <Image src={src} alt="" fill sizes="600px" className="object-cover" />
-            </div>
+            <PreviewImage key={index} src={src} alt={`پیش‌نمایش صفحه ${index + 1}`} />
           ))}
         </div>
         <div
-          className="absolute inset-x-0 bottom-0 h-40"
-          style={{ backgroundImage: "linear-gradient(to top, #000000, transparent)" }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-40"
+          style={{ backgroundImage: "linear-gradient(to top, #000000cc, transparent)" }}
         />
-      </div>
-      <div className="p-4">
-        <Link
-          href={`/app/read/${chapterId}`}
-          className="flex w-full items-center justify-center rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground"
-        >
-          شروع خواندن چپتر {chapterNumber.toLocaleString("fa-IR")}
-        </Link>
       </div>
     </div>
   );

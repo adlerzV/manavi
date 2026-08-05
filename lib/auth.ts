@@ -5,6 +5,11 @@ import type { User, Publisher } from "@prisma/client";
 
 export type SessionUser = User & { publisherProfile: Publisher | null };
 
+export interface PublisherContext {
+  publisherId: string;
+  isOwner: boolean;
+}
+
 export async function getSessionUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get("session")?.value;
@@ -56,4 +61,23 @@ export async function requireUploadAccess(comicId: string): Promise<SessionUser>
   }
 
   throw new Error("Not authorized to upload for this comic");
+}
+
+export async function getPublisherContext(user: SessionUser | null): Promise<PublisherContext | null> {
+  if (!user) return null;
+
+  if (user.publisherProfile) {
+    return { publisherId: user.publisherProfile.id, isOwner: true };
+  }
+
+  const staffLink = await prisma.publisherStaff.findFirst({
+    where: { userId: user.id },
+    orderBy: { createdAt: "asc" },
+    select: { publisherId: true },
+  });
+  if (staffLink) {
+    return { publisherId: staffLink.publisherId, isOwner: false };
+  }
+
+  return null;
 }

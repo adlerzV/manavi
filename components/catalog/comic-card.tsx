@@ -7,16 +7,20 @@ interface ComicCardProps {
   coverImage: string;
   dominantColor: string | null;
   latestChapter: number | null;
+  priority?: boolean;
+  readGrey?: boolean;
 }
 
-export function ComicCard({ slug, title, coverImage, dominantColor, latestChapter }: ComicCardProps) {
+export function ComicCard({ slug, title, coverImage, dominantColor, latestChapter, priority = false, readGrey = false }: ComicCardProps) {
   return (
     <Link href={`/app/comic/${slug}`} className="group block">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
+      <div className={`relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface ${readGrey ? "opacity-60" : ""}`}>
         <Image
           src={coverImage}
           alt={title}
           fill
+          priority={priority}
+          loading={priority ? undefined : "lazy"}
           sizes="(max-width: 768px) 50vw, 220px"
           className="object-cover transition-transform duration-200 group-hover:scale-105"
         />

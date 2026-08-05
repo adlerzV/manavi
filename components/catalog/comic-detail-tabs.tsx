@@ -8,24 +8,25 @@ interface ReadingCta {
   label: string;
 }
 
+type TabId = "preview" | "episodes" | "similar";
+
 interface ComicDetailTabsProps {
   preview: ReactNode;
   episodes: ReactNode;
   similar: ReactNode;
   episodeCount: number;
   readingCta: ReadingCta | null;
+  defaultTab?: TabId;
 }
 
-const TABS = [
+const TABS: { id: TabId; label: string }[] = [
   { id: "preview", label: "پیش‌نمایش" },
   { id: "episodes", label: "قسمت‌ها" },
   { id: "similar", label: "مشابه" },
-] as const;
+];
 
-type TabId = (typeof TABS)[number]["id"];
-
-export function ComicDetailTabs({ preview, episodes, similar, episodeCount, readingCta }: ComicDetailTabsProps) {
-  const [active, setActive] = useState<TabId>("preview");
+export function ComicDetailTabs({ preview, episodes, similar, episodeCount, readingCta, defaultTab = "preview" }: ComicDetailTabsProps) {
+  const [active, setActive] = useState<TabId>(defaultTab);
   const showCta = Boolean(readingCta) && active !== "similar";
 
   return (

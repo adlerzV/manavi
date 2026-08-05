@@ -4,6 +4,7 @@ import { generateReferralCode } from "@/lib/referral";
 
 const ADMIN_TELEGRAM_ID = 1000000001n;
 const USER_TELEGRAM_ID = 1000000002n;
+const PUBLISHER_TELEGRAM_ID = 1000000003n;
 
 export async function GET() {
   if (process.env.NODE_ENV === "production") {
@@ -35,10 +36,27 @@ export async function GET() {
     },
   });
 
+  const publisherUser = await prisma.user.upsert({
+    where: { telegramId: PUBLISHER_TELEGRAM_ID },
+    update: {},
+    create: {
+      telegramId: PUBLISHER_TELEGRAM_ID,
+      firstName: "Publisher",
+      username: "dev_publisher",
+      role: "PUBLISHER",
+      referralCode: generateReferralCode(),
+    },
+  });
+
   let publisher = await prisma.publisher.findFirst({ where: { name: "Test Publisher" } });
   if (!publisher) {
     publisher = await prisma.publisher.create({
-      data: { name: "Test Publisher", contactEmail: "test@example.com" },
+      data: { name: "Test Publisher", contactEmail: "test@example.com", contractUserId: publisherUser.id },
+    });
+  } else if (!publisher.contractUserId) {
+    publisher = await prisma.publisher.update({
+      where: { id: publisher.id },
+      data: { contractUserId: publisherUser.id },
     });
   }
 
@@ -92,6 +110,7 @@ export async function GET() {
     ok: true,
     admin: { id: admin.id, telegramId: admin.telegramId.toString() },
     reader: { id: reader.id, telegramId: reader.telegramId.toString() },
+    publisher: { id: publisherUser.id, telegramId: publisherUser.telegramId.toString() },
     comicSlug: comic.slug,
   });
 }

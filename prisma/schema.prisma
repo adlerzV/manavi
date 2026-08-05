@@ -39,6 +39,7 @@ model User {
   transactionsSent    Transaction[]     @relation("Payer")
   bookmarks           Bookmark[]
   readHistory         ReadHistory[]
+  readMarks           ChapterReadMark[]
   staffRoles          ComicStaff[]
   chapterStaffRoles   ChapterStaff[]
   chapterUnlocks      ChapterUnlock[]
@@ -162,6 +163,7 @@ model Comic {
   genres       ComicGenre[]
   tags         ComicTag[]
   readHistory  ReadHistory[]
+  readMarks    ChapterReadMark[]
 
   @@index([licenseId])
   @@index([viewCount])
@@ -252,7 +254,7 @@ model Chapter {
   pages          String[]
   thumbnailImage String?
   isLocked       Boolean           @default(false)
-  accessType     ChapterAccessType @default(COIN_OR_SUBSCRIPTION)
+  accessType     ChapterAccessType @default(FREE)
   coinCost       Int?
   status         ChapterStatus     @default(DRAFT)
   scheduledAt    DateTime?
@@ -265,6 +267,7 @@ model Chapter {
   staff     ChapterStaff[]
   unlocks   ChapterUnlock[]
   reactions ChapterReaction[]
+  readMarks ChapterReadMark[]
 
   @@index([comicId, chapterNumber])
   @@index([status, scheduledAt])
@@ -292,6 +295,20 @@ model ChapterUnlock {
   chapter Chapter @relation(fields: [chapterId], references: [id])
 
   @@id([userId, chapterId])
+}
+
+model ChapterReadMark {
+  userId    String
+  chapterId String
+  comicId   String
+  readAt    DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  chapter Chapter @relation(fields: [chapterId], references: [id])
+  comic   Comic   @relation(fields: [comicId], references: [id])
+
+  @@id([userId, chapterId])
+  @@index([userId, comicId])
 }
 
 model ChapterReaction {

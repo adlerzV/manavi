@@ -1,14 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPublisherContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function PublisherComicsPage() {
   const user = await getSessionUser();
-  if (!user?.publisherProfile) redirect("/publisher");
+  const context = await getPublisherContext(user);
+
+  if (!context) {
+    if (user?.role !== "ADMIN") redirect("/publisher");
+    return (
+      <div className="rounded-md border border-border bg-surface p-6 text-sm text-text-muted">
+        حساب شما به هیچ ناشری متصل نیست.
+      </div>
+    );
+  }
 
   const comics = await prisma.comic.findMany({
-    where: { license: { publisherId: user.publisherProfile.id } },
+    where: { license: { publisherId: context.publisherId } },
     orderBy: { createdAt: "desc" },
     include: { license: { select: { status: true } }, chapters: { select: { id: true, publishedAt: true } } },
   });

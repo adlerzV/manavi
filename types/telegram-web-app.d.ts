@@ -22,6 +22,10 @@ declare global {
     ready: () => void;
     expand: () => void;
     close: () => void;
+    requestFullscreen?: () => void;
+    exitFullscreen?: () => void;
+    disableVerticalSwipes?: () => void;
+    enableVerticalSwipes?: () => void;
     onEvent: (eventType: string, callback: () => void) => void;
     offEvent: (eventType: string, callback: () => void) => void;
   }

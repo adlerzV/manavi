@@ -13,6 +13,7 @@ const s3 = new S3Client({
 });
 
 const BUCKET = process.env.S3_BUCKET as string;
+const PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL;
 
 export async function uploadPageImage(
   comicId: string,
@@ -59,6 +60,26 @@ export async function uploadChapterThumbnail(
   return key;
 }
 
+export async function uploadComicBanner(comicId: string, file: Buffer, contentType: string): Promise<string> {
+  const extension = contentType.split("/")[1] || "bin";
+  const key = `comics/${comicId}/banner-${randomUUID()}.${extension}`;
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: file,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    })
+  );
+
+  if (PUBLIC_BASE_URL) {
+    return `${PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
+  }
+  return getSignedImageUrl(key, 60 * 60 * 24 * 7);
+}
+
 export async function getSignedImageUrl(key: string, expiresInSec: number = 21600): Promise<string> {
   const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
   return await getSignedUrl(s3, command, { expiresIn: expiresInSec });
@@ -73,6 +94,7 @@ export async function getSignedImageUrls(keys: string[], expiresInSec: number = 
     )
   );
 }
+
 export async function deleteObject(key: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
 }
