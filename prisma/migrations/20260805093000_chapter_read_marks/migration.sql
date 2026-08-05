@@ -1,5 +1,3 @@
-ALTER TABLE "Chapter" ALTER COLUMN "accessType" SET DEFAULT 'FREE';
-
 CREATE TABLE "ChapterReadMark" (
     "userId" TEXT NOT NULL,
     "chapterId" TEXT NOT NULL,

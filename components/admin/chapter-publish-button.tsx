@@ -1,4 +1,3 @@
-// components/admin/chapter-publish-button.tsx
 "use client";
 
 import { useState, useTransition } from "react";

@@ -92,25 +92,25 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
       setTimeout(() => close?.(), 1000);
     } else {
       setStatus("error");
-      setError(result.error ?? "Something went wrong");
+      setError(result.error ?? "یه مشکلی پیش اومد");
     }
   }
 
   if (eligible.length === 0) {
     return (
       <div className="rounded-md border border-border bg-surface p-6 text-sm text-text-muted">
-        No eligible licenses yet — create a license before adding a title.
+        هنوز هیچ لایسنس معتبری نداری — قبل ساخت عنوان، اول یه لایسنس بساز.
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-border bg-surface p-6">
-      <h2 className="text-lg font-medium text-text-main">Add title</h2>
+      <h2 className="text-lg font-medium text-text-main">افزودن عنوان جدید</h2>
 
       <div className="space-y-1">
         <label className="text-sm text-text-muted" htmlFor="comic-license">
-          License
+          لایسنس
         </label>
         <select
           id="comic-license"
@@ -130,7 +130,7 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="comic-title">
-            Title
+            عنوان
           </label>
           <input
             id="comic-title"
@@ -143,7 +143,7 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label className="text-sm text-text-muted" htmlFor="comic-slug">
-              Slug
+              اسلاگ
             </label>
             <button
               type="button"
@@ -159,7 +159,7 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
             onChange={(e) => setSlug(e.target.value)}
             required
             pattern="[a-z0-9-]+"
-            title="Lowercase letters, numbers, and hyphens only"
+            title="فقط حروف کوچک انگلیسی، اعداد و خط تیره"
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
           />
         </div>
@@ -167,7 +167,7 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
 
       <div className="space-y-1">
         <label className="text-sm text-text-muted" htmlFor="comic-description">
-          Description
+          توضیحات
         </label>
         <textarea
           id="comic-description"
@@ -182,7 +182,7 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="comic-cover">
-            Cover image URL
+            آدرس کاور (URL)
           </label>
           <input
             id="comic-cover"
@@ -194,7 +194,7 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
         </div>
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="comic-banner">
-            Banner image URL <span className="text-text-muted">(optional)</span>
+            آدرس بنر <span className="text-text-muted">(اختیاری)</span>
           </label>
           <input
             id="comic-banner"
@@ -208,7 +208,7 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="comic-age-rating">
-            Age rating
+            رده سنی
           </label>
           <select
             id="comic-age-rating"
@@ -216,15 +216,15 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
             onChange={(e) => setAgeRating(e.target.value as typeof ageRating)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
           >
-            <option value="NORMAL">Normal</option>
-            <option value="EIGHTEEN_PLUS">18+</option>
+            <option value="NORMAL">معمولی</option>
+            <option value="EIGHTEEN_PLUS">+۱۸</option>
             <option value="NSFW">NSFW</option>
           </select>
         </div>
 
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="comic-content-type">
-            Content type
+            نوع محتوا
           </label>
           <select
             id="comic-content-type"
@@ -242,7 +242,7 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
 
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="comic-reading-mode">
-            Reading mode
+            حالت خواندن
           </label>
           <select
             id="comic-reading-mode"
@@ -263,9 +263,9 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
       </div>
 
       <div className="space-y-2">
-        <span className="text-sm text-text-muted">Genres</span>
+        <span className="text-sm text-text-muted">ژانرها</span>
         {genres.length === 0 ? (
-          <p className="text-xs text-text-muted">No genres yet — add one from the Genres page.</p>
+          <p className="text-xs text-text-muted">هنوز ژانری نداری — از صفحه ژانرها یکی اضافه کن.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {genres.map((genre) => (
@@ -285,14 +285,14 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
       </div>
 
       {status === "error" && <p className="text-sm text-red-400">{error}</p>}
-      {status === "done" && <p className="text-sm text-primary">Title created.</p>}
+      {status === "done" && <p className="text-sm text-primary">عنوان اضافه شد.</p>}
 
       <button
         type="submit"
         disabled={status === "saving"}
         className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
-        {status === "saving" ? "Saving…" : "Create title"}
+        {status === "saving" ? "در حال ذخیره…" : "ثبت عنوان"}
       </button>
     </form>
   );

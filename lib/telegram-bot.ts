@@ -1,4 +1,6 @@
 import "server-only";
+import { processInBatches } from "./batch-upload";
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN as string;
 const MINI_APP_URL = process.env.NEXT_PUBLIC_MINI_APP_URL as string;
 
@@ -37,14 +39,11 @@ export async function notifyNewChapter(input: NotifyChapterInput) {
   const readUrl = `${MINI_APP_URL}/app/read/${input.chapterId}`;
   const text = `فصل جدید ${input.comicTitle} منتشر شد: چپتر ${input.chapterNumber}`;
 
-  for (const telegramId of input.telegramIds) {
+  await processInBatches(input.telegramIds, 20, async (telegramId) => {
     try {
       await sendTelegramMessage(telegramId, text, { buttonText: "خواندن چپتر جدید", buttonUrl: readUrl });
-    } catch {
-      continue;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 40));
-  }
+    } catch {}
+  });
 }
 
 export interface BroadcastResult {
@@ -63,15 +62,14 @@ export async function broadcastMessage(input: {
   let sent = 0;
   let failed = 0;
 
-  for (const telegramId of input.telegramIds) {
+  await processInBatches(input.telegramIds, 20, async (telegramId) => {
     try {
       await sendTelegramMessage(telegramId, input.text, { buttonText: input.buttonText, buttonUrl: input.buttonUrl });
       sent += 1;
     } catch {
       failed += 1;
     }
-    await new Promise((resolve) => setTimeout(resolve, 40));
-  }
+  });
 
   return { sent, failed };
 }

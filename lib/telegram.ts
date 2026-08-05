@@ -6,7 +6,7 @@ if (!BOT_TOKEN) {
   throw new Error("TELEGRAM_BOT_TOKEN is not set");
 }
 
-const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60;
+const MAX_AUTH_AGE_SECONDS = 60 * 60;
 
 export interface TelegramUser {
   id: number;

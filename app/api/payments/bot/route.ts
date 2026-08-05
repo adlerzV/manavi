@@ -25,13 +25,15 @@ function buildOpenKeyboard(startParam?: string) {
 }
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production" && !WEBHOOK_SECRET) {
+    return NextResponse.json({ error: "webhook secret not configured" }, { status: 500 });
+  }
   if (WEBHOOK_SECRET) {
     const provided = req.headers.get("x-telegram-bot-api-secret-token");
     if (provided !== WEBHOOK_SECRET) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
   }
-
   const update = await req.json().catch(() => null);
   const message = update?.message;
 

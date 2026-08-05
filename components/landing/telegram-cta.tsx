@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 const MOBILE_UA_PATTERN = /android|iphone|ipad|ipod|iemobile|blackberry|opera mini|mobile/i;
 const NATIVE_APP_FALLBACK_MS = 1500;
@@ -20,17 +19,19 @@ export function TelegramCta({ webLink, nativeLink, qrCodeSvg }: TelegramCtaProps
   }, []);
 
   function handleOpenClick() {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearTimeout(fallbackTimer);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
+    };
+
     const fallbackTimer = setTimeout(() => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.location.href = webLink;
     }, NATIVE_APP_FALLBACK_MS);
 
-    document.addEventListener(
-      "visibilitychange",
-      () => {
-        if (document.hidden) clearTimeout(fallbackTimer);
-      },
-      { once: true }
-    );
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     window.location.href = nativeLink;
   }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { createSessionToken } from "@/lib/session";
+import { createSessionToken, sessionCookieOptions } from "@/lib/session";
 
 const ADMIN_TELEGRAM_ID = 1000000001n;
 const USER_TELEGRAM_ID = 1000000002n;
@@ -28,13 +28,7 @@ export async function GET(req: NextRequest) {
 
   const token = createSessionToken(user.id);
   const cookieStore = await cookies();
-  cookieStore.set("session", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 30 * 24 * 60 * 60,
-    path: "/",
-  });
+  cookieStore.set("session", token, sessionCookieOptions());
 
   return NextResponse.redirect(new URL(redirectTo, req.url));
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { validateTelegramInitData, InvalidInitDataError } from "@/lib/telegram";
-import { createSessionToken } from "@/lib/session";
+import { createSessionToken, sessionCookieOptions } from "@/lib/session";
 import { generateReferralCode } from "@/lib/referral";
 import { REFERRAL_REWARD_COINS, REFERRAL_WELCOME_BONUS_COINS } from "@/lib/gamification";
 
@@ -102,13 +102,7 @@ export async function POST(req: NextRequest) {
 
   const sessionToken = createSessionToken(dbUser.id);
   const cookieStore = await cookies();
-  cookieStore.set("session", sessionToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 30 * 24 * 60 * 60,
-    path: "/",
-  });
+  cookieStore.set("session", sessionToken, sessionCookieOptions());
 
   return NextResponse.json({
     user: {

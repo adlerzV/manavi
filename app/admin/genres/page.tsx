@@ -1,23 +1,47 @@
 import { prisma } from "@/lib/prisma";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { CreateGenreForm } from "@/components/admin/create-genre-form";
-import { GenreManager } from "@/components/admin/genre-manager";
+import { CreateLicenseForm } from "@/components/admin/create-license-form";
+import { LicenseRowActions } from "@/components/admin/license-row-actions";
 
-export default async function AdminGenresPage() {
-  const genres = await prisma.genre.findMany({
-    orderBy: { name: "asc" },
-    include: { _count: { select: { comics: true } } },
-  });
+export default async function AdminLicensesPage() {
+  const [licenses, publishers] = await Promise.all([
+    prisma.license.findMany({
+      take: 100,
+      orderBy: { createdAt: "desc" },
+      include: { publisher: { select: { name: true } } },
+    }),
+    prisma.publisher.findMany({
+      take: 100,
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="space-y-8">
-      <CollapsibleSection triggerLabel="افزودن دسته‌بندی جدید">
-        <CreateGenreForm />
+      <CollapsibleSection triggerLabel="افزودن لایسنس جدید">
+        <CreateLicenseForm publishers={publishers} />
       </CollapsibleSection>
-
-      <GenreManager
-        genres={genres.map((g) => ({ id: g.id, name: g.name, imageUrl: g.imageUrl, comicCount: g._count.comics }))}
-      />
+      <div className="space-y-2">
+        <h2 className="text-lg font-medium text-text-main">لیست لایسنس‌ها</h2>
+        <div className="divide-y divide-border rounded-md border border-border">
+          {licenses.map((l) => (
+            <div key={l.id} className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-sm text-text-main">
+                  {l.publisher.name} — {l.territory.join("/")}
+                </p>
+                <p className="text-xs text-text-muted">
+                  {l.status} · شروع: {l.startDate.toLocaleDateString("fa-IR")}
+                  {l.endDate ? ` · پایان: ${l.endDate.toLocaleDateString("fa-IR")}` : ""}
+                </p>
+              </div>
+              <LicenseRowActions licenseId={l.id} status={l.status} />
+            </div>
+          ))}
+          {licenses.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">هنوز لایسنسی ثبت نشده.</p>}
+        </div>
+      </div>
     </div>
   );
 }

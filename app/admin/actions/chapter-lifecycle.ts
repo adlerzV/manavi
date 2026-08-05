@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
@@ -81,10 +82,13 @@ export async function runScheduledPublish(): Promise<ActionResult<{ published: n
     for (const chapter of due) {
       if (chapter.comic.license.status !== "ACTIVE") continue;
 
-      await prisma.chapter.update({
-        where: { id: chapter.id },
-        data: { status: "PUBLISHED", publishedAt: new Date() },
+      const updated = await prisma.chapter.updateMany({
+        where: { id: chapter.id, publishedAt: null },
+        data: { status: "PUBLISHED", publishedAt: new Date(), scheduledAt: null },
       });
+
+      if (updated.count === 0) continue;
+
       published += 1;
 
       const bookmarks = await prisma.bookmark.findMany({
@@ -92,13 +96,16 @@ export async function runScheduledPublish(): Promise<ActionResult<{ published: n
         select: { user: { select: { telegramId: true } } },
       });
       if (bookmarks.length > 0) {
-        notifyNewChapter({
-          telegramIds: bookmarks.map((b) => b.user.telegramId),
-          comicTitle: chapter.comic.title,
-          comicSlug: chapter.comic.slug,
-          chapterNumber: chapter.chapterNumber,
-          chapterId: chapter.id,
-        }).catch(() => {});
+        const telegramIds = bookmarks.map((b) => b.user.telegramId);
+        after(() =>
+          notifyNewChapter({
+            telegramIds,
+            comicTitle: chapter.comic.title,
+            comicSlug: chapter.comic.slug,
+            chapterNumber: chapter.chapterNumber,
+            chapterId: chapter.id,
+          }).catch(() => {})
+        );
       }
     }
 

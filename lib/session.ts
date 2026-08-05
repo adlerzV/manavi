@@ -17,12 +17,16 @@ function sign(payload: string): string {
   return crypto.createHmac("sha256", SESSION_SECRET as string).update(payload).digest("hex");
 }
 
-/**
- * Minimal signed-cookie session token (payload.signature, both base64url/hex).
- * This is intentionally dependency-free for scaffolding purposes. For a
- * production deploy you may prefer a maintained library (iron-session, jose,
- * NextAuth) — swap this module out without touching the auth route's API.
- */
+export function sessionCookieOptions() {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProd,                     
+    sameSite: isProd ? ("none" as const) : ("lax" as const),
+    maxAge: 30 * 24 * 60 * 60,
+    path: "/",
+  };
+}
 export function createSessionToken(userId: string): string {
   const payload: SessionPayload = {
     userId,

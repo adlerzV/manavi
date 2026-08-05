@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySessionToken } from "@/lib/session";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
@@ -74,17 +75,18 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
     if (!chapter) {
       return { success: false, error: "Chapter not found" };
     }
-    if (chapter.publishedAt) {
-      return { success: false, error: "Chapter is already published" };
-    }
 
     await requirePublishAccess(chapter.comic.id);
     await assertLicenseActive(chapter.comic.id);
 
-    await prisma.chapter.update({
-      where: { id: chapterId },
+    const updated = await prisma.chapter.updateMany({
+      where: { id: chapterId, publishedAt: null },
       data: { publishedAt: new Date(), status: "PUBLISHED", scheduledAt: null },
     });
+
+    if (updated.count === 0) {
+      return { success: false, error: "Chapter is already published" };
+    }
 
     revalidatePath(`/app/comic/${chapter.comic.slug}`);
     revalidatePath(`/app/read/${chapterId}`);
@@ -95,14 +97,18 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
       where: { comicId: chapter.comic.id, notifyOnNewChapter: true },
       select: { user: { select: { telegramId: true } } },
     });
+
     if (bookmarks.length > 0) {
-      notifyNewChapter({
-        telegramIds: bookmarks.map((b) => b.user.telegramId),
-        comicTitle: chapter.comic.title,
-        comicSlug: chapter.comic.slug,
-        chapterNumber: chapter.chapterNumber,
-        chapterId,
-      }).catch(() => {});
+      const telegramIds = bookmarks.map((b) => b.user.telegramId);
+      after(() =>
+        notifyNewChapter({
+          telegramIds,
+          comicTitle: chapter.comic.title,
+          comicSlug: chapter.comic.slug,
+          chapterNumber: chapter.chapterNumber,
+          chapterId,
+        }).catch(() => {})
+      );
     }
 
     return { success: true };

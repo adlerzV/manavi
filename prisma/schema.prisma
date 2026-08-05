@@ -7,33 +7,33 @@ datasource db {
 }
 
 model User {
-  id                String          @id @default(uuid())
-  telegramId        BigInt          @unique
-  firstName         String
-  lastName          String?
-  username          String?
-  role              Role            @default(USER)
-  isSubscribed      Boolean         @default(false)
-  subscriptionEnd   DateTime?
-  coinsBalance      Int             @default(0)
-  contentPreference AgeRating       @default(NORMAL)
-  referralCode      String          @unique
-  referredById      String?
-  referralCount     Int             @default(0)
-  currentStreak     Int             @default(0)
-  longestStreak     Int             @default(0)
-  lastCheckinAt     DateTime?
-  isBanned          Boolean         @default(false)
-  bannedAt          DateTime?
-  banReason         String?
-  bio               String?
-  avatarUrl         String?
-  donationLink      String?
+  id                  String          @id @default(uuid())
+  telegramId          BigInt          @unique
+  firstName           String
+  lastName            String?
+  username            String?
+  role                Role            @default(USER)
+  isSubscribed        Boolean         @default(false)
+  subscriptionEnd     DateTime?
+  coinsBalance        Int             @default(0)
+  contentPreference   AgeRating       @default(NORMAL)
+  referralCode        String          @unique
+  referredById        String?
+  referralCount       Int             @default(0)
+  currentStreak       Int             @default(0)
+  longestStreak       Int             @default(0)
+  lastCheckinAt       DateTime?
+  isBanned            Boolean         @default(false)
+  bannedAt            DateTime?
+  banReason           String?
+  bio                 String?
+  avatarUrl           String?
+  donationLink        String?
   cryptoWalletLabel   String?
   cryptoWalletAddress String?
   customLinks         Json?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   referredBy          User?             @relation("Referrals", fields: [referredById], references: [id])
   referrals           User[]            @relation("Referrals")
@@ -173,6 +173,7 @@ model Comic {
 
   @@index([licenseId])
   @@index([viewCount])
+  @@index([createdAt])
 }
 
 enum AgeRating {
@@ -275,6 +276,7 @@ model Chapter {
   reactions ChapterReaction[]
   readMarks ChapterReadMark[]
 
+  @@index([comicId, publishedAt])
   @@index([comicId, chapterNumber])
   @@index([status, scheduledAt])
   @@index([viewCount])
@@ -350,6 +352,7 @@ model Comment {
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies Comment[] @relation("CommentReplies")
 
+  @@index([chapterId, status])
   @@index([chapterId, createdAt])
   @@index([parentId])
   @@index([status])
@@ -507,6 +510,7 @@ model SearchTerm {
 
   @@index([count])
 }
+
 enum CommentStatus {
   PENDING
   APPROVED

@@ -24,7 +24,7 @@ export function CreateGenreForm({ onCreated }: { onCreated?: () => void }) {
       setTimeout(() => onCreated?.(), 1000);
     } else {
       setStatus("error");
-      setError(result.error ?? "خطا");
+      setError(result.error ?? "یه مشکلی پیش اومد");
     }
   }
 
@@ -68,7 +68,7 @@ export function CreateGenreForm({ onCreated }: { onCreated?: () => void }) {
       {status === "done" && <p className="text-sm text-primary">دسته‌بندی اضافه شد.</p>}
 
       <button type="submit" disabled={status === "saving"} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
-        {status === "saving" ? "در حال ذخیره…" : "افزودن دسته‌بندی"}
+        {status === "saving" ? "در حال ذخیره…" : "ثبت دسته‌بندی"}
       </button>
     </form>
   );

@@ -8,11 +8,18 @@ export function CreatorApplicationForm() {
   const [contact, setContact] = useState("");
   const [portfolioUrl, setPortfolioUrl] = useState("");
   const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState(""); 
   const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (website) {
+      setStatus("done");
+      return;
+    }
+
     setStatus("saving");
     setError(null);
 
@@ -29,6 +36,7 @@ export function CreatorApplicationForm() {
       setContact("");
       setPortfolioUrl("");
       setMessage("");
+      setWebsite("");
     } else {
       setStatus("error");
       setError(result.error ?? "خطایی رخ داد");
@@ -96,6 +104,18 @@ export function CreatorApplicationForm() {
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
         />
       </div>
+
+      {/* Input هانی‌پات برای فریب ربات‌ها */}
+      <input
+        type="text"
+        name="website"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        tabIndex={-1}
+        autoComplete="off"
+        className="hidden"
+        aria-hidden="true"
+      />
 
       {status === "error" && <p className="text-sm text-red-400">{error}</p>}
 

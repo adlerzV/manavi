@@ -13,13 +13,19 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
 
   const [comics, licenses, genres] = await Promise.all([
     prisma.comic.findMany({
-       where: q
- ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }] }
-  : undefined,
+      where: q
+        ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }] }
+        : undefined,
+      take: 50,
       orderBy: { createdAt: "desc" },
       include: {
         license: { select: { status: true } },
-        chapters: { select: { id: true, publishedAt: true } },
+        _count: {
+          select: {
+            chapters: true,
+            publishedChapters: true,
+          },
+        },
       },
     }),
     prisma.license.findMany({
@@ -44,6 +50,7 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
           genres={genres.map((g) => ({ id: g.id, name: g.name }))}
         />
       </CollapsibleSection>
+
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-medium text-text-main">لیست عناوین</h2>
@@ -63,19 +70,21 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
 
         <div className="divide-y divide-border rounded-md border border-border">
           {comics.map((c) => {
-            const published = c.chapters.filter((ch) => ch.publishedAt).length;
+            const totalChapters = c._count.chapters;
+            const publishedChapters = c._count.publishedChapters;
+
             return (
               <Link
                 key={c.id}
                 href={`/admin/comics/${c.id}`}
                 className="flex items-center justify-between px-4 py-3 hover:bg-surface"
               >
-               <div>
-               <p className="text-sm text-text-main">{c.title}</p>
-               <p className="text-xs text-text-muted">اسلاگ: {c.slug}</p>
-              </div>
+                <div>
+                  <p className="text-sm text-text-main">{c.title}</p>
+                  <p className="text-xs text-text-muted">اسلاگ: {c.slug}</p>
+                </div>
                 <p className="text-xs text-text-muted">
-                  {c.license.status} · {published}/{c.chapters.length} چپتر منتشرشده
+                  {c.license.status} · {publishedChapters}/{totalChapters} چپتر منتشرشده
                 </p>
               </Link>
             );

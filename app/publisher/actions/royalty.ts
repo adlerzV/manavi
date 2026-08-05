@@ -28,19 +28,35 @@ export async function getRoyaltyDashboard(): Promise<{ summaries: RoyaltySummary
   periodStart.setHours(0, 0, 0, 0);
   const periodEnd = new Date();
 
+  const allComicIds = licenses.flatMap((l) => l.comics.map((c) => c.id));
+
+  const grouped = allComicIds.length
+    ? await prisma.transaction.groupBy({
+        by: ["comicId"],
+        where: {
+          comicId: { in: allComicIds },
+          type: "CHAPTER_UNLOCK",
+          status: "PAID",
+          createdAt: { gte: periodStart, lte: periodEnd },
+        },
+        _sum: { amount: true },
+      })
+    : [];
+
+  const coinsByComicId = new Map(
+    grouped.map((g) => [g.comicId as string, Number(g._sum.amount ?? 0)])
+  );
+
   const summaries: RoyaltySummary[] = [];
   let totalOwedCoins = 0;
 
   for (const license of licenses) {
-    const comicIds = license.comics.map((c) => c.id);
-    if (comicIds.length === 0) continue;
+    if (license.comics.length === 0) continue;
 
-    const agg = await prisma.transaction.aggregate({
-      where: { comicId: { in: comicIds }, type: "CHAPTER_UNLOCK", status: "PAID", createdAt: { gte: periodStart, lte: periodEnd } },
-      _sum: { amount: true },
-    });
-
-    const grossCoinsRedeemed = Number(agg._sum.amount ?? 0);
+    const grossCoinsRedeemed = license.comics.reduce(
+      (sum, c) => sum + (coinsByComicId.get(c.id) ?? 0),
+      0
+    );
     const publisherShareCoins = (grossCoinsRedeemed * Number(license.royaltyPercentage)) / 100;
     totalOwedCoins += publisherShareCoins;
 
