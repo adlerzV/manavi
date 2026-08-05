@@ -1,3 +1,4 @@
+import "server-only";
 import { prisma } from "./prisma";
 
 export async function markChapterRead(userId: string, chapterId: string, comicId: string): Promise<void> {

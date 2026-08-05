@@ -1,3 +1,4 @@
+import "server-only";
 import { prisma } from "./prisma";
 import { LicenseStatus, type License } from "@prisma/client";
 

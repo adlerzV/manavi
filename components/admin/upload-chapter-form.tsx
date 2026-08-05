@@ -6,8 +6,7 @@ import type { ChapterAccessType } from "@prisma/client";
 import { uploadChapter } from "@/app/admin/actions/upload-chapter";
 import { BatchPageUploader } from "./batch-page-uploader";
 import { useCollapsibleClose } from "@/components/ui/collapsible-section";
-import { CHAPTER_ACCESS_TYPE_OPTIONS } from "@/lib/chapters";
-
+import { CHAPTER_ACCESS_TYPE_OPTIONS } from "@/lib/chapter-access";
 interface ComicOption {
   id: string;
   title: string;

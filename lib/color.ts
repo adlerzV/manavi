@@ -1,3 +1,4 @@
+import "server-only";
 import sharp from "sharp";
 
 export async function extractDominantColor(imageUrl: string): Promise<string | null> {

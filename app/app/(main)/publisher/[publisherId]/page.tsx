@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { DonateButton } from "@/components/team/donate-button";
 import { BackButton } from "@/components/navigation/back-button";
-
+import { WalletAndLinks } from "@/components/support/wallet-and-links";
+import { parseCustomLinks } from "@/lib/profile-links";
 interface PageProps {
   params: Promise<{ publisherId: string }>;
 }
@@ -25,6 +26,9 @@ export default async function PublisherPublicProfilePage({ params }: PageProps) 
       websiteUrl: true,
       donationCardNumber: true,
       donationLink: true,
+      cryptoWalletLabel: true,
+      cryptoWalletAddress: true,
+      customLinks: true,
       contractUserId: true,
       licenses: {
         select: {
@@ -109,6 +113,11 @@ export default async function PublisherPublicProfilePage({ params }: PageProps) 
               <p className="text-xs text-text-muted">راه حمایت مالی هنوز ثبت نشده است.</p>
             )}
           </div>
+          +         <WalletAndLinks
+           cryptoWalletLabel={publisher.cryptoWalletLabel}
+          cryptoWalletAddress={publisher.cryptoWalletAddress}
+          customLinks={parseCustomLinks(publisher.customLinks)}
+          />
         </div>
 
         <h2 className="mb-3 mt-8 text-sm font-medium text-text-main">آثار این ناشر</h2>

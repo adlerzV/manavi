@@ -13,6 +13,7 @@ interface VerticalReaderProps {
   seekToPage?: number | null;
   onToggleControls: () => void;
   controlsVisible: boolean;
+  watermarkLabel?: string | null;
 }
 
 const SCROLL_SPEEDS = [ 1, 2, 3, 5, 10];
@@ -26,6 +27,7 @@ export function VerticalReader({
   seekToPage,
   onToggleControls,
   controlsVisible,
+  watermarkLabel,
 }: VerticalReaderProps) {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [autoScroll, setAutoScroll] = useState(false);
@@ -150,6 +152,7 @@ export function VerticalReader({
               className="h-auto w-full"
               priority={index < 5}
               loading={index < 5 ? "eager" : "lazy"}
+              watermarkLabel={watermarkLabel}
             />
           </div>
         ))}

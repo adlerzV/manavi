@@ -9,6 +9,7 @@ import { DailyCheckinCard } from "@/components/gamification/daily-checkin-card";
 import { ReferralCard } from "@/components/gamification/referral-card";
 import { ComicCard } from "@/components/catalog/comic-card";
 import { getReferralLink } from "@/lib/site-config";
+import { parseCustomLinks } from "@/lib/profile-links";
 
 function isSameCalendarDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -101,6 +102,9 @@ export default async function ProfilePage() {
                 initialBio={user.bio}
                 initialAvatarUrl={user.avatarUrl}
                 initialDonationLink={user.donationLink}
+                initialCryptoWalletLabel={user.cryptoWalletLabel}
+                initialCryptoWalletAddress={user.cryptoWalletAddress}
+                initialCustomLinks={parseCustomLinks(user.customLinks)}
               />
             </CollapsibleSection>
         </section>

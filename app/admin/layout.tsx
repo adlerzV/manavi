@@ -9,6 +9,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/admin/licenses", label: "لایسنس‌ها", icon: "FileSignature" },
   { href: "/admin/comics", label: "عناوین", icon: "BookOpen" },
   { href: "/admin/genres", label: "دسته‌بندی‌ها", icon: "Tags" },
+  { href: "/admin/comments", label: "نظرات", icon: "MessageSquare" },
   { href: "/admin/users", label: "کاربران", icon: "Users" },
   { href: "/admin/transactions", label: "تراکنش‌ها", icon: "Receipt" },
   { href: "/admin/analytics", label: "آمار", icon: "BarChart3" },

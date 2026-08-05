@@ -1,3 +1,4 @@
+import "server-only";
 import { prisma } from "./prisma";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;

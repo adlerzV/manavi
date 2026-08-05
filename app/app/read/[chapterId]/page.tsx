@@ -95,7 +95,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
     getSignedImageUrls(chapter.pages),
     getChapterReactionSummary(chapterId, user?.id ?? null),
     prisma.comment.findMany({
-      where: { chapterId, parentId: null },
+      where: { chapterId, parentId: null, status: "APPROVED" },
       orderBy: { createdAt: "desc" },
       take: 50,
       select: {
@@ -106,6 +106,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
         createdAt: true,
         user: { select: { firstName: true, lastName: true, username: true } },
         replies: {
+          where: { status: "APPROVED" },
           orderBy: { createdAt: "asc" },
           select: { id: true, content: true, isSpoiler: true, isStaffReply: true, createdAt: true, user: { select: { firstName: true, lastName: true, username: true } } },
         },
@@ -114,6 +115,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
   ]);
 
   const resumeMatch = readHistory?.lastChapterId === chapter.id;
+  const watermarkLabel = user ? (user.username ? `@${user.username}` : `#${user.id.slice(0, 8)}`) : null;
 
   return (
     <>
@@ -134,6 +136,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
         reactionSummary={reactionData.summary}
         initialUserReaction={reactionData.userReaction}
         isAuthenticated={Boolean(user)}
+        watermarkLabel={watermarkLabel}
       />
       <div className="bg-background">
         <CommentSection

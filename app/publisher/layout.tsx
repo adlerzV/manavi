@@ -15,6 +15,7 @@ export default async function PublisherLayout({ children }: { children: ReactNod
   const NAV: SidebarNavItem[] = [
     { href: "/publisher", label: "داشبورد", icon: "LayoutDashboard" },
     { href: "/publisher/comics", label: "آثار من", icon: "BookOpen" },
+    { href: "/publisher/comments", label: "نظرات", icon: "MessageSquare" },
   ];
 
   if (!context || context.isOwner) {

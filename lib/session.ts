@@ -1,3 +1,4 @@
+import "server-only";
 import crypto from "crypto";
 
 const SESSION_SECRET = process.env.SESSION_SECRET;

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser, getPublisherContext } from "@/lib/auth";
 import { PublisherProfileForm } from "@/components/publisher/profile-form";
+import { parseCustomLinks } from "@/lib/profile-links";
 
 export default async function PublisherProfilePage() {
   const user = await getSessionUser();
@@ -32,6 +33,9 @@ export default async function PublisherProfilePage() {
         websiteUrl: user.publisherProfile.websiteUrl,
         donationCardNumber: user.publisherProfile.donationCardNumber,
         donationLink: user.publisherProfile.donationLink,
+        cryptoWalletLabel: user.publisherProfile.cryptoWalletLabel,
+        cryptoWalletAddress: user.publisherProfile.cryptoWalletAddress,
+        customLinks: parseCustomLinks(user.publisherProfile.customLinks),
       }}
     />
   );

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ContentType, ReadingMode } from "@prisma/client";
 import { createComic } from "@/app/admin/actions/catalog-actions";
 import { CONTENT_TYPE_LABELS, READING_MODE_LABELS, suggestReadingMode } from "@/lib/reading";
-import { useCollapsibleClose } from "@/components/ui/collapsible-section"; 
+import { useCollapsibleClose } from "@/components/ui/collapsible-section";
 
 interface LicenseOption {
   id: string;
@@ -21,6 +21,15 @@ interface GenreOption {
 
 const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
 const READING_MODES: ReadingMode[] = ["VERTICAL", "HORIZONTAL"];
+
+function slugifyTitle(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
 
 export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[]; genres: GenreOption[] }) {
   const router = useRouter();
@@ -132,9 +141,18 @@ export function CreateComicForm({ licenses, genres }: { licenses: LicenseOption[
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="comic-slug">
-            Slug
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-text-muted" htmlFor="comic-slug">
+              Slug
+            </label>
+            <button
+              type="button"
+              onClick={() => setSlug(slugifyTitle(title))}
+              className="text-xs text-primary"
+            >
+              تولید از عنوان
+            </button>
+          </div>
           <input
             id="comic-slug"
             value={slug}

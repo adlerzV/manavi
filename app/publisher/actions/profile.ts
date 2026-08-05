@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { sanitizeCustomLinks, type ProfileLink } from "@/lib/profile-links";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -18,6 +19,9 @@ export async function updatePublisherProfile(input: {
   websiteUrl?: string;
   donationCardNumber?: string;
   donationLink?: string;
+  cryptoWalletLabel?: string;
+  cryptoWalletAddress?: string;
+  customLinks?: ProfileLink[];
 }): Promise<ActionResult> {
   try {
     const user = await getSessionUser();
@@ -35,10 +39,14 @@ export async function updatePublisherProfile(input: {
         websiteUrl: input.websiteUrl?.trim() || null,
         donationCardNumber: input.donationCardNumber?.trim() || null,
         donationLink: input.donationLink?.trim() || null,
+        cryptoWalletLabel: input.cryptoWalletLabel?.trim().slice(0, 60) || null,
+        cryptoWalletAddress: input.cryptoWalletAddress?.trim().slice(0, 200) || null,
+        customLinks: sanitizeCustomLinks(input.customLinks ?? []),
       },
     });
 
     revalidatePath("/publisher/profile");
+    revalidatePath(`/app/publisher/${user.publisherProfile.id}`);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };

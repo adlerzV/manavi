@@ -34,6 +34,7 @@ interface ChapterReaderProps {
   reactionSummary: ReactionSummary[];
   initialUserReaction: string | null;
   isAuthenticated: boolean;
+  watermarkLabel?: string | null;
 }
 
 const DESKTOP_BREAKPOINT_PX = 768;
@@ -82,7 +83,7 @@ function useImmersiveReading() {
 export function ChapterReader({
   chapterId, comicId, comicSlug, comicTitle, contentType, chapterNumber, pages, readingMode,
   prevChapterId, nextChapterId, chapterOptions, initialPage, initialScrollFraction,
-  reactionSummary, initialUserReaction, isAuthenticated,
+  reactionSummary, initialUserReaction, isAuthenticated, watermarkLabel,
 }: ChapterReaderProps) {
   const router = useRouter();
   const isDesktop = useIsDesktop();
@@ -175,6 +176,7 @@ export function ChapterReader({
           seekToPage={null}
           onToggleControls={toggleControls}
           controlsVisible={controlsVisible}
+          watermarkLabel={watermarkLabel}
         />
       )}
 
@@ -189,6 +191,7 @@ export function ChapterReader({
           hasPrevChapter={Boolean(prevChapterId)}
           hasNextChapter={Boolean(nextChapterId)}
           onToggleControls={toggleControls}
+          watermarkLabel={watermarkLabel}
         />
       )}
 
@@ -203,6 +206,7 @@ export function ChapterReader({
           hasPrevChapter={Boolean(prevChapterId)}
           hasNextChapter={Boolean(nextChapterId)}
           onToggleControls={toggleControls}
+          watermarkLabel={watermarkLabel}
         />
       )}
 

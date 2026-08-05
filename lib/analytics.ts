@@ -1,3 +1,4 @@
+import "server-only";
 import { prisma } from "./prisma";
 
 export async function recordChapterView(chapterId: string, comicId: string): Promise<void> {

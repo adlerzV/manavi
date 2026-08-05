@@ -1,3 +1,4 @@
+import "server-only";
 import QRCode from "qrcode";
 
 export async function generateQrSvg(value: string): Promise<string> {

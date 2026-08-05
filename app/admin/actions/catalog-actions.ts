@@ -169,6 +169,9 @@ export async function createComic(input: {
     revalidatePath("/app");
     return { success: true, data: { id: comic.id } };
   } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
+      return { success: false, error: "این اسلاگ قبلاً استفاده شده — لطفاً یک اسلاگ دیگر انتخاب کنید" };
+    }
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 }
@@ -237,6 +240,9 @@ export async function updateComic(
     revalidatePath("/app/explore");
     return { success: true };
   } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
+      return { success: false, error: "این اسلاگ قبلاً استفاده شده — لطفاً یک اسلاگ دیگر انتخاب کنید" };
+    }
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 }

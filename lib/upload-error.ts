@@ -1,3 +1,4 @@
+import "server-only";
 export function describeUploadError(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err);
   const code = (err as { code?: string })?.code;

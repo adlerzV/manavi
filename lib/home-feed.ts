@@ -1,3 +1,4 @@
+import "server-only";
 import type { AgeRating } from "@prisma/client";
 import { prisma } from "./prisma";
 
@@ -93,7 +94,7 @@ export interface LatestCommentItem {
 
 export async function getLatestComments(allowedRatings: AgeRating[], limit = 8): Promise<LatestCommentItem[]> {
   const rows = await prisma.comment.findMany({
-    where: { isSpoiler: false, chapter: { comic: { ageRating: { in: allowedRatings } } } },
+    where: { isSpoiler: false, status: "APPROVED", chapter: { comic: { ageRating: { in: allowedRatings } } } },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {

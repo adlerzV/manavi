@@ -13,7 +13,9 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
 
   const [comics, licenses, genres] = await Promise.all([
     prisma.comic.findMany({
-      where: q ? { title: { contains: q, mode: "insensitive" } } : undefined,
+       where: q
+ ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }] }
+  : undefined,
       orderBy: { createdAt: "desc" },
       include: {
         license: { select: { status: true } },
@@ -50,7 +52,7 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
               type="text"
               name="q"
               defaultValue={q}
-              placeholder="جستجوی عنوان..."
+              placeholder="جستجوی عنوان یا اسلاگ..."
               className="rounded-md border border-border bg-background px-3 py-1.5 text-sm text-text-main outline-none focus:border-primary"
             />
             <button className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground">
@@ -68,7 +70,10 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
                 href={`/admin/comics/${c.id}`}
                 className="flex items-center justify-between px-4 py-3 hover:bg-surface"
               >
-                <p className="text-sm text-text-main">{c.title}</p>
+               <div>
+               <p className="text-sm text-text-main">{c.title}</p>
+               <p className="text-xs text-text-muted">اسلاگ: {c.slug}</p>
+              </div>
                 <p className="text-xs text-text-muted">
                   {c.license.status} · {published}/{c.chapters.length} چپتر منتشرشده
                 </p>

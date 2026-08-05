@@ -1,3 +1,4 @@
+import "server-only";
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN as string;
 const MINI_APP_URL = process.env.NEXT_PUBLIC_MINI_APP_URL as string;
 

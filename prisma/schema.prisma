@@ -29,6 +29,9 @@ model User {
   bio               String?
   avatarUrl         String?
   donationLink      String?
+  cryptoWalletLabel   String?
+  cryptoWalletAddress String?
+  customLinks         Json?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -74,6 +77,9 @@ model Publisher {
   websiteUrl         String?
   donationCardNumber String?
   donationLink       String?
+  cryptoWalletLabel   String?
+  cryptoWalletAddress String?
+  customLinks         Json?
   createdAt          DateTime @default(now())
 
   licenses       License[]
@@ -326,14 +332,18 @@ model ChapterReaction {
 }
 
 model Comment {
-  id           String   @id @default(uuid())
-  chapterId    String
-  userId       String
-  content      String
-  isSpoiler    Boolean  @default(false)
-  isStaffReply Boolean  @default(false)
-  parentId     String?
-  createdAt    DateTime @default(now())
+  id            String        @id @default(uuid())
+  chapterId     String
+  userId        String
+  content       String
+  isSpoiler     Boolean       @default(false)
+  isStaffReply  Boolean       @default(false)
+  status        CommentStatus @default(APPROVED)
+  moderatedById String?
+  moderatedAt   DateTime?
+  editedAt      DateTime?
+  parentId      String?
+  createdAt     DateTime      @default(now())
 
   chapter Chapter   @relation(fields: [chapterId], references: [id])
   user    User      @relation(fields: [userId], references: [id])
@@ -342,6 +352,7 @@ model Comment {
 
   @@index([chapterId, createdAt])
   @@index([parentId])
+  @@index([status])
 }
 
 model Bookmark {
@@ -495,4 +506,9 @@ model SearchTerm {
   updatedAt DateTime @updatedAt
 
   @@index([count])
+}
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

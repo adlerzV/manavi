@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { DonateButton } from "@/components/team/donate-button";
 import { BackButton } from "@/components/navigation/back-button";
-
+import { WalletAndLinks } from "@/components/support/wallet-and-links";
+import { parseCustomLinks } from "@/lib/profile-links";
 
 interface PageProps {
   params: Promise<{ userId: string }>;
@@ -32,6 +33,9 @@ export default async function TeamProfilePage({ params }: PageProps) {
         bio: true,
         avatarUrl: true,
         donationLink: true,
+        cryptoWalletLabel: true,
+        cryptoWalletAddress: true,
+        customLinks: true,
         staffRoles: {
           select: { roleTitle: true, comic: { select: { id: true, title: true, slug: true, coverImage: true } } },
         },
@@ -50,10 +54,12 @@ export default async function TeamProfilePage({ params }: PageProps) {
     _count: { _all: true },
   });
 
-  const comicsByTitle = new Map
+  // 👈 اصلاح علامت < قبل از string
+  const comicsByTitle = new Map<
     string,
     { id: string; title: string; slug: string; coverImage: string; roles: Set<string> }
   >();
+
   for (const entry of profileUser.staffRoles) {
     const existing = comicsByTitle.get(entry.comic.id);
     if (existing) {
@@ -68,9 +74,9 @@ export default async function TeamProfilePage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-3xl">
-            <div className="mb-4">
-      <BackButton fallbackHref="/app" variant="plain" />
-    </div>
+        <div className="mb-4">
+          <BackButton fallbackHref="/app" variant="plain" />
+        </div>
         <div className="flex items-center gap-4">
           <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface text-xl font-medium text-text-main">
             {profileUser.avatarUrl ? (
@@ -90,13 +96,20 @@ export default async function TeamProfilePage({ params }: PageProps) {
         {profileUser.bio && <p className="mt-4 max-w-xl text-sm text-text-muted">{profileUser.bio}</p>}
 
         {!isOwnProfile && (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <DonateButton receiverId={profileUser.id} authenticated={Boolean(sessionUser)} />
-            {profileUser.donationLink && (
-              <a href={profileUser.donationLink} target="_blank" rel="noreferrer" className="text-xs text-primary underline">
-                لینک دونیت خارجی
-              </a>
-            )}
+          <div className="mt-4 space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <DonateButton receiverId={profileUser.id} authenticated={Boolean(sessionUser)} />
+              {profileUser.donationLink && (
+                <a href={profileUser.donationLink} target="_blank" rel="noreferrer" className="text-xs text-primary underline">
+                  لینک دونیت خارجی
+                </a>
+              )}
+            </div>
+            <WalletAndLinks
+              cryptoWalletLabel={profileUser.cryptoWalletLabel}
+              cryptoWalletAddress={profileUser.cryptoWalletAddress}
+              customLinks={parseCustomLinks(profileUser.customLinks)}
+            />
           </div>
         )}
 
@@ -119,17 +132,11 @@ export default async function TeamProfilePage({ params }: PageProps) {
         </div>
 
         <h2 className="mb-3 mt-8 text-sm font-medium text-text-main">پروژه‌ها</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {Array.from(comicsByTitle.values()).map((comic) => (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {Array.from(comicsByTitle.values()).map((comic) => (
             <Link key={comic.id} href={`/app/comic/${comic.slug}`} className="block">
               <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
-                <Image
-                  src={comic.coverImage}
-                  alt={comic.title}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 200px"
-                  className="object-cover"
-                />
+                <Image src={comic.coverImage} alt={comic.title} fill sizes="(max-width: 768px) 50vw, 200px" className="object-cover" />
               </div>
               <p className="mt-2 truncate text-sm text-text-main">{comic.title}</p>
               <p className="text-xs text-text-muted">
@@ -139,7 +146,9 @@ export default async function TeamProfilePage({ params }: PageProps) {
               </p>
             </Link>
           ))}
-          {comicsByTitle.size === 0 && <p className="text-sm text-text-muted">هنوز پروژه‌ای ثبت نشده است.</p>}
+          {comicsByTitle.size === 0 && (
+            <p className="col-span-full text-sm text-text-muted">هنوز پروژه‌ای ثبت نشده است.</p>
+          )}
         </div>
       </div>
     </main>

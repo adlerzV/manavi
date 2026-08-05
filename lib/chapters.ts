@@ -1,20 +1,12 @@
+"use server";
+
 import { prisma } from "./prisma";
 import { ChapterAccessType } from "@prisma/client";
 import { COIN_CHAPTER_UNLOCK_COST } from "./billing";
+import type { ChapterAccessInfo } from "./chapter-access";
 
+export type { ChapterAccessInfo };
 export const RECENT_LOCK_COUNT = 10;
-
-export interface ChapterAccessInfo {
-  id: string;
-  chapterNumber: number;
-  title: string | null;
-  publishedAt: Date | null;
-  manuallyLocked: boolean;
-  recentlyLocked: boolean;
-  locked: boolean;
-  accessType: ChapterAccessType;
-  coinCost: number;
-}
 
 export async function getChapterAccessList(comicId: string): Promise<ChapterAccessInfo[]> {
   const chapters = await prisma.chapter.findMany({
@@ -87,10 +79,3 @@ export async function userHasChapterAccess(
 
   return hasActiveSubscription || hasCoinOrAdUnlock;
 }
-
-export const CHAPTER_ACCESS_TYPE_OPTIONS: { value: ChapterAccessType; label: string }[] = [
-  { value: ChapterAccessType.FREE, label: "رایگان (پیش‌فرض)" },
-  { value: ChapterAccessType.COIN_OR_SUBSCRIPTION, label: "سکه یا اشتراک" },
-  { value: ChapterAccessType.COIN, label: "فقط سکه" },
-  { value: ChapterAccessType.SUBSCRIPTION, label: "فقط اشتراک ویژه" },
-];
