@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUploadAccess } from "@/lib/auth";
-import { deleteObject } from "@/lib/s3";
+import { deleteObject, deleteObjects } from "@/lib/s3";
 import { extractDominantColor } from "@/lib/color";
 import { LicenseStatus, ContentType, ReadingMode, ChapterAccessType } from "@prisma/client";
 
@@ -348,7 +348,7 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
     const keysToDelete = comic.chapters
       .flatMap((c) => [...c.pages, c.thumbnailImage])
       .filter((key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://"));
-    await Promise.all(keysToDelete.map((key) => deleteObject(key).catch(() => {})));
+    await deleteObjects(keysToDelete).catch(() => {});
 
     revalidatePath("/admin/comics");
     revalidatePath("/app");

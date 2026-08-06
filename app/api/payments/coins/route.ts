@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { requestPayment, isZarinpalConfigured } from "@/lib/zarinpal";
-import { findCoinPackage } from "@/lib/billing";
+import { findActiveCoinPackage } from "@/lib/coin-packages";
 import { checkRateLimit } from "@/lib/moderation";
 
 export async function POST(req: NextRequest) {
@@ -21,26 +21,34 @@ export async function POST(req: NextRequest) {
   }
 
   const { packageId } = await req.json().catch(() => ({}));
-  const pack = findCoinPackage(packageId);
-  if (!pack) {
+  if (typeof packageId !== "string" || !packageId) {
     return NextResponse.json({ error: "Invalid package" }, { status: 400 });
   }
+
+  const pack = await findActiveCoinPackage(packageId);
+  if (!pack) {
+    return NextResponse.json({ error: "این پکیج دیگر در دسترس نیست" }, { status: 400 });
+  }
+
+  const priceToman = Number(pack.priceToman);
+  const totalCoins = pack.coins + pack.bonusCoins;
 
   const transaction = await prisma.transaction.create({
     data: {
       type: "COIN_PURCHASE",
       status: "PENDING",
-      amount: pack.priceToman,
+      amount: priceToman,
       currency: "IRT",
       payerId: user.id,
+      coinPackageId: pack.id,
     },
   });
 
   try {
-    const callbackUrl = `${process.env.NEXT_PUBLIC_MINI_APP_URL}/api/payments/verify?transactionId=${transaction.id}&coins=${pack.coins}`;
+    const callbackUrl = `${process.env.NEXT_PUBLIC_MINI_APP_URL}/api/payments/verify?transactionId=${transaction.id}&coins=${totalCoins}`;
     const { authority, paymentUrl } = await requestPayment({
-      amountToman: pack.priceToman,
-      description: `خرید ${pack.coins} سکه`,
+      amountToman: priceToman,
+      description: `خرید ${totalCoins.toLocaleString("fa-IR")} سکه`,
       callbackUrl,
     });
 

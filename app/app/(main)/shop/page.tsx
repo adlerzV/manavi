@@ -1,11 +1,16 @@
 import { getSessionUser } from "@/lib/auth";
 import { getActiveSubscriptionPlans } from "@/lib/subscription-plans";
+import { getActiveCoinPackages } from "@/lib/coin-packages";
 import { isZarinpalConfigured } from "@/lib/zarinpal";
 import { SubscriptionPlans } from "@/components/shop/subscription-plans";
 import { CoinPackages } from "@/components/shop/coin-packages";
 
 export default async function ShopPage() {
-  const [user, plans] = await Promise.all([getSessionUser(), getActiveSubscriptionPlans()]);
+    const [user, plans, coinPackages] = await Promise.all([
+    getSessionUser(),
+    getActiveSubscriptionPlans(),
+    getActiveCoinPackages(),
+  ]);
   const gatewayConfigured = isZarinpalConfigured();
 
   return (
@@ -43,7 +48,7 @@ export default async function ShopPage() {
 
         <section>
           <h2 className="mb-3 text-sm font-medium text-text-main">خرید سکه</h2>
-          <CoinPackages authenticated={Boolean(user)} gatewayConfigured={gatewayConfigured} />
+          <CoinPackages packages={coinPackages} authenticated={Boolean(user)} gatewayConfigured={gatewayConfigured} />
         </section>
       </div>
     </main>

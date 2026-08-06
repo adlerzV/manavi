@@ -1,5 +1,11 @@
 import "server-only";
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 
@@ -17,6 +23,9 @@ const s3 = new S3Client({
 
 const BUCKET = process.env.S3_BUCKET as string;
 const PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL;
+
+// حداکثر تعداد آبجکت مجاز در هر درخواست DeleteObjects (محدودیت استاندارد S3 / Backblaze B2)
+const MAX_KEYS_PER_DELETE_REQUEST = 1000;
 
 export async function uploadPageImage(
   comicId: string,
@@ -100,4 +109,21 @@ export async function getSignedImageUrls(keys: string[], expiresInSec: number = 
 
 export async function deleteObject(key: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+export async function deleteObjects(keys: string[]): Promise<void> {
+  const realKeys = keys.filter(
+    (key) => key && !key.startsWith("http://") && !key.startsWith("https://")
+  );
+  if (realKeys.length === 0) return;
+
+  for (let i = 0; i < realKeys.length; i += MAX_KEYS_PER_DELETE_REQUEST) {
+    const batch = realKeys.slice(i, i + MAX_KEYS_PER_DELETE_REQUEST);
+    await s3.send(
+      new DeleteObjectsCommand({
+        Bucket: BUCKET,
+        Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
+      })
+    );
+  }
 }

@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { getChapterAccessList, userHasChapterAccess } from "@/lib/chapters";
 import { getSignedImageUrls } from "@/lib/s3";
-import { recordChapterView } from "@/lib/analytics";
-import { markChapterRead } from "@/lib/read-marks";
+import { recordChapterVisit } from "@/lib/analytics";
 import { COIN_CHAPTER_UNLOCK_COST } from "@/lib/billing";
 import { ChapterReader } from "@/components/reader/chapter-reader";
 import { LockedChapterGate } from "@/components/reader/locked-chapter-gate";
@@ -85,10 +85,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
     canReply = Boolean(staffLink);
   }
 
-  recordChapterView(chapterId, chapter.comic.id).catch(() => {});
-  if (user) {
-    markChapterRead(user.id, chapterId, chapter.comic.id).catch(() => {});
-  }
+  after(() => recordChapterVisit(chapterId, chapter.comic.id, user?.id ?? null).catch(() => {}));
 
   const [readHistory, pageUrls, reactionData, comments] = await Promise.all([
     user ? prisma.readHistory.findUnique({ where: { userId_comicId: { userId: user.id, comicId: chapter.comic.id } } }) : Promise.resolve(null),

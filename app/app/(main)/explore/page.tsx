@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { after } from "next/server";
 import type { AgeRating } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ComicCard } from "@/components/catalog/comic-card";
@@ -22,8 +23,9 @@ export default async function ExplorePage({ searchParams }: PageProps) {
   const effectiveRatings: AgeRating[] =
     requestedRating && allowedRatings.includes(requestedRating) ? [requestedRating] : allowedRatings;
 
+  // اجرای غیرمسدودکننده ثبت عبارات جستجو در پس‌زمینه
   if (q?.trim()) {
-    await recordSearchTerm(q.trim());
+    after(() => recordSearchTerm(q.trim()));
   }
 
   const [genres, topSearches, comics] = await Promise.all([
@@ -98,7 +100,8 @@ export default async function ExplorePage({ searchParams }: PageProps) {
           </div>
         )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">          {comics.map((comic, index) => (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {comics.map((comic, index) => (
             <ComicCard
               key={comic.id}
               slug={comic.slug}

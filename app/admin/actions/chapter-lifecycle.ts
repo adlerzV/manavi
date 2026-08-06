@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { notifyNewChapter } from "@/lib/telegram-bot";
-import { deleteObject } from "@/lib/s3";
+import { deleteObject, deleteObjects } from "@/lib/s3";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -163,10 +163,10 @@ export async function deleteChapter(chapterId: string): Promise<ActionResult> {
       prisma.chapter.delete({ where: { id: chapterId } }),
     ]);
 
-    const keysToDelete = [...chapter.pages, chapter.thumbnailImage].filter(
+const keysToDelete = [...chapter.pages, chapter.thumbnailImage].filter(
       (key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://")
     );
-    await Promise.all(keysToDelete.map((key) => deleteObject(key).catch(() => {})));
+    await deleteObjects(keysToDelete).catch(() => {});
 
     revalidatePath("/admin/comics");
     revalidatePath(`/admin/comics/${chapter.comicId}`);

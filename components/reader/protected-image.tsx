@@ -44,6 +44,7 @@ export function ProtectedImage({ src, alt, priority, loading, sizes, fill, width
         fill={fill}
         width={fill ? undefined : width}
         height={fill ? undefined : height}
+        unoptimized
         draggable={false}
         onDragStart={(e) => e.preventDefault()}
         onLoad={() => setLoaded(true)}

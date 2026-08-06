@@ -16,7 +16,7 @@ export function PreviewImage({ src, alt }: { src: string; alt: string }) {
 
   return (
     <div className="relative w-full" style={{ aspectRatio: "2 / 3" }}>
-      <Image src={src} alt={alt} fill sizes="600px" className="object-cover" onError={() => setBroken(true)} />
+      <Image src={src} alt={alt} fill sizes="600px" unoptimized className="object-cover" onError={() => setBroken(true)} />
     </div>
   );
 }
