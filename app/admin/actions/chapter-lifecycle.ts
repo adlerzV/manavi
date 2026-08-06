@@ -78,25 +78,37 @@ export async function runScheduledPublish(): Promise<ActionResult<{ published: n
       },
     });
 
-    let published = 0;
-    for (const chapter of due) {
-      if (chapter.comic.license.status !== "ACTIVE") continue;
+    const eligible = due.filter((chapter) => chapter.comic.license.status === "ACTIVE");
+    if (eligible.length === 0) {
+      return { success: true, data: { published: 0 } };
+    }
 
+    const publishedChapters: typeof eligible = [];
+    for (const chapter of eligible) {
       const updated = await prisma.chapter.updateMany({
         where: { id: chapter.id, publishedAt: null },
         data: { status: "PUBLISHED", publishedAt: new Date(), scheduledAt: null },
       });
+      if (updated.count > 0) publishedChapters.push(chapter);
+    }
 
-      if (updated.count === 0) continue;
-
-      published += 1;
-
+    if (publishedChapters.length > 0) {
+      const comicIds = [...new Set(publishedChapters.map((c) => c.comic.id))];
       const bookmarks = await prisma.bookmark.findMany({
-        where: { comicId: chapter.comic.id, notifyOnNewChapter: true },
-        select: { user: { select: { telegramId: true } } },
+        where: { comicId: { in: comicIds }, notifyOnNewChapter: true },
+        select: { comicId: true, user: { select: { telegramId: true } } },
       });
-      if (bookmarks.length > 0) {
-        const telegramIds = bookmarks.map((b) => b.user.telegramId);
+
+      const telegramIdsByComicId = new Map<string, bigint[]>();
+      for (const b of bookmarks) {
+        const list = telegramIdsByComicId.get(b.comicId) ?? [];
+        list.push(b.user.telegramId);
+        telegramIdsByComicId.set(b.comicId, list);
+      }
+
+      for (const chapter of publishedChapters) {
+        const telegramIds = telegramIdsByComicId.get(chapter.comic.id);
+        if (!telegramIds?.length) continue;
         after(() =>
           notifyNewChapter({
             telegramIds,
@@ -111,7 +123,7 @@ export async function runScheduledPublish(): Promise<ActionResult<{ published: n
 
     revalidatePath("/app");
     revalidatePath("/app/explore");
-    return { success: true, data: { published } };
+    return { success: true, data: { published: publishedChapters.length } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
