@@ -122,3 +122,71 @@ export async function getLatestComments(allowedRatings: AgeRating[], limit = 8):
     user: r.user,
   }));
 }
+
+export interface CompletedSeriesComic {
+  id: string;
+  title: string;
+  slug: string;
+  coverImage: string;
+  dominantColor: string | null;
+  chapterCount: number;
+}
+
+export async function getCompletedSeries(allowedRatings: AgeRating[], limit = 12): Promise<CompletedSeriesComic[]> {
+  const comics = await prisma.comic.findMany({
+    where: { ageRating: { in: allowedRatings }, status: "COMPLETED" },
+    orderBy: { viewCount: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      coverImage: true,
+      dominantColor: true,
+      _count: { select: { chapters: true } },
+    },
+  });
+
+  return comics.map((c) => ({
+    id: c.id,
+    title: c.title,
+    slug: c.slug,
+    coverImage: c.coverImage,
+    dominantColor: c.dominantColor,
+    chapterCount: c._count.chapters,
+  }));
+}
+
+export interface MostBookmarkedComic {
+  id: string;
+  title: string;
+  slug: string;
+  coverImage: string;
+  dominantColor: string | null;
+  bookmarkCount: number;
+}
+
+export async function getMostBookmarkedComics(allowedRatings: AgeRating[], limit = 12): Promise<MostBookmarkedComic[]> {
+  const comics = await prisma.comic.findMany({
+    where: { ageRating: { in: allowedRatings } },
+    orderBy: { bookmarks: { _count: "desc" } },
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      coverImage: true,
+      dominantColor: true,
+      _count: { select: { bookmarks: true } },
+    },
+  });
+
+  return comics.map((c) => ({
+    id: c.id,
+    title: c.title,
+    slug: c.slug,
+    coverImage: c.coverImage,
+    dominantColor: c.dominantColor,
+    bookmarkCount: c._count.bookmarks,
+  }));
+}

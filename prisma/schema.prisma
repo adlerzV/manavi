@@ -26,6 +26,7 @@ model User {
   isBanned            Boolean         @default(false)
   bannedAt            DateTime?
   banReason           String?
+  deletedAt           DateTime?
   bio                 String?
   avatarUrl           String?
   donationLink        String?
@@ -53,6 +54,7 @@ model User {
   @@index([role])
   @@index([referredById])
   @@index([isBanned])
+  @@index([deletedAt])
 }
 
 enum Role {
@@ -174,6 +176,7 @@ model Comic {
   @@index([licenseId])
   @@index([viewCount])
   @@index([createdAt])
+  @@index([status])
 }
 
 enum AgeRating {
@@ -399,6 +402,9 @@ model Transaction {
   comicId String?
   comic   Comic?  @relation(fields: [comicId], references: [id])
 
+  subscriptionPlanId String?
+  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
+
   gatewayAuthority String? @unique
   gatewayRefId     String?
 
@@ -412,6 +418,8 @@ model Transaction {
   @@index([settlementId])
   @@index([status])
   @@index([receiverId])
+  @@index([subscriptionPlanId])
+  @@index([createdAt])
 }
 
 enum TransactionType {
@@ -427,6 +435,23 @@ enum TransactionStatus {
   PENDING
   PAID
   FAILED
+}
+
+model SubscriptionPlan {
+  id         String   @id @default(uuid())
+  label      String
+  months     Int
+  priceToman Decimal  @db.Decimal(12, 2)
+  isActive   Boolean  @default(true)
+  isFeatured Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  perks      String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  transactions Transaction[]
+
+  @@index([isActive, sortOrder])
 }
 
 model RoyaltySettlement {

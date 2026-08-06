@@ -359,3 +359,43 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }
 }
+
+export async function linkPublisherOwner(publisherId: string, telegramUsername: string): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    const username = telegramUsername.trim().replace("@", "");
+    if (!username) return { success: false, error: "یوزرنیم تلگرام الزامی است" };
+
+    const targetUser = await prisma.user.findFirst({ where: { username } });
+    if (!targetUser) {
+      return { success: false, error: "کاربری با این یوزرنیم پیدا نشد — باید حداقل یک‌بار مینی‌اپ را باز کرده باشد" };
+    }
+
+    const alreadyLinked = await prisma.publisher.findUnique({ where: { contractUserId: targetUser.id } });
+    if (alreadyLinked && alreadyLinked.id !== publisherId) {
+      return { success: false, error: "این کاربر قبلاً به ناشر دیگری متصل است" };
+    }
+
+    await prisma.$transaction([
+      prisma.publisher.update({ where: { id: publisherId }, data: { contractUserId: targetUser.id } }),
+      prisma.user.update({ where: { id: targetUser.id }, data: { role: "PUBLISHER" } }),
+    ]);
+
+    revalidatePath("/admin/publishers");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function unlinkPublisherOwner(publisherId: string): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    await prisma.publisher.update({ where: { id: publisherId }, data: { contractUserId: null } });
+    revalidatePath("/admin/publishers");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}

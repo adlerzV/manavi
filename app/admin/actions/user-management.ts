@@ -38,6 +38,7 @@ export async function searchUsers(query: {
   const where = {
     role: query.role,
     isBanned: query.banned,
+    deletedAt: null,
     OR: query.q
       ? [
           { firstName: { contains: query.q, mode: "insensitive" as const } },
@@ -150,6 +151,46 @@ export async function revokeCoins(userId: string, amount: number, note: string):
 
     await prisma.transaction.create({
       data: { type: "ADMIN_REVOKE", status: "PAID", amount, currency: "COIN", payerId: userId, message: note.trim() || null },
+    });
+
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function deleteUserAccount(userId: string, confirmationName: string): Promise<ActionResult> {
+  try {
+    const admin = await requireAdmin();
+    if (admin.id === userId) {
+      return { success: false, error: "نمی‌توانید حساب خودتان را حذف کنید" };
+    }
+
+    const target = await prisma.user.findUnique({ where: { id: userId } });
+    if (!target) return { success: false, error: "کاربر یافت نشد" };
+
+    const expectedName = target.username ?? target.firstName;
+    if (confirmationName.trim() !== expectedName) {
+      return { success: false, error: "نام تاییدیه مطابقت ندارد" };
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName: "کاربر حذف‌شده",
+        lastName: null,
+        username: null,
+        avatarUrl: null,
+        bio: null,
+        donationLink: null,
+        cryptoWalletLabel: null,
+        cryptoWalletAddress: null,
+        isBanned: true,
+        bannedAt: new Date(),
+        banReason: "حذف حساب توسط مدیر",
+        deletedAt: new Date(),
+      },
     });
 
     revalidatePath("/admin/users");

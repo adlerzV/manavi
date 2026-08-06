@@ -9,6 +9,10 @@ const START_PAY_BASE = SANDBOX
   ? "https://sandbox.zarinpal.com/pg/StartPay"
   : "https://www.zarinpal.com/pg/StartPay";
 
+export function isZarinpalConfigured(): boolean {
+  return Boolean(process.env.ZARINPAL_MERCHANT_ID);
+}
+
 export class ZarinpalError extends Error {
   constructor(public code: number, message: string) {
     super(message);

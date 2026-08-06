@@ -1,13 +1,21 @@
 import { getSessionUser } from "@/lib/auth";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
 import { getAllGenres } from "@/lib/genres";
-import { getHeroComics, getGenreBasedRecommendations, getLatestComments } from "@/lib/home-feed";
+import {
+  getHeroComics,
+  getGenreBasedRecommendations,
+  getLatestComments,
+  getCompletedSeries,
+  getMostBookmarkedComics,
+} from "@/lib/home-feed";
 import { getHomeFeedComics } from "@/app/actions/home-feed";
 import { CoinBalanceHeader } from "@/components/home/coin-balance-header";
 import { FloatingDailyClaim } from "@/components/home/floating-daily-claim";
 import { HeroCarousel } from "@/components/home/hero-carousel";
 import { NewestPopularSection } from "@/components/home/newest-popular-section";
 import { RecommendedSection } from "@/components/home/recommended-section";
+import { MostBookmarkedSection } from "@/components/home/most-bookmarked-section";
+import { CompletedSeriesSection } from "@/components/home/completed-series-section";
 import { LatestCommentsSection } from "@/components/home/latest-comments-section";
 
 function isSameCalendarDay(a: Date, b: Date): boolean {
@@ -17,11 +25,13 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
 export default async function AppHomePage() {
   const [user, allowedRatings] = await Promise.all([getSessionUser(), getAllowedAgeRatings()]);
 
-  const [heroComics, genres, newest, popular, latestComments, recommendations] = await Promise.all([
+  const [heroComics, genres, newest, popular, mostBookmarked, completedSeries, latestComments, recommendations] = await Promise.all([
     getHeroComics(allowedRatings),
     getAllGenres(),
     getHomeFeedComics("newest"),
     getHomeFeedComics("popular"),
+    getMostBookmarkedComics(allowedRatings),
+    getCompletedSeries(allowedRatings),
     getLatestComments(allowedRatings),
     user ? getGenreBasedRecommendations(user.id, allowedRatings) : Promise.resolve([]),
   ]);
@@ -41,6 +51,10 @@ export default async function AppHomePage() {
       <NewestPopularSection initialNewest={newest} initialPopular={popular} genres={genres.map((g) => ({ id: g.id, name: g.name }))} />
 
       {recommendations.length > 0 && <RecommendedSection comics={recommendations} />}
+
+      <MostBookmarkedSection comics={mostBookmarked} />
+
+      <CompletedSeriesSection comics={completedSeries} />
 
       <LatestCommentsSection comments={latestComments} />
 

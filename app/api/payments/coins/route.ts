@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { requestPayment } from "@/lib/zarinpal";
+import { requestPayment, isZarinpalConfigured } from "@/lib/zarinpal";
 import { findCoinPackage } from "@/lib/billing";
+import { checkRateLimit } from "@/lib/moderation";
 
 export async function POST(req: NextRequest) {
+  if (!isZarinpalConfigured()) {
+    return NextResponse.json({ error: "درگاه پرداخت پیکربندی نشده است" }, { status: 503 });
+  }
+
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { packageId } = await req.json();
+  const allowed = await checkRateLimit(`coins:${user.id}`, 5);
+  if (!allowed) {
+    return NextResponse.json({ error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" }, { status: 429 });
+  }
+
+  const { packageId } = await req.json().catch(() => ({}));
   const pack = findCoinPackage(packageId);
   if (!pack) {
     return NextResponse.json({ error: "Invalid package" }, { status: 400 });

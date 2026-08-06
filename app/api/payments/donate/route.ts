@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { requestPayment } from "@/lib/zarinpal";
+import { requestPayment, isZarinpalConfigured } from "@/lib/zarinpal";
 import { MIN_DONATION_TOMAN, MAX_DONATION_TOMAN } from "@/lib/billing";
+import { checkRateLimit } from "@/lib/moderation";
 
 export async function POST(req: NextRequest) {
+  if (!isZarinpalConfigured()) {
+    return NextResponse.json({ error: "درگاه پرداخت پیکربندی نشده است" }, { status: 503 });
+  }
+
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`donate:${user.id}`, 5);
+  if (!allowed) {
+    return NextResponse.json({ error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" }, { status: 429 });
   }
 
   const { receiverId, amountToman, message } = await req.json().catch(() => ({}));

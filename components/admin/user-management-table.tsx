@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { searchUsers, setUserRole, banUser, unbanUser, grantCoins, revokeCoins, type UserSearchResult } from "@/app/admin/actions/user-management";
+import {
+  searchUsers,
+  setUserRole,
+  banUser,
+  unbanUser,
+  grantCoins,
+  revokeCoins,
+  deleteUserAccount,
+  type UserSearchResult,
+} from "@/app/admin/actions/user-management";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import type { Role } from "@prisma/client";
 
 const ROLES: Role[] = ["USER", "VIP", "STAFF", "PUBLISHER", "ADMIN"];
@@ -108,7 +118,7 @@ export function UserManagementTable({ initialUsers, initialTotal }: { initialUse
                 <p className="text-sm text-text-main">{u.firstName} {u.lastName ?? ""} {u.username ? `— @${u.username}` : ""}</p>
                 <p className="text-xs text-text-muted">سکه: {u.coinsBalance.toLocaleString("fa-IR")} · {u.isBanned ? "مسدود" : "فعال"}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <select value={u.role} onChange={(e) => handleRoleChange(u.id, e.target.value as Role)} disabled={isPending} className="rounded-md border border-border bg-background px-2 py-1 text-xs text-text-main">
                   {ROLES.map((r) => (
                     <option key={r} value={r}>{r}</option>
@@ -126,6 +136,14 @@ export function UserManagementTable({ initialUsers, initialTotal }: { initialUse
                 <button onClick={() => setActionTarget(actionTarget === `coin-${u.id}` ? null : `coin-${u.id}`)} className="rounded-md border border-accent px-2 py-1 text-xs text-accent">
                   مدیریت سکه
                 </button>
+                <DeleteConfirmDialog
+                  triggerLabel="حذف کاربر"
+                  confirmTitle={`حذف حساب ${u.firstName}`}
+                  confirmDescription="این حساب برای همیشه غیرفعال و اطلاعات نمایشی آن پاک می‌شود. به‌دلیل وجود تراکنش‌ها و نظرات مرتبط با این کاربر، رکورد به‌صورت کامل از دیتابیس حذف نمی‌شود تا سابقه‌ی مالی و نظرات دیگران آسیب نبیند — اما این حساب کاملاً غیرقابل استفاده می‌شود."
+                  confirmValue={u.username ?? u.firstName}
+                  onConfirm={() => deleteUserAccount(u.id, u.username ?? u.firstName)}
+                  onDeleted={() => runSearch(page)}
+                />
               </div>
             </div>
 
