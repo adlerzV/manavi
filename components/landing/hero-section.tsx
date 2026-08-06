@@ -36,7 +36,7 @@ export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
               transition={shouldReduceMotion ? undefined : { duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
             />
             <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-surface/60 backdrop-blur-sm">
-              <Image src="/favicon.svg" alt="مناوی" width={40} height={40} className="rounded-lg" />
+              <Image src="/favicon.svg" alt="مناوی" width={40} height={40} className="rounded-lg" priority />
             </div>
           </div>
 
@@ -80,6 +80,7 @@ export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
           <FloatingPanelCard
             label="مانهوا"
             sublabel="عرش شکسته"
+            imageSrc="/images/hero/cover-1.jpg"
             fromColor="#0f2f1f"
             toColor="#00DC64"
             rotate={-8}
@@ -92,6 +93,7 @@ export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
           <FloatingPanelCard
             label="وبتون"
             sublabel="سایه‌های شهر"
+            imageSrc="/images/hero/cover-2.jpg"
             fromColor="#2b0f22"
             toColor="#EC4899"
             rotate={6}
@@ -104,6 +106,7 @@ export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
           <FloatingPanelCard
             label="مانگا"
             sublabel="طوفان بی‌پایان"
+            imageSrc="/images/hero/cover-3.jpg"
             fromColor="#111827"
             toColor="#22c55e"
             rotate={-3}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { HalftoneOverlay } from "./halftone-overlay";
 import { GlowCtaButton } from "./glow-cta-button";
@@ -7,6 +8,7 @@ import type { TelegramLinks } from "@/lib/site-config";
 
 interface ReaderPreviewProps {
   links: TelegramLinks | null;
+  panelImageSrc?: string;
 }
 
 const PANEL_TONES = [
@@ -17,7 +19,7 @@ const PANEL_TONES = [
   "linear-gradient(160deg, #0d2418, #16a34a)",
 ];
 
-function PanelStrip() {
+function FallbackStrip() {
   return (
     <>
       {PANEL_TONES.map((tone, index) => (
@@ -36,7 +38,10 @@ function PanelStrip() {
   );
 }
 
-export function ReaderPreview({ links }: ReaderPreviewProps) {
+export function ReaderPreview({ 
+  links, 
+  panelImageSrc = "/images/hero/ch_1_2.jpg" 
+}: ReaderPreviewProps) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -60,7 +65,8 @@ export function ReaderPreview({ links }: ReaderPreviewProps) {
 
         <div className="order-1 mx-auto md:order-2">
           <div className="relative mx-auto h-[520px] w-[260px] rounded-[2.5rem] border-[6px] border-neutral-800 bg-neutral-900 shadow-2xl">
-            <div className="absolute left-1/2 top-2 h-1.5 w-16 -translate-x-1/2 rounded-full bg-neutral-700" />
+            <div className="absolute left-1/2 top-2 z-20 h-1.5 w-16 -translate-x-1/2 rounded-full bg-neutral-700" />
+            
             <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-black">
               <motion.div
                 className="flex flex-col will-change-transform"
@@ -68,14 +74,41 @@ export function ReaderPreview({ links }: ReaderPreviewProps) {
                 transition={
                   shouldReduceMotion
                     ? undefined
-                    : { duration: 14, repeat: Infinity, ease: "linear" }
+                    : { duration: 16, repeat: Infinity, ease: "linear" }
                 }
               >
-                <PanelStrip />
-                <PanelStrip />
+                {panelImageSrc ? (
+                  <>
+                    <div className="relative w-full">
+                      <Image
+                        src={panelImageSrc}
+                        alt="پیش‌نمایش ریدر مانهوا"
+                        width={260}
+                        height={1200}
+                        className="h-auto w-full object-cover"
+                        priority
+                      />
+                    </div>
+                    <div className="relative w-full">
+                      <Image
+                        src={panelImageSrc}
+                        alt="پیش‌نمایش ریدر مانهوا"
+                        width={260}
+                        height={1200}
+                        className="h-auto w-full object-cover"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <FallbackStrip />
+                    <FallbackStrip />
+                  </>
+                )}
               </motion.div>
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black to-transparent" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black to-transparent" />
+
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-black/80 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-black/80 to-transparent" />
             </div>
           </div>
         </div>

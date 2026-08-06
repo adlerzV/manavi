@@ -105,7 +105,6 @@ export function CreatorApplicationForm() {
         />
       </div>
 
-      {/* Input هانی‌پات برای فریب ربات‌ها */}
       <input
         type="text"
         name="website"

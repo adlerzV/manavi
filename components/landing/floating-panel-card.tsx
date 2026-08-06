@@ -1,11 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { HalftoneOverlay } from "./halftone-overlay";
 
 interface FloatingPanelCardProps {
   label: string;
   sublabel: string;
+  imageSrc?: string; // اضافه شدن پروپ عکس (اختیاری)
   fromColor: string;
   toColor: string;
   rotate: number;
@@ -19,6 +21,7 @@ interface FloatingPanelCardProps {
 export function FloatingPanelCard({
   label,
   sublabel,
+  imageSrc,
   fromColor,
   toColor,
   rotate,
@@ -48,10 +51,21 @@ export function FloatingPanelCard({
       <div
         className="relative h-56 w-40 overflow-hidden rounded-2xl border border-white/10 shadow-2xl sm:h-64 sm:w-44"
         style={{
-          backgroundImage: `linear-gradient(155deg, ${fromColor}, ${toColor})`,
+          backgroundImage: imageSrc ? undefined : `linear-gradient(155deg, ${fromColor}, ${toColor})`,
           boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)",
         }}
       >
+        {imageSrc && (
+          <Image
+            src={imageSrc}
+            alt={sublabel}
+            fill
+            sizes="(max-width: 640px) 160px, 176px"
+            className="object-cover"
+            priority
+          />
+        )}
+
         <div
           className="absolute inset-0 opacity-20"
           style={{
@@ -60,6 +74,11 @@ export function FloatingPanelCard({
           }}
         />
         <HalftoneOverlay dotColor="255,255,255" opacity={0.16} gap={10} dotSize={1.1} />
+
+        {imageSrc && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+        )}
+
         <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
           <span className="rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
             {label}
@@ -69,10 +88,12 @@ export function FloatingPanelCard({
             <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
           </span>
         </div>
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
           <p className="text-xs font-medium text-white">{sublabel}</p>
           <p className="text-[10px] text-white/70">چپتر تازه منتشر شد</p>
         </div>
+
         <div className="pointer-events-none absolute inset-2 rounded-xl border border-white/15" />
       </div>
     </motion.div>
