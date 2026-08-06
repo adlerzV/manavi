@@ -405,6 +405,9 @@ model Transaction {
   coinPackageId String?
   coinPackage   CoinPackage? @relation(fields: [coinPackageId], references: [id], onDelete: SetNull)
 
+  subscriptionPlanId String?
+  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
+
   gatewayAuthority String? @unique
   gatewayRefId     String?
 
@@ -419,6 +422,7 @@ model Transaction {
   @@index([status])
   @@index([receiverId])
   @@index([coinPackageId])
+  @@index([subscriptionPlanId])
   @@index([createdAt])
 }
 
@@ -453,6 +457,7 @@ model SubscriptionPlan {
 
   @@index([isActive, sortOrder])
 }
+
 model CoinPackage {
   id                 String   @id @default(uuid())
   coins              Int
