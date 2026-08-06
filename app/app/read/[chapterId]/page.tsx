@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
+import { isLicenseCurrentlyActive } from "@/lib/license";
 import { getChapterAccessList, userHasChapterAccess } from "@/lib/chapters";
 import { getSignedImageUrls } from "@/lib/s3";
 import { recordChapterVisit } from "@/lib/analytics";
@@ -30,7 +30,22 @@ export default async function ReadChapterPage({ params }: PageProps) {
       accessType: true,
       coinCost: true,
       comic: {
-        select: { id: true, title: true, slug: true, readingMode: true, contentType: true, license: { select: { publisherId: true } } },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          readingMode: true,
+          contentType: true,
+          license: {
+            select: {
+              publisherId: true,
+              status: true,
+              terminatedAt: true,
+              startDate: true,
+              endDate: true,
+            },
+          },
+        },
       },
     },
   });
@@ -39,21 +54,19 @@ export default async function ReadChapterPage({ params }: PageProps) {
     notFound();
   }
 
-  try {
-    await assertLicenseActive(chapter.comic.id);
-  } catch (err) {
-    if (err instanceof LicenseInactiveError) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background px-6 text-center">
-          <p className="text-sm text-text-muted">این عنوان موقتاً در دسترس نیست.</p>
-        </div>
-      );
-    }
-    throw err;
+  if (!isLicenseCurrentlyActive(chapter.comic.license)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6 text-center">
+        <p className="text-sm text-text-muted">این عنوان موقتاً در دسترس نیست.</p>
+      </div>
+    );
   }
 
-  const user = await getSessionUser();
-  const accessList = await getChapterAccessList(chapter.comic.id);
+  const [user, accessList] = await Promise.all([
+    getSessionUser(),
+    getChapterAccessList(chapter.comic.id),
+  ]);
+
   const entry = accessList.find((c) => c.id === chapterId);
   const locked = entry?.locked ?? false;
 
@@ -81,14 +94,22 @@ export default async function ReadChapterPage({ params }: PageProps) {
     canReply = user.publisherProfile.id === chapter.comic.license.publisherId;
   }
   if (!canReply && user) {
-    const staffLink = await prisma.publisherStaff.findFirst({ where: { userId: user.id, publisherId: chapter.comic.license.publisherId } });
+    const staffLink = await prisma.publisherStaff.findFirst({
+      where: { userId: user.id, publisherId: chapter.comic.license.publisherId },
+      select: { id: true },
+    });
     canReply = Boolean(staffLink);
   }
 
   after(() => recordChapterVisit(chapterId, chapter.comic.id, user?.id ?? null).catch(() => {}));
 
   const [readHistory, pageUrls, reactionData, comments] = await Promise.all([
-    user ? prisma.readHistory.findUnique({ where: { userId_comicId: { userId: user.id, comicId: chapter.comic.id } } }) : Promise.resolve(null),
+    user
+      ? prisma.readHistory.findUnique({
+          where: { userId_comicId: { userId: user.id, comicId: chapter.comic.id } },
+          select: { lastChapterId: true, lastPage: true, scrollFraction: true },
+        })
+      : Promise.resolve(null),
     getSignedImageUrls(chapter.pages),
     getChapterReactionSummary(chapterId, user?.id ?? null),
     prisma.comment.findMany({
@@ -105,7 +126,14 @@ export default async function ReadChapterPage({ params }: PageProps) {
         replies: {
           where: { status: "APPROVED" },
           orderBy: { createdAt: "asc" },
-          select: { id: true, content: true, isSpoiler: true, isStaffReply: true, createdAt: true, user: { select: { firstName: true, lastName: true, username: true } } },
+          select: {
+            id: true,
+            content: true,
+            isSpoiler: true,
+            isStaffReply: true,
+            createdAt: true,
+            user: { select: { firstName: true, lastName: true, username: true } },
+          },
         },
       },
     }),

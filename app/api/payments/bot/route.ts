@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN as string;
 const MINI_APP_URL = process.env.NEXT_PUBLIC_MINI_APP_URL as string;
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 const MINI_APP_SHORT_NAME = process.env.NEXT_PUBLIC_TELEGRAM_MINI_APP_SHORT_NAME;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+interface TelegramUpdate {
+  message?: {
+    text?: string;
+    chat?: { id: number };
+  };
+}
 
 function buildOpenKeyboard(startParam?: string) {
   if (startParam && BOT_USERNAME && MINI_APP_SHORT_NAME) {
@@ -24,6 +32,24 @@ function buildOpenKeyboard(startParam?: string) {
   };
 }
 
+function parseStartCommand(text: string): { isStart: boolean; startParam?: string } {
+  if (!text.startsWith("/start")) return { isStart: false };
+  const parts = text.trim().split(/\s+/);
+  return { isStart: true, startParam: parts.length > 1 ? parts[1] : undefined };
+}
+
+async function sendWelcomeMessage(chatId: number, startParam?: string) {
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: "به مناوی خوش آمدید! برای شروع مطالعه روی دکمه زیر بزنید.",
+      reply_markup: buildOpenKeyboard(startParam),
+    }),
+  }).catch(() => {});
+}
+
 export async function POST(req: NextRequest) {
   if (process.env.NODE_ENV === "production" && !WEBHOOK_SECRET) {
     return NextResponse.json({ error: "webhook secret not configured" }, { status: 500 });
@@ -34,22 +60,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
   }
-  const update = await req.json().catch(() => null);
-  const message = update?.message;
 
-  if (typeof message?.text === "string" && message.text.startsWith("/start") && message.chat?.id) {
-    const parts = message.text.trim().split(/\s+/);
-    const startParam = parts.length > 1 ? parts[1] : undefined;
+  const update = (await req.json().catch(() => null)) as TelegramUpdate | null;
+  const text = update?.message?.text;
+  const chatId = update?.message?.chat?.id;
 
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: message.chat.id,
-        text: "به مناوی خوش آمدید! برای شروع مطالعه روی دکمه زیر بزنید.",
-        reply_markup: buildOpenKeyboard(startParam),
-      }),
-    }).catch(() => {});
+  if (typeof text === "string" && typeof chatId === "number") {
+    const { isStart, startParam } = parseStartCommand(text);
+    if (isStart) {
+      after(() => sendWelcomeMessage(chatId, startParam));
+    }
   }
 
   return NextResponse.json({ ok: true });

@@ -1,9 +1,5 @@
-"use client";
-
-import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
-import { HalftoneOverlay } from "./halftone-overlay";
 import { GlowCtaButton } from "./glow-cta-button";
+import { ReaderPreviewMarquee } from "./reader-preview-marquee";
 import type { TelegramLinks } from "@/lib/site-config";
 
 interface ReaderPreviewProps {
@@ -11,39 +7,10 @@ interface ReaderPreviewProps {
   panelImageSrc?: string;
 }
 
-const PANEL_TONES = [
-  "linear-gradient(160deg, #0f2f1f, #00DC64)",
-  "linear-gradient(160deg, #1c1030, #EC4899)",
-  "linear-gradient(160deg, #101826, #22c55e)",
-  "linear-gradient(160deg, #23101c, #f472b6)",
-  "linear-gradient(160deg, #0d2418, #16a34a)",
-];
-
-function FallbackStrip() {
-  return (
-    <>
-      {PANEL_TONES.map((tone, index) => (
-        <div key={index} className="relative h-40 w-full flex-shrink-0 overflow-hidden" style={{ backgroundImage: tone }}>
-          <HalftoneOverlay dotColor="255,255,255" opacity={0.14} gap={9} dotSize={1} />
-          <div
-            className="absolute inset-0 opacity-15"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(100deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 1px, transparent 1px, transparent 12px)",
-            }}
-          />
-        </div>
-      ))}
-    </>
-  );
-}
-
-export function ReaderPreview({ 
-  links, 
-  panelImageSrc = "/images/hero/ch_1_2.jpg" 
+export function ReaderPreview({
+  links,
+  panelImageSrc = "/images/hero/ch_1_2.jpg",
 }: ReaderPreviewProps) {
-  const shouldReduceMotion = useReducedMotion();
-
   return (
     <section className="relative mx-auto max-w-6xl px-4 py-20">
       <div className="grid grid-cols-1 items-center gap-14 md:grid-cols-2">
@@ -66,46 +33,9 @@ export function ReaderPreview({
         <div className="order-1 mx-auto md:order-2">
           <div className="relative mx-auto h-[520px] w-[260px] rounded-[2.5rem] border-[6px] border-neutral-800 bg-neutral-900 shadow-2xl">
             <div className="absolute left-1/2 top-2 z-20 h-1.5 w-16 -translate-x-1/2 rounded-full bg-neutral-700" />
-            
+
             <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-black">
-              <motion.div
-                className="flex flex-col will-change-transform"
-                animate={shouldReduceMotion ? undefined : { y: ["0%", "-50%"] }}
-                transition={
-                  shouldReduceMotion
-                    ? undefined
-                    : { duration: 16, repeat: Infinity, ease: "linear" }
-                }
-              >
-                {panelImageSrc ? (
-                  <>
-                    <div className="relative w-full">
-                      <Image
-                        src={panelImageSrc}
-                        alt="پیش‌نمایش ریدر مانهوا"
-                        width={260}
-                        height={1200}
-                        className="h-auto w-full object-cover"
-                        priority
-                      />
-                    </div>
-                    <div className="relative w-full">
-                      <Image
-                        src={panelImageSrc}
-                        alt="پیش‌نمایش ریدر مانهوا"
-                        width={260}
-                        height={1200}
-                        className="h-auto w-full object-cover"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <FallbackStrip />
-                    <FallbackStrip />
-                  </>
-                )}
-              </motion.div>
+              <ReaderPreviewMarquee panelImageSrc={panelImageSrc} />
 
               <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-black/80 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-black/80 to-transparent" />

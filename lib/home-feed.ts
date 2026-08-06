@@ -1,6 +1,10 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import type { AgeRating } from "@prisma/client";
 import { prisma } from "./prisma";
+
+const HOME_FEED_REVALIDATE_SECONDS = 120;
+const HOME_FEED_TAG = "home-feed";
 
 export interface HeroComic {
   id: string;
@@ -12,7 +16,7 @@ export interface HeroComic {
   featuredBadge: string | null;
 }
 
-export async function getHeroComics(allowedRatings: AgeRating[]): Promise<HeroComic[]> {
+async function fetchHeroComics(allowedRatings: AgeRating[]): Promise<HeroComic[]> {
   const featured = await prisma.comic.findMany({
     where: { ageRating: { in: allowedRatings }, isFeaturedOnHome: true },
     orderBy: { createdAt: "desc" },
@@ -21,7 +25,7 @@ export async function getHeroComics(allowedRatings: AgeRating[]): Promise<HeroCo
   });
 
   if (featured.length > 0) {
-    return [...featured].sort(() => Math.random() - 0.5);
+    return featured;
   }
 
   const fallback = await prisma.comic.findFirst({
@@ -32,6 +36,11 @@ export async function getHeroComics(allowedRatings: AgeRating[]): Promise<HeroCo
 
   return fallback ? [fallback] : [];
 }
+
+export const getHeroComics = unstable_cache(fetchHeroComics, ["home-feed:hero"], {
+  revalidate: HOME_FEED_REVALIDATE_SECONDS,
+  tags: [HOME_FEED_TAG],
+});
 
 export interface RecommendedComic {
   id: string;
@@ -92,7 +101,7 @@ export interface LatestCommentItem {
   user: { firstName: string; username: string | null };
 }
 
-export async function getLatestComments(allowedRatings: AgeRating[], limit = 8): Promise<LatestCommentItem[]> {
+async function fetchLatestComments(allowedRatings: AgeRating[], limit = 8): Promise<LatestCommentItem[]> {
   const rows = await prisma.comment.findMany({
     where: { isSpoiler: false, status: "APPROVED", chapter: { comic: { ageRating: { in: allowedRatings } } } },
     orderBy: { createdAt: "desc" },
@@ -123,6 +132,11 @@ export async function getLatestComments(allowedRatings: AgeRating[], limit = 8):
   }));
 }
 
+export const getLatestComments = unstable_cache(fetchLatestComments, ["home-feed:latest-comments"], {
+  revalidate: HOME_FEED_REVALIDATE_SECONDS,
+  tags: [HOME_FEED_TAG],
+});
+
 export interface CompletedSeriesComic {
   id: string;
   title: string;
@@ -132,7 +146,7 @@ export interface CompletedSeriesComic {
   chapterCount: number;
 }
 
-export async function getCompletedSeries(allowedRatings: AgeRating[], limit = 12): Promise<CompletedSeriesComic[]> {
+async function fetchCompletedSeries(allowedRatings: AgeRating[], limit = 12): Promise<CompletedSeriesComic[]> {
   const comics = await prisma.comic.findMany({
     where: { ageRating: { in: allowedRatings }, status: "COMPLETED" },
     orderBy: { viewCount: "desc" },
@@ -157,6 +171,11 @@ export async function getCompletedSeries(allowedRatings: AgeRating[], limit = 12
   }));
 }
 
+export const getCompletedSeries = unstable_cache(fetchCompletedSeries, ["home-feed:completed-series"], {
+  revalidate: HOME_FEED_REVALIDATE_SECONDS,
+  tags: [HOME_FEED_TAG],
+});
+
 export interface MostBookmarkedComic {
   id: string;
   title: string;
@@ -166,7 +185,7 @@ export interface MostBookmarkedComic {
   bookmarkCount: number;
 }
 
-export async function getMostBookmarkedComics(allowedRatings: AgeRating[], limit = 12): Promise<MostBookmarkedComic[]> {
+async function fetchMostBookmarkedComics(allowedRatings: AgeRating[], limit = 12): Promise<MostBookmarkedComic[]> {
   const comics = await prisma.comic.findMany({
     where: { ageRating: { in: allowedRatings } },
     orderBy: { bookmarks: { _count: "desc" } },
@@ -190,3 +209,8 @@ export async function getMostBookmarkedComics(allowedRatings: AgeRating[], limit
     bookmarkCount: c._count.bookmarks,
   }));
 }
+
+export const getMostBookmarkedComics = unstable_cache(fetchMostBookmarkedComics, ["home-feed:most-bookmarked"], {
+  revalidate: HOME_FEED_REVALIDATE_SECONDS,
+  tags: [HOME_FEED_TAG],
+});

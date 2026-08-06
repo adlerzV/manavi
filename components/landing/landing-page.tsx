@@ -1,5 +1,3 @@
-"use client";
-
 import { PointerParallaxProvider } from "./pointer-parallax-provider";
 import { HeroSection } from "./hero-section";
 import { StatBand } from "./stat-band";

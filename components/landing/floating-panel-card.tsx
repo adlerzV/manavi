@@ -7,7 +7,7 @@ import { HalftoneOverlay } from "./halftone-overlay";
 interface FloatingPanelCardProps {
   label: string;
   sublabel: string;
-  imageSrc?: string; // اضافه شدن پروپ عکس (اختیاری)
+  imageSrc?: string;
   fromColor: string;
   toColor: string;
   rotate: number;
@@ -16,6 +16,7 @@ interface FloatingPanelCardProps {
   floatDelay: number;
   floatDuration: number;
   className?: string;
+  priority?: boolean;
 }
 
 export function FloatingPanelCard({
@@ -30,6 +31,7 @@ export function FloatingPanelCard({
   floatDelay,
   floatDuration,
   className,
+  priority = false,
 }: FloatingPanelCardProps) {
   const shouldReduceMotion = useReducedMotion();
 
@@ -62,7 +64,8 @@ export function FloatingPanelCard({
             fill
             sizes="(max-width: 640px) 160px, 176px"
             className="object-cover"
-            priority
+            priority={priority}
+            loading={priority ? undefined : "lazy"}
           />
         )}
 

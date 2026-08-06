@@ -18,6 +18,8 @@ import { MostBookmarkedSection } from "@/components/home/most-bookmarked-section
 import { CompletedSeriesSection } from "@/components/home/completed-series-section";
 import { LatestCommentsSection } from "@/components/home/latest-comments-section";
 
+export const revalidate = 300;
+
 function isSameCalendarDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -36,6 +38,7 @@ export default async function AppHomePage() {
     user ? getGenreBasedRecommendations(user.id, allowedRatings) : Promise.resolve([]),
   ]);
 
+  const shuffledHeroComics = heroComics.length > 1 ? [...heroComics].sort(() => Math.random() - 0.5) : heroComics;
   const alreadyClaimedToday = Boolean(user?.lastCheckinAt && isSameCalendarDay(user.lastCheckinAt, new Date()));
 
   return (
@@ -46,7 +49,7 @@ export default async function AppHomePage() {
         authenticated={Boolean(user)}
       />
 
-      <HeroCarousel comics={heroComics} />
+      <HeroCarousel comics={shuffledHeroComics} />
 
       <NewestPopularSection initialNewest={newest} initialPopular={popular} genres={genres.map((g) => ({ id: g.id, name: g.name }))} />
 

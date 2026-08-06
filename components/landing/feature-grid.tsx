@@ -1,5 +1,3 @@
-"use client";
-
 import { Layers, ShieldCheck, HeartHandshake, BellRing } from "lucide-react";
 import { FeatureSpotlightCard } from "./feature-spotlight-card";
 import { HalftoneOverlay } from "./halftone-overlay";

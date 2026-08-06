@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { deleteObject, deleteObjects } from "@/lib/s3";
@@ -164,6 +164,7 @@ export async function createComic(input: {
       },
     });
 
+    revalidateTag("home-feed");
     revalidatePath("/admin/comics");
     revalidatePath("/app/explore");
     revalidatePath("/app");
@@ -233,6 +234,7 @@ export async function updateComic(
       });
     });
 
+    revalidateTag("home-feed");
     revalidatePath("/admin/comics");
     revalidatePath(`/admin/comics/${comicId}`);
     revalidatePath(`/app/comic/${comic.slug}`);
@@ -350,6 +352,7 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
       .filter((key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://"));
     await deleteObjects(keysToDelete).catch(() => {});
 
+    revalidateTag("home-feed");
     revalidatePath("/admin/comics");
     revalidatePath("/app");
     revalidatePath("/app/explore");

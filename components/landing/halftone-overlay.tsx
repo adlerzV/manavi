@@ -1,5 +1,3 @@
-"use client";
-
 interface HalftoneOverlayProps {
   className?: string;
   dotColor?: string;

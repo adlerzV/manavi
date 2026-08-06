@@ -16,17 +16,6 @@ export class ComicNotFoundError extends Error {
   }
 }
 
-/**
- * Throws unless the given comic's license is genuinely in force right now:
- * status ACTIVE, not terminated, and today falls within [startDate, endDate].
- *
- * Call this in the chapter-publish Server Action before setting
- * Chapter.publishedAt, and again in the chapter-read route before serving
- * page URLs — a license can expire between publish time and read time.
- *
- * Returns the License row on success so callers can reuse it (e.g. to
- * check territory) without a second query.
- */
 export async function assertLicenseActive(comicId: string): Promise<License> {
   const comic = await prisma.comic.findUnique({
     where: { id: comicId },
@@ -54,4 +43,20 @@ export async function assertLicenseActive(comicId: string): Promise<License> {
   }
 
   return license;
+}
+
+export interface LicenseActivityFields {
+  status: LicenseStatus;
+  terminatedAt: Date | null;
+  startDate: Date;
+  endDate: Date | null;
+}
+
+export function isLicenseCurrentlyActive(license: LicenseActivityFields): boolean {
+  const now = new Date();
+  if (license.terminatedAt) return false;
+  if (license.status !== LicenseStatus.ACTIVE) return false;
+  if (license.startDate > now) return false;
+  if (license.endDate && license.endDate < now) return false;
+  return true;
 }

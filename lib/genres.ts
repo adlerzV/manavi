@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import type { AgeRating } from "@prisma/client";
 import { prisma } from "./prisma";
 
@@ -8,17 +9,27 @@ export interface GenreOption {
   imageUrl: string | null;
 }
 
-export async function getAllGenres(): Promise<GenreOption[]> {
-  return prisma.genre.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, imageUrl: true },
-  });
-}
+const GENRES_REVALIDATE_SECONDS = 3600;
 
-export async function getVisibleGenres(allowedRatings: AgeRating[]): Promise<GenreOption[]> {
-  return prisma.genre.findMany({
-    orderBy: { name: "asc" },
-    where: { comics: { some: { comic: { ageRating: { in: allowedRatings } } } } },
-    select: { id: true, name: true, imageUrl: true },
-  });
-}
+export const getAllGenres = unstable_cache(
+  async (): Promise<GenreOption[]> => {
+    return prisma.genre.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, imageUrl: true },
+    });
+  },
+  ["genres:all"],
+  { revalidate: GENRES_REVALIDATE_SECONDS, tags: ["genres"] }
+);
+
+export const getVisibleGenres = unstable_cache(
+  async (allowedRatings: AgeRating[]): Promise<GenreOption[]> => {
+    return prisma.genre.findMany({
+      orderBy: { name: "asc" },
+      where: { comics: { some: { comic: { ageRating: { in: allowedRatings } } } } },
+      select: { id: true, name: true, imageUrl: true },
+    });
+  },
+  ["genres:visible"],
+  { revalidate: GENRES_REVALIDATE_SECONDS, tags: ["genres"] }
+);

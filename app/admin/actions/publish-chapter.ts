@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySessionToken } from "@/lib/session";
@@ -88,6 +88,7 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
       return { success: false, error: "Chapter is already published" };
     }
 
+    revalidateTag("home-feed");
     revalidatePath(`/app/comic/${chapter.comic.slug}`);
     revalidatePath(`/app/read/${chapterId}`);
     revalidatePath("/app");
