@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { AD_UNLOCK_HOURS, COIN_CHAPTER_UNLOCK_COST } from "@/lib/billing";
+import { COIN_CHAPTER_UNLOCK_COST } from "@/lib/billing";
 import { ChapterAccessType } from "@prisma/client";
 
 interface UnlockResult {
@@ -12,28 +12,6 @@ interface UnlockResult {
 }
 
 class InsufficientCoinsError extends Error {}
-
-export async function unlockChapterWithAd(chapterId: string): Promise<UnlockResult> {
-  const user = await getSessionUser();
-  if (!user) return { success: false, error: "Not authenticated" };
-
-  const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { id: true, accessType: true } });
-  if (!chapter) return { success: false, error: "Chapter not found" };
-  if (chapter.accessType === ChapterAccessType.SUBSCRIPTION) {
-    return { success: false, error: "این چپتر فقط مخصوص مشترکین ویژه است" };
-  }
-
-  const expiresAt = new Date(Date.now() + AD_UNLOCK_HOURS * 60 * 60 * 1000);
-
-  await prisma.chapterUnlock.upsert({
-    where: { userId_chapterId: { userId: user.id, chapterId } },
-    update: { expiresAt },
-    create: { userId: user.id, chapterId, expiresAt },
-  });
-
-  revalidatePath(`/app/read/${chapterId}`);
-  return { success: true };
-}
 
 export async function unlockChapterWithCoins(chapterId: string): Promise<UnlockResult> {
   const user = await getSessionUser();

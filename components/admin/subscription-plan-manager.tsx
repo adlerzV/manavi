@@ -17,6 +17,7 @@ interface PlanFormState {
   label: string;
   months: string;
   priceToman: string;
+  priceTon: string;
   isFeatured: boolean;
   sortOrder: string;
   perksText: string;
@@ -26,6 +27,7 @@ const EMPTY_FORM: PlanFormState = {
   label: "",
   months: "1",
   priceToman: "",
+  priceTon: "",
   isFeatured: false,
   sortOrder: "0",
   perksText: "",
@@ -57,6 +59,7 @@ export function SubscriptionPlanManager({ initialPlans }: SubscriptionPlanManage
       label: form.label,
       months: Number(form.months),
       priceToman: Number(form.priceToman),
+      priceTon: form.priceTon ? Number(form.priceTon) : undefined,
       isFeatured: form.isFeatured,
       sortOrder: Number(form.sortOrder) || 0,
       perks: parsePerks(form.perksText),
@@ -78,6 +81,7 @@ export function SubscriptionPlanManager({ initialPlans }: SubscriptionPlanManage
       label: plan.label,
       months: String(plan.months),
       priceToman: String(plan.priceToman),
+      priceTon: plan.priceTon != null ? String(plan.priceTon) : "",
       isFeatured: plan.isFeatured,
       sortOrder: String(plan.sortOrder),
       perksText: plan.perks.join("\n"),
@@ -94,6 +98,7 @@ export function SubscriptionPlanManager({ initialPlans }: SubscriptionPlanManage
       label: editForm.label,
       months: Number(editForm.months),
       priceToman: Number(editForm.priceToman),
+      priceTon: editForm.priceTon ? Number(editForm.priceTon) : undefined,
       isActive: current?.isActive ?? true,
       isFeatured: editForm.isFeatured,
       sortOrder: Number(editForm.sortOrder) || 0,
@@ -109,6 +114,7 @@ export function SubscriptionPlanManager({ initialPlans }: SubscriptionPlanManage
                 label: editForm.label.trim(),
                 months: Number(editForm.months),
                 priceToman: Number(editForm.priceToman),
+                priceTon: editForm.priceTon ? Number(editForm.priceTon) : null,
                 isFeatured: editForm.isFeatured,
                 sortOrder: Number(editForm.sortOrder) || 0,
                 perks: parsePerks(editForm.perksText),
@@ -151,7 +157,7 @@ export function SubscriptionPlanManager({ initialPlans }: SubscriptionPlanManage
       <form onSubmit={handleCreate} className="space-y-4 rounded-md border border-border bg-surface p-6">
         <h2 className="text-lg font-medium text-text-main">افزودن پلن اشتراک جدید</h2>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <div className="space-y-1">
             <label className="text-sm text-text-muted" htmlFor="plan-label">عنوان</label>
             <input id="plan-label" value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} required placeholder="۱ ماهه" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
@@ -163,6 +169,10 @@ export function SubscriptionPlanManager({ initialPlans }: SubscriptionPlanManage
           <div className="space-y-1">
             <label className="text-sm text-text-muted" htmlFor="plan-price">قیمت (تومان)</label>
             <input id="plan-price" type="number" min={1} value={form.priceToman} onChange={(e) => setForm((f) => ({ ...f, priceToman: e.target.value }))} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-text-muted" htmlFor="plan-price-ton">قیمت TON (اختیاری)</label>
+            <input id="plan-price-ton" type="number" step="any" min={0} value={form.priceTon} onChange={(e) => setForm((f) => ({ ...f, priceTon: e.target.value }))} placeholder="قیمت TON" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
           </div>
           <div className="space-y-1">
             <label className="text-sm text-text-muted" htmlFor="plan-sort">ترتیب نمایش</label>
@@ -195,11 +205,12 @@ export function SubscriptionPlanManager({ initialPlans }: SubscriptionPlanManage
             <div key={plan.id} className="space-y-3 px-4 py-3">
               {editingId === plan.id ? (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <input value={editForm.label} onChange={(e) => setEditForm((f) => ({ ...f, label: e.target.value }))} className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
-                    <input type="number" min={1} value={editForm.months} onChange={(e) => setEditForm((f) => ({ ...f, months: e.target.value }))} className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
-                    <input type="number" min={1} value={editForm.priceToman} onChange={(e) => setEditForm((f) => ({ ...f, priceToman: e.target.value }))} className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
-                    <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm((f) => ({ ...f, sortOrder: e.target.value }))} className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                    <input value={editForm.label} onChange={(e) => setEditForm((f) => ({ ...f, label: e.target.value }))} placeholder="عنوان" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input type="number" min={1} value={editForm.months} onChange={(e) => setEditForm((f) => ({ ...f, months: e.target.value }))} placeholder="تعداد ماه" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input type="number" min={1} value={editForm.priceToman} onChange={(e) => setEditForm((f) => ({ ...f, priceToman: e.target.value }))} placeholder="قیمت تومان" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input type="number" step="any" min={0} value={editForm.priceTon} onChange={(e) => setEditForm((f) => ({ ...f, priceTon: e.target.value }))} placeholder="قیمت TON" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm((f) => ({ ...f, sortOrder: e.target.value }))} placeholder="ترتیب" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                   </div>
                   <textarea value={editForm.perksText} onChange={(e) => setEditForm((f) => ({ ...f, perksText: e.target.value }))} rows={3} className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                   <label className="flex items-center gap-2 text-xs text-text-muted">
@@ -220,7 +231,7 @@ export function SubscriptionPlanManager({ initialPlans }: SubscriptionPlanManage
                       {!plan.isActive && <span className="rounded-full bg-border px-2 py-0.5 text-[10px] text-text-muted">غیرفعال</span>}
                     </p>
                     <p className="text-xs text-text-muted">
-                      {plan.months.toLocaleString("fa-IR")} ماهه · {plan.priceToman.toLocaleString("fa-IR")} تومان · ترتیب {plan.sortOrder}
+                      {plan.months.toLocaleString("fa-IR")} ماهه · {plan.priceToman.toLocaleString("fa-IR")} تومان{plan.priceTon != null ? ` · ${plan.priceTon} TON` : ""} · ترتیب {plan.sortOrder}
                     </p>
                     {plan.perks.length > 0 && <p className="mt-1 text-xs text-text-muted">{plan.perks.join(" · ")}</p>}
                   </div>

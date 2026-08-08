@@ -1,59 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { TonConnectButton } from "@tonconnect/ui-react";
+import { TonPayButton } from "@/components/payments/ton-pay-button";
+import { createTonSubscriptionPayment } from "@/app/actions/ton-payments";
 import type { SubscriptionPlanView } from "@/lib/subscription-plans";
 
 interface SubscriptionPlansProps {
   plans: SubscriptionPlanView[];
   authenticated: boolean;
-  gatewayConfigured: boolean;
+  tonConfigured: boolean;
 }
 
 function monthlyRate(plan: SubscriptionPlanView): number {
-  return plan.priceToman / plan.months;
+  return (plan.priceTon ?? 0) / plan.months;
 }
 
-export function SubscriptionPlans({ plans, authenticated, gatewayConfigured }: SubscriptionPlansProps) {
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function SubscriptionPlans({ plans, authenticated, tonConfigured }: SubscriptionPlansProps) {
+  const router = useRouter();
+  const payable = plans.filter((p) => p.priceTon != null);
+  const baseline = payable.length > 0 ? Math.max(...payable.map(monthlyRate)) : 0;
 
-  const baseline = Math.max(...plans.map(monthlyRate));
-
-  async function handleSelect(planId: string) {
-    if (!authenticated || !gatewayConfigured) return;
-    setLoadingId(planId);
-    setError(null);
-    try {
-      const res = await fetch("/api/payments/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
-      });
-      const data = await res.json();
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl;
-      } else {
-        setError(data.error ?? "خطا در ایجاد پرداخت");
-      }
-    } catch {
-      setError("خطا در ارتباط با سرور");
-    } finally {
-      setLoadingId(null);
-    }
+  if (!tonConfigured) {
+    return <p className="text-sm text-text-muted">پرداخت با تون هنوز در تنظیمات محیطی پیکربندی نشده است.</p>;
   }
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-center">
+        <TonConnectButton />
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {plans.map((plan) => {
           const rate = monthlyRate(plan);
-          const savingsPercent = baseline > 0 ? Math.round((1 - rate / baseline) * 100) : 0;
+          const savingsPercent = baseline > 0 && plan.priceTon != null ? Math.round((1 - rate / baseline) * 100) : 0;
           return (
-            <button
+            <div
               key={plan.id}
-              onClick={() => handleSelect(plan.id)}
-              disabled={!authenticated || !gatewayConfigured || loadingId === plan.id}
-              className={`relative flex flex-col items-center gap-2 rounded-md border p-4 text-center transition-colors disabled:opacity-50 ${
+              className={`relative flex flex-col items-center gap-2 rounded-md border p-4 text-center ${
                 plan.isFeatured ? "border-primary bg-primary/5" : "border-border bg-surface"
               }`}
             >
@@ -63,7 +48,11 @@ export function SubscriptionPlans({ plans, authenticated, gatewayConfigured }: S
                 </span>
               )}
               <p className="text-sm font-medium text-text-main">{plan.label}</p>
-              <p className="text-lg font-semibold text-primary">{plan.priceToman.toLocaleString("fa-IR")} تومان</p>
+              {plan.priceTon != null ? (
+                <p className="text-lg font-semibold text-primary">{plan.priceTon} TON</p>
+              ) : (
+                <p className="text-xs text-text-muted">قیمت تون تعیین نشده</p>
+              )}
               {savingsPercent > 0 && (
                 <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
                   {savingsPercent.toLocaleString("fa-IR")}٪ صرفه‌جویی
@@ -76,13 +65,22 @@ export function SubscriptionPlans({ plans, authenticated, gatewayConfigured }: S
                   ))}
                 </ul>
               )}
-              {loadingId === plan.id && <span className="text-[11px] text-text-muted">در حال انتقال…</span>}
-            </button>
+              {plan.priceTon != null && (
+                <div className="mt-2 w-full">
+                  <TonPayButton
+                    label="پرداخت"
+                    disabled={!authenticated}
+                    className="w-full rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                    createPayment={() => createTonSubscriptionPayment(plan.id)}
+                    onPaid={() => router.refresh()}
+                  />
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
       {!authenticated && <p className="text-xs text-text-muted">برای خرید اشتراک باید از داخل تلگرام وارد شوید.</p>}
-      {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );
 }

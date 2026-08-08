@@ -15,6 +15,7 @@ export interface SubscriptionPlanRow {
   label: string;
   months: number;
   priceToman: number;
+  priceTon: number | null;
   isActive: boolean;
   isFeatured: boolean;
   sortOrder: number;
@@ -23,12 +24,15 @@ export interface SubscriptionPlanRow {
 
 export async function listSubscriptionPlans(): Promise<SubscriptionPlanRow[]> {
   await requireAdmin();
-  const plans = await prisma.subscriptionPlan.findMany({ orderBy: [{ sortOrder: "asc" }, { months: "asc" }] });
+  const plans = await prisma.subscriptionPlan.findMany({
+    orderBy: [{ sortOrder: "asc" }, { months: "asc" }],
+  });
   return plans.map((p) => ({
     id: p.id,
     label: p.label,
     months: p.months,
     priceToman: Number(p.priceToman),
+    priceTon: p.priceTon != null ? Number(p.priceTon) : null,
     isActive: p.isActive,
     isFeatured: p.isFeatured,
     sortOrder: p.sortOrder,
@@ -40,6 +44,7 @@ export async function createSubscriptionPlan(input: {
   label: string;
   months: number;
   priceToman: number;
+  priceTon?: number | null;
   isFeatured: boolean;
   sortOrder: number;
   perks: string[];
@@ -49,12 +54,15 @@ export async function createSubscriptionPlan(input: {
 
     const label = input.label.trim();
     if (!label) return { success: false, error: "عنوان پلن الزامی است" };
-    if (!Number.isFinite(input.months) || input.months <= 0) {
+    if (!Number.isFinite(input.months) || input.months <= 0)
       return { success: false, error: "تعداد ماه باید عددی مثبت باشد" };
-    }
-    if (!Number.isFinite(input.priceToman) || input.priceToman <= 0) {
+    if (!Number.isFinite(input.priceToman) || input.priceToman <= 0)
       return { success: false, error: "قیمت باید عددی مثبت باشد" };
-    }
+
+    const priceTon =
+      input.priceTon && Number.isFinite(input.priceTon) && input.priceTon > 0
+        ? input.priceTon
+        : null;
 
     const perks = input.perks.map((p) => p.trim()).filter(Boolean).slice(0, 8);
 
@@ -63,6 +71,7 @@ export async function createSubscriptionPlan(input: {
         label,
         months: input.months,
         priceToman: input.priceToman,
+        priceTon,
         isFeatured: input.isFeatured,
         sortOrder: input.sortOrder,
         perks,
@@ -83,6 +92,7 @@ export async function updateSubscriptionPlan(
     label: string;
     months: number;
     priceToman: number;
+    priceTon?: number | null;
     isActive: boolean;
     isFeatured: boolean;
     sortOrder: number;
@@ -94,12 +104,15 @@ export async function updateSubscriptionPlan(
 
     const label = input.label.trim();
     if (!label) return { success: false, error: "عنوان پلن الزامی است" };
-    if (!Number.isFinite(input.months) || input.months <= 0) {
+    if (!Number.isFinite(input.months) || input.months <= 0)
       return { success: false, error: "تعداد ماه باید عددی مثبت باشد" };
-    }
-    if (!Number.isFinite(input.priceToman) || input.priceToman <= 0) {
+    if (!Number.isFinite(input.priceToman) || input.priceToman <= 0)
       return { success: false, error: "قیمت باید عددی مثبت باشد" };
-    }
+
+    const priceTon =
+      input.priceTon && Number.isFinite(input.priceTon) && input.priceTon > 0
+        ? input.priceTon
+        : null;
 
     const perks = input.perks.map((p) => p.trim()).filter(Boolean).slice(0, 8);
 
@@ -109,6 +122,7 @@ export async function updateSubscriptionPlan(
         label,
         months: input.months,
         priceToman: input.priceToman,
+        priceTon,
         isActive: input.isActive,
         isFeatured: input.isFeatured,
         sortOrder: input.sortOrder,
@@ -124,7 +138,10 @@ export async function updateSubscriptionPlan(
   }
 }
 
-export async function toggleSubscriptionPlanActive(planId: string, isActive: boolean): Promise<ActionResult> {
+export async function toggleSubscriptionPlanActive(
+  planId: string,
+  isActive: boolean
+): Promise<ActionResult> {
   try {
     await requireAdmin();
     await prisma.subscriptionPlan.update({ where: { id: planId }, data: { isActive } });
@@ -139,7 +156,6 @@ export async function toggleSubscriptionPlanActive(planId: string, isActive: boo
 export async function deleteSubscriptionPlan(planId: string): Promise<ActionResult> {
   try {
     await requireAdmin();
-
     const inUse = await prisma.transaction.count({ where: { subscriptionPlanId: planId } });
     if (inUse > 0) {
       await prisma.subscriptionPlan.update({ where: { id: planId }, data: { isActive: false } });
@@ -147,7 +163,6 @@ export async function deleteSubscriptionPlan(planId: string): Promise<ActionResu
       revalidatePath("/app/shop");
       return { success: true };
     }
-
     await prisma.subscriptionPlan.delete({ where: { id: planId } });
     revalidatePath("/admin/subscriptions");
     revalidatePath("/app/shop");

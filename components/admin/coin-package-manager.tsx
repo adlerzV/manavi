@@ -17,6 +17,7 @@ interface PackageFormState {
   coins: string;
   bonusCoins: string;
   priceToman: string;
+  priceTon: string;
   originalPriceToman: string;
   badge: string;
   isFeatured: boolean;
@@ -27,6 +28,7 @@ const EMPTY_FORM: PackageFormState = {
   coins: "",
   bonusCoins: "0",
   priceToman: "",
+  priceTon: "",
   originalPriceToman: "",
   badge: "",
   isFeatured: false,
@@ -51,8 +53,9 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
       coins: Number(form.coins),
       bonusCoins: Number(form.bonusCoins) || 0,
       priceToman: Number(form.priceToman),
+      priceTon: form.priceTon ? Number(form.priceTon) : undefined,
       originalPriceToman: form.originalPriceToman ? Number(form.originalPriceToman) : undefined,
-      badge: form.badge || undefined,
+      badge: form.badge.trim() || undefined,
       isFeatured: form.isFeatured,
       sortOrder: Number(form.sortOrder) || 0,
     });
@@ -67,16 +70,17 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
     }
   }
 
-  function startEdit(pack: CoinPackageRow) {
-    setEditingId(pack.id);
+  function startEdit(pkg: CoinPackageRow) {
+    setEditingId(pkg.id);
     setEditForm({
-      coins: String(pack.coins),
-      bonusCoins: String(pack.bonusCoins),
-      priceToman: String(pack.priceToman),
-      originalPriceToman: pack.originalPriceToman != null ? String(pack.originalPriceToman) : "",
-      badge: pack.badge ?? "",
-      isFeatured: pack.isFeatured,
-      sortOrder: String(pack.sortOrder),
+      coins: String(pkg.coins),
+      bonusCoins: String(pkg.bonusCoins),
+      priceToman: String(pkg.priceToman),
+      priceTon: pkg.priceTon != null ? String(pkg.priceTon) : "",
+      originalPriceToman: pkg.originalPriceToman != null ? String(pkg.originalPriceToman) : "",
+      badge: pkg.badge ?? "",
+      isFeatured: pkg.isFeatured,
+      sortOrder: String(pkg.sortOrder),
     });
   }
 
@@ -90,8 +94,9 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
       coins: Number(editForm.coins),
       bonusCoins: Number(editForm.bonusCoins) || 0,
       priceToman: Number(editForm.priceToman),
+      priceTon: editForm.priceTon ? Number(editForm.priceTon) : undefined,
       originalPriceToman: editForm.originalPriceToman ? Number(editForm.originalPriceToman) : undefined,
-      badge: editForm.badge || undefined,
+      badge: editForm.badge.trim() || undefined,
       isActive: current?.isActive ?? true,
       isFeatured: editForm.isFeatured,
       sortOrder: Number(editForm.sortOrder) || 0,
@@ -106,6 +111,7 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
                 coins: Number(editForm.coins),
                 bonusCoins: Number(editForm.bonusCoins) || 0,
                 priceToman: Number(editForm.priceToman),
+                priceTon: editForm.priceTon ? Number(editForm.priceTon) : null,
                 originalPriceToman: editForm.originalPriceToman ? Number(editForm.originalPriceToman) : null,
                 badge: editForm.badge.trim() || null,
                 isFeatured: editForm.isFeatured,
@@ -121,21 +127,21 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
     setPendingId(null);
   }
 
-  async function handleToggleActive(pack: CoinPackageRow) {
-    setPendingId(pack.id);
-    const result = await toggleCoinPackageActive(pack.id, !pack.isActive);
+  async function handleToggleActive(pkg: CoinPackageRow) {
+    setPendingId(pkg.id);
+    const result = await toggleCoinPackageActive(pkg.id, !pkg.isActive);
     if (result.success) {
-      setPackages((prev) => prev.map((p) => (p.id === pack.id ? { ...p, isActive: !p.isActive } : p)));
+      setPackages((prev) => prev.map((p) => (p.id === pkg.id ? { ...p, isActive: !p.isActive } : p)));
     } else {
       setError(result.error ?? "خطا");
     }
     setPendingId(null);
   }
 
-  async function handleDelete(pack: CoinPackageRow) {
-    if (!confirm(`پکیج «${pack.coins.toLocaleString("fa-IR")} سکه» حذف بشه؟ اگر قبلاً استفاده شده باشد، به‌جای حذف غیرفعال می‌شود.`)) return;
-    setPendingId(pack.id);
-    const result = await deleteCoinPackage(pack.id);
+  async function handleDelete(pkg: CoinPackageRow) {
+    if (!confirm(`پکیج «${pkg.coins} سکه» حذف بشه؟ اگر قبلاً استفاده شده باشد، به‌جای حذف غیرفعال می‌شود.`)) return;
+    setPendingId(pkg.id);
+    const result = await deleteCoinPackage(pkg.id);
     if (result.success) {
       window.location.reload();
     } else {
@@ -149,13 +155,13 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
       <form onSubmit={handleCreate} className="space-y-4 rounded-md border border-border bg-surface p-6">
         <h2 className="text-lg font-medium text-text-main">افزودن پکیج سکه جدید</h2>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="space-y-1">
             <label className="text-sm text-text-muted" htmlFor="pkg-coins">تعداد سکه</label>
-            <input id="pkg-coins" type="number" min={1} value={form.coins} onChange={(e) => setForm((f) => ({ ...f, coins: e.target.value }))} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
+            <input id="pkg-coins" type="number" min={1} value={form.coins} onChange={(e) => setForm((f) => ({ ...f, coins: e.target.value }))} required placeholder="100" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-text-muted" htmlFor="pkg-bonus">سکه هدیه <span className="text-text-muted">(اختیاری)</span></label>
+            <label className="text-sm text-text-muted" htmlFor="pkg-bonus">سکه‌های هدیه</label>
             <input id="pkg-bonus" type="number" min={0} value={form.bonusCoins} onChange={(e) => setForm((f) => ({ ...f, bonusCoins: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
           </div>
           <div className="space-y-1">
@@ -163,12 +169,16 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
             <input id="pkg-price" type="number" min={1} value={form.priceToman} onChange={(e) => setForm((f) => ({ ...f, priceToman: e.target.value }))} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-text-muted" htmlFor="pkg-original-price">قیمت قبل از تخفیف <span className="text-text-muted">(اختیاری)</span></label>
+            <label className="text-sm text-text-muted" htmlFor="pkg-price-ton">قیمت TON (اختیاری)</label>
+            <input id="pkg-price-ton" type="number" step="any" min={0} value={form.priceTon} onChange={(e) => setForm((f) => ({ ...f, priceTon: e.target.value }))} placeholder="قیمت TON" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-text-muted" htmlFor="pkg-original-price">قیمت اصلی قبل تخفیف (اختیاری)</label>
             <input id="pkg-original-price" type="number" min={1} value={form.originalPriceToman} onChange={(e) => setForm((f) => ({ ...f, originalPriceToman: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-text-muted" htmlFor="pkg-badge">برچسب <span className="text-text-muted">(مثلاً «پیشنهاد ویژه»)</span></label>
-            <input id="pkg-badge" value={form.badge} onChange={(e) => setForm((f) => ({ ...f, badge: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
+            <label className="text-sm text-text-muted" htmlFor="pkg-badge">نشان/برچسب (اختیاری)</label>
+            <input id="pkg-badge" value={form.badge} onChange={(e) => setForm((f) => ({ ...f, badge: e.target.value }))} placeholder="ویژه، تخفیف دار" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
           </div>
           <div className="space-y-1">
             <label className="text-sm text-text-muted" htmlFor="pkg-sort">ترتیب نمایش</label>
@@ -192,16 +202,17 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
         <h2 className="text-lg font-medium text-text-main">پکیج‌های موجود</h2>
         {error && !editingId && <p className="text-sm text-red-400">{error}</p>}
         <div className="divide-y divide-border rounded-md border border-border">
-          {packages.map((pack) => (
-            <div key={pack.id} className="space-y-3 px-4 py-3">
-              {editingId === pack.id ? (
+          {packages.map((pkg) => (
+            <div key={pkg.id} className="space-y-3 px-4 py-3">
+              {editingId === pkg.id ? (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <input type="number" min={1} value={editForm.coins} onChange={(e) => setEditForm((f) => ({ ...f, coins: e.target.value }))} placeholder="سکه" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <input type="number" min={1} value={editForm.coins} onChange={(e) => setEditForm((f) => ({ ...f, coins: e.target.value }))} placeholder="تعداد سکه" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                     <input type="number" min={0} value={editForm.bonusCoins} onChange={(e) => setEditForm((f) => ({ ...f, bonusCoins: e.target.value }))} placeholder="سکه هدیه" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
-                    <input type="number" min={1} value={editForm.priceToman} onChange={(e) => setEditForm((f) => ({ ...f, priceToman: e.target.value }))} placeholder="قیمت" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
-                    <input type="number" min={1} value={editForm.originalPriceToman} onChange={(e) => setEditForm((f) => ({ ...f, originalPriceToman: e.target.value }))} placeholder="قیمت قبل از تخفیف" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
-                    <input value={editForm.badge} onChange={(e) => setEditForm((f) => ({ ...f, badge: e.target.value }))} placeholder="برچسب" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input type="number" min={1} value={editForm.priceToman} onChange={(e) => setEditForm((f) => ({ ...f, priceToman: e.target.value }))} placeholder="قیمت تومان" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input type="number" step="any" min={0} value={editForm.priceTon} onChange={(e) => setEditForm((f) => ({ ...f, priceTon: e.target.value }))} placeholder="قیمت TON" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input type="number" min={1} value={editForm.originalPriceToman} onChange={(e) => setEditForm((f) => ({ ...f, originalPriceToman: e.target.value }))} placeholder="قیمت قبل تخفیف" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input value={editForm.badge} onChange={(e) => setEditForm((f) => ({ ...f, badge: e.target.value }))} placeholder="نشان" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                     <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm((f) => ({ ...f, sortOrder: e.target.value }))} placeholder="ترتیب" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                   </div>
                   <label className="flex items-center gap-2 text-xs text-text-muted">
@@ -209,7 +220,7 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
                     پیشنهاد ویژه
                   </label>
                   <div className="flex gap-2">
-                    <button onClick={() => handleSaveEdit(pack.id)} disabled={pendingId === pack.id} className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50">ذخیره</button>
+                    <button onClick={() => handleSaveEdit(pkg.id)} disabled={pendingId === pkg.id} className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50">ذخیره</button>
                     <button onClick={() => setEditingId(null)} className="rounded-md border border-border px-3 py-1 text-xs text-text-muted">انصراف</button>
                   </div>
                 </div>
@@ -217,29 +228,28 @@ export function CoinPackageManager({ initialPackages }: CoinPackageManagerProps)
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="flex items-center gap-2 text-sm text-text-main">
-                      🪙 {pack.coins.toLocaleString("fa-IR")}
-                      {pack.bonusCoins > 0 && <span className="text-primary">+{pack.bonusCoins.toLocaleString("fa-IR")}</span>}
-                      {pack.badge && <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">{pack.badge}</span>}
-                      {!pack.isActive && <span className="rounded-full bg-border px-2 py-0.5 text-[10px] text-text-muted">غیرفعال</span>}
+                      {pkg.coins.toLocaleString("fa-IR")} سکه
+                      {pkg.bonusCoins > 0 && <span className="text-xs text-primary">(+{pkg.bonusCoins.toLocaleString("fa-IR")} هدیه)</span>}
+                      {pkg.badge && <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">{pkg.badge}</span>}
+                      {pkg.isFeatured && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">ویژه</span>}
+                      {!pkg.isActive && <span className="rounded-full bg-border px-2 py-0.5 text-[10px] text-text-muted">غیرفعال</span>}
                     </p>
                     <p className="text-xs text-text-muted">
-                      {pack.priceToman.toLocaleString("fa-IR")} تومان
-                      {pack.originalPriceToman && ` (قبلاً ${pack.originalPriceToman.toLocaleString("fa-IR")} تومان)`}
-                      {" · "}ترتیب {pack.sortOrder}
+                      {pkg.priceToman.toLocaleString("fa-IR")} تومان{pkg.priceTon != null ? ` · ${pkg.priceTon} TON` : ""} · ترتیب {pkg.sortOrder}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => handleToggleActive(pack)} disabled={pendingId === pack.id} className="rounded-md border border-border px-2 py-1 text-xs text-text-main disabled:opacity-50">
-                      {pack.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
+                    <button onClick={() => handleToggleActive(pkg)} disabled={pendingId === pkg.id} className="rounded-md border border-border px-2 py-1 text-xs text-text-main disabled:opacity-50">
+                      {pkg.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
                     </button>
-                    <button onClick={() => startEdit(pack)} className="rounded-md border border-border px-2 py-1 text-xs text-text-main">ویرایش</button>
-                    <button onClick={() => handleDelete(pack)} disabled={pendingId === pack.id} className="rounded-md border border-red-400 px-2 py-1 text-xs text-red-400 disabled:opacity-50">حذف</button>
+                    <button onClick={() => startEdit(pkg)} className="rounded-md border border-border px-2 py-1 text-xs text-text-main">ویرایش</button>
+                    <button onClick={() => handleDelete(pkg)} disabled={pendingId === pkg.id} className="rounded-md border border-red-400 px-2 py-1 text-xs text-red-400 disabled:opacity-50">حذف</button>
                   </div>
                 </div>
               )}
             </div>
           ))}
-          {packages.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">هنوز پکیجی ثبت نشده — فروشگاه سکه برای کاربران خالی نمایش داده می‌شود.</p>}
+          {packages.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">هنوز پکیج سکه‌ای ثبت نشده است.</p>}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -66,23 +67,23 @@ enum Role {
 }
 
 model Publisher {
-  id                 String   @id @default(uuid())
-  name               String
-  legalEntity        String?
-  contactEmail       String
-  contractUserId     String?  @unique
-  contractUser       User?    @relation(fields: [contractUserId], references: [id])
-  bio                String?
-  avatarUrl          String?
-  telegramUrl        String?
-  instagramUrl       String?
-  websiteUrl         String?
-  donationCardNumber String?
-  donationLink       String?
+  id                  String   @id @default(uuid())
+  name                String
+  legalEntity         String?
+  contactEmail        String
+  contractUserId      String?  @unique
+  contractUser        User?    @relation(fields: [contractUserId], references: [id])
+  bio                 String?
+  avatarUrl           String?
+  telegramUrl         String?
+  instagramUrl        String?
+  websiteUrl          String?
+  donationCardNumber  String?
+  donationLink        String?
   cryptoWalletLabel   String?
   cryptoWalletAddress String?
   customLinks         Json?
-  createdAt          DateTime @default(now())
+  createdAt           DateTime @default(now())
 
   licenses       License[]
   staff          PublisherStaff[]
@@ -389,7 +390,7 @@ model Transaction {
   id       String            @id @default(uuid())
   type     TransactionType
   status   TransactionStatus @default(PENDING)
-  amount   Decimal           @db.Decimal(12, 2)
+  amount   Decimal           @db.Decimal(20, 9)
   currency String            @default("IRT")
 
   payerId String
@@ -410,6 +411,9 @@ model Transaction {
 
   gatewayAuthority String? @unique
   gatewayRefId     String?
+
+  tonComment String? @unique
+  tonTxHash  String?
 
   settlementId String?
   settlement   RoyaltySettlement? @relation(fields: [settlementId], references: [id])
@@ -446,6 +450,7 @@ model SubscriptionPlan {
   label      String
   months     Int
   priceToman Decimal  @db.Decimal(12, 2)
+  priceTon   Decimal? @db.Decimal(20, 9)
   isActive   Boolean  @default(true)
   isFeatured Boolean  @default(false)
   sortOrder  Int      @default(0)
@@ -463,6 +468,7 @@ model CoinPackage {
   coins              Int
   bonusCoins         Int      @default(0)
   priceToman         Decimal  @db.Decimal(12, 2)
+  priceTon           Decimal? @db.Decimal(20, 9)
   originalPriceToman Decimal? @db.Decimal(12, 2)
   badge              String?
   isFeatured         Boolean  @default(false)

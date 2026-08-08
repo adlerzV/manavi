@@ -15,10 +15,12 @@ export function findSubscriptionPlan(id: string) {
   return SUBSCRIPTION_PLANS.find((p) => p.id === id);
 }
 
-
 export const COIN_CHAPTER_UNLOCK_COST = 15;
-export const AD_UNLOCK_HOURS = 24;
 
 export const DONATION_PRESETS_TOMAN = [10000, 25000, 50000, 100000];
 export const MIN_DONATION_TOMAN = 5000;
 export const MAX_DONATION_TOMAN = 5000000;
+
+export const DONATION_PRESETS_TON = [0.5, 1, 2, 5];
+export const MIN_DONATION_TON = 0.2;
+export const MAX_DONATION_TON = 1000;

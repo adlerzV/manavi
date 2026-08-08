@@ -58,7 +58,8 @@ export function TransactionTable({ initial, initialTotal }: { initial: Transacti
               <p className="text-xs text-text-muted">{new Date(t.createdAt).toLocaleString("fa-IR")}</p>
             </div>
             <div className="text-left">
-              <p className="text-sm text-text-main">{t.amount.toLocaleString("fa-IR")} {t.currency === "COIN" ? "سکه" : "تومان"}</p>
+              <p className="text-sm text-text-main">
+              {t.amount.toLocaleString("fa-IR")} {t.currency === "COIN" ? "سکه" : "TON"}</p>
               <p className={`text-xs ${t.status === "PAID" ? "text-primary" : t.status === "FAILED" ? "text-red-400" : "text-text-muted"}`}>{t.status}</p>
             </div>
           </div>

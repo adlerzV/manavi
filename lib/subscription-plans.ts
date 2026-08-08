@@ -6,6 +6,7 @@ export interface SubscriptionPlanView {
   label: string;
   months: number;
   priceToman: number;
+  priceTon: number | null;
   isFeatured: boolean;
   perks: string[];
 }
@@ -21,6 +22,7 @@ export async function getActiveSubscriptionPlans(): Promise<SubscriptionPlanView
     label: plan.label,
     months: plan.months,
     priceToman: Number(plan.priceToman),
+    priceTon: plan.priceTon != null ? Number(plan.priceTon) : null,
     isFeatured: plan.isFeatured,
     perks: plan.perks,
   }));

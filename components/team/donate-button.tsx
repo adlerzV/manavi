@@ -1,106 +1,86 @@
-// components/team/donate-button.tsx
 "use client";
 
-import { useState } from "react";
-import { DONATION_PRESETS_TOMAN, MIN_DONATION_TOMAN } from "@/lib/billing";
+import { useRouter } from "next/navigation";
+import { TonConnectButton } from "@tonconnect/ui-react";
+import { TonPayButton } from "@/components/payments/ton-pay-button";
+import { createTonSubscriptionPayment } from "@/app/actions/ton-payments";
+import type { SubscriptionPlanView } from "@/lib/subscription-plans";
 
-export function DonateButton({ receiverId, authenticated }: { receiverId: string; authenticated: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState<number>(DONATION_PRESETS_TOMAN[0]);
-  const [customAmount, setCustomAmount] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface SubscriptionPlansProps {
+  plans: SubscriptionPlanView[];
+  authenticated: boolean;
+  tonConfigured: boolean;
+}
 
-  async function handleDonate() {
-    if (!authenticated) return;
-    const finalAmount = customAmount ? Number(customAmount) : amount;
-    if (!Number.isFinite(finalAmount) || finalAmount < MIN_DONATION_TOMAN) {
-      setError(`حداقل مبلغ حمایت ${MIN_DONATION_TOMAN.toLocaleString("fa-IR")} تومان است`);
-      return;
-    }
+function monthlyRate(plan: SubscriptionPlanView): number {
+  return (plan.priceTon ?? 0) / plan.months;
+}
 
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/payments/donate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ receiverId, amountToman: finalAmount, message: message.trim() || undefined }),
-      });
-      const data = await res.json();
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl;
-      } else {
-        setError(data.error ?? "خطا در ایجاد پرداخت");
-      }
-    } catch {
-      setError("خطا در ارتباط با سرور");
-    } finally {
-      setLoading(false);
-    }
-  }
+export function SubscriptionPlans({ plans, authenticated, tonConfigured }: SubscriptionPlansProps) {
+  const router = useRouter();
+  const payable = plans.filter((p) => p.priceTon != null);
+  const baseline = payable.length > 0 ? Math.max(...payable.map(monthlyRate)) : 0;
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        disabled={!authenticated}
-        className="rounded-md border border-accent px-4 py-2 text-sm font-medium text-accent disabled:opacity-50"
-      >
-        حمایت مالی
-      </button>
-    );
+  if (!tonConfigured) {
+    return <p className="text-sm text-text-muted">پرداخت با تون هنوز در تنظیمات محیطی پیکربندی نشده است.</p>;
   }
 
   return (
-    <div className="space-y-3 rounded-md border border-border bg-surface p-4">
-      <p className="text-sm text-text-main">مبلغ حمایت (تومان)</p>
-      <div className="flex flex-wrap gap-2">
-        {DONATION_PRESETS_TOMAN.map((preset) => (
-          <button
-            key={preset}
-            onClick={() => {
-              setAmount(preset);
-              setCustomAmount("");
-            }}
-            className={`rounded-md px-3 py-1.5 text-xs ${
-              !customAmount && amount === preset
-                ? "bg-accent text-accent-foreground"
-                : "border border-border text-text-muted"
-            }`}
-          >
-            {preset.toLocaleString("fa-IR")}
-          </button>
-        ))}
+    <div className="space-y-3">
+      <div className="flex justify-center">
+        <TonConnectButton />
       </div>
-      <input
-        type="number"
-        value={customAmount}
-        onChange={(e) => setCustomAmount(e.target.value)}
-        placeholder="مبلغ دلخواه"
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-accent"
-      />
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        rows={2}
-        placeholder="پیام (اختیاری)"
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-accent"
-      />
-      {error && <p className="text-xs text-red-400">{error}</p>}
-      <div className="flex gap-2">
-        <button
-          onClick={handleDonate}
-          disabled={loading}
-          className="flex-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
-        >
-          {loading ? "در حال انتقال…" : "پرداخت"}
-        </button>
-        <button onClick={() => setOpen(false)} className="rounded-md border border-border px-4 py-2 text-sm text-text-muted">
-          انصراف
-        </button>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {plans.map((plan) => {
+          const rate = monthlyRate(plan);
+          const savingsPercent = baseline > 0 && plan.priceTon != null ? Math.round((1 - rate / baseline) * 100) : 0;
+          return (
+            <div
+              key={plan.id}
+              className={`relative flex flex-col items-center gap-2 rounded-md border p-4 text-center ${
+                plan.isFeatured ? "border-primary bg-primary/5" : "border-border bg-surface"
+              }`}
+            >
+              {plan.isFeatured && (
+                <span className="absolute -top-2.5 rounded-full bg-primary px-3 py-0.5 text-[10px] font-medium text-primary-foreground">
+                  پرطرفدارترین
+                </span>
+              )}
+              <p className="text-sm font-medium text-text-main">{plan.label}</p>
+              {plan.priceTon != null ? (
+                <p className="text-lg font-semibold text-primary">{plan.priceTon} TON</p>
+              ) : (
+                <p className="text-xs text-text-muted">قیمت تون تعیین نشده</p>
+              )}
+              {savingsPercent > 0 && (
+                <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
+                  {savingsPercent.toLocaleString("fa-IR")}٪ صرفه‌جویی
+                </span>
+              )}
+              {plan.perks.length > 0 && (
+                <ul className="mt-1 space-y-1 text-right text-[11px] text-text-muted">
+                  {plan.perks.map((perk) => (
+                    <li key={perk}>• {perk}</li>
+                  ))}
+                </ul>
+              )}
+              {plan.priceTon != null && (
+                <div className="mt-2 w-full">
+                  <TonPayButton
+                    label="پرداخت"
+                    disabled={!authenticated}
+                    className="w-full rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                    createPayment={() => createTonSubscriptionPayment(plan.id)}
+                    onPaid={() => router.refresh()}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+      {!authenticated && <p className="text-xs text-text-muted">برای خرید اشتراک باید از داخل تلگرام وارد شوید.</p>}
     </div>
   );
 }
