@@ -27,6 +27,27 @@ const PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL;
 // حداکثر تعداد آبجکت مجاز در هر درخواست DeleteObjects (محدودیت استاندارد S3 / Backblaze B2)
 const MAX_KEYS_PER_DELETE_REQUEST = 1000;
 
+export class BannerPublicUrlNotConfiguredError extends Error {
+  constructor() {
+    super(
+      "S3_PUBLIC_BASE_URL تنظیم نشده است. بنر باید همیشه از یک URL دائمی (باکت عمومی) سرو شود، وگرنه بعد از انقضای لینک امضاشده (اینجا فقط ۷ روز) تصویر می‌شکند. قبل از آپلود بنر، متغیر محیطی S3_PUBLIC_BASE_URL را تنظیم کنید."
+    );
+    this.name = "BannerPublicUrlNotConfiguredError";
+  }
+}
+
+/**
+ * استخراج Key خام از URL کامل در صورت وجود PUBLIC_BASE_URL
+ */
+function extractS3Key(keyOrUrl: string): string {
+  if (!keyOrUrl) return keyOrUrl;
+  if (PUBLIC_BASE_URL && keyOrUrl.startsWith(PUBLIC_BASE_URL)) {
+    const cleanBase = PUBLIC_BASE_URL.replace(/\/$/, "");
+    return keyOrUrl.replace(`${cleanBase}/`, "");
+  }
+  return keyOrUrl;
+}
+
 export async function uploadPageImage(
   comicId: string,
   chapterNumber: number,
@@ -72,7 +93,15 @@ export async function uploadChapterThumbnail(
   return key;
 }
 
-export async function uploadComicBanner(comicId: string, file: Buffer, contentType: string): Promise<string> {
+export async function uploadComicBanner(
+  comicId: string,
+  file: Buffer,
+  contentType: string
+): Promise<string> {
+  if (!PUBLIC_BASE_URL) {
+    throw new BannerPublicUrlNotConfiguredError();
+  }
+
   const extension = contentType.split("/")[1] || "bin";
   const key = `comics/${comicId}/banner-${randomUUID()}.${extension}`;
 
@@ -86,10 +115,7 @@ export async function uploadComicBanner(comicId: string, file: Buffer, contentTy
     })
   );
 
-  if (PUBLIC_BASE_URL) {
-    return `${PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
-  }
-  return getSignedImageUrl(key, 60 * 60 * 24 * 7);
+  return `${PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
 }
 
 export async function getSignedImageUrl(key: string, expiresInSec: number = 21600): Promise<string> {
@@ -107,14 +133,16 @@ export async function getSignedImageUrls(keys: string[], expiresInSec: number = 
   );
 }
 
-export async function deleteObject(key: string): Promise<void> {
+export async function deleteObject(keyOrUrl: string): Promise<void> {
+  const key = extractS3Key(keyOrUrl);
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
 }
 
-export async function deleteObjects(keys: string[]): Promise<void> {
-  const realKeys = keys.filter(
-    (key) => key && !key.startsWith("http://") && !key.startsWith("https://")
-  );
+export async function deleteObjects(keysOrUrls: string[]): Promise<void> {
+  const realKeys = keysOrUrls
+    .map((k) => extractS3Key(k))
+    .filter((key) => key && !key.startsWith("http://") && !key.startsWith("https://"));
+
   if (realKeys.length === 0) return;
 
   for (let i = 0; i < realKeys.length; i += MAX_KEYS_PER_DELETE_REQUEST) {
