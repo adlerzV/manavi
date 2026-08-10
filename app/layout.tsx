@@ -5,7 +5,7 @@ import "./globals.css";
 
 const vazirFont = localFont({
   src: "./fonts/Vazirmatn-Medium.woff2",
-  variable: "--font-vazir", // 👈 نام متغیر اصلاح شد
+  variable: "--font-vazir",
   display: "swap",
 });
 
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fa" dir="rtl" className={vazirFont.variable}>
+    <html lang="fa" dir="rtl" className={vazirFont.variable} suppressHydrationWarning>
       <body className="font-sans bg-background text-text-main antialiased">
         {children}
       </body>
