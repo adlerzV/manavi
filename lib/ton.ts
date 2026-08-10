@@ -23,7 +23,7 @@ export function generateTonComment(transactionId: string): string {
   return `manavi-${transactionId}`;
 }
 
-interface TonApiTransaction {
+export interface TonApiTransaction {
   hash: string;
   utime: number;
   in_msg?: {
@@ -39,13 +39,8 @@ interface TonApiTransactionsResponse {
 
 export class TonVerificationError extends Error {}
 
-export async function findIncomingTonPayment(input: {
-  toAddress: string;
-  comment: string;
-  minAmountNanotons: bigint;
-  afterUnixTime: number;
-}): Promise<{ hash: string; fromAddress: string | null } | null> {
-  const url = `${TONAPI_BASE}/v2/blockchain/accounts/${input.toAddress}/transactions?limit=50`;
+export async function fetchAccountTransactions(address: string): Promise<TonApiTransaction[]> {
+  const url = `${TONAPI_BASE}/v2/blockchain/accounts/${address}/transactions?limit=50`;
 
   const res = await fetch(url, {
     headers: TONAPI_KEY ? { Authorization: `Bearer ${TONAPI_KEY}` } : undefined,
@@ -57,8 +52,14 @@ export async function findIncomingTonPayment(input: {
   }
 
   const body = (await res.json()) as TonApiTransactionsResponse;
+  return body.transactions ?? [];
+}
 
-  const match = body.transactions?.find((tx) => {
+export function matchIncomingTonPayment(
+  transactions: TonApiTransaction[],
+  input: { comment: string; minAmountNanotons: bigint; afterUnixTime: number }
+): { hash: string; fromAddress: string | null } | null {
+  const match = transactions.find((tx) => {
     if (tx.utime < input.afterUnixTime) return false;
     const text = tx.in_msg?.decoded_body?.text;
     if (!text || !text.includes(input.comment)) return false;
@@ -68,4 +69,14 @@ export async function findIncomingTonPayment(input: {
 
   if (!match) return null;
   return { hash: match.hash, fromAddress: match.in_msg?.source?.address ?? null };
+}
+
+export async function findIncomingTonPayment(input: {
+  toAddress: string;
+  comment: string;
+  minAmountNanotons: bigint;
+  afterUnixTime: number;
+}): Promise<{ hash: string; fromAddress: string | null } | null> {
+  const transactions = await fetchAccountTransactions(input.toAddress);
+  return matchIncomingTonPayment(transactions, input);
 }

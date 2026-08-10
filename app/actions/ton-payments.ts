@@ -9,7 +9,6 @@ import {
   getPlatformTonAddress,
   tonToNanotons,
   generateTonComment,
-  findIncomingTonPayment,
 } from "@/lib/ton";
 import { findActiveCoinPackage } from "@/lib/coin-packages";
 import { findActiveSubscriptionPlan } from "@/lib/subscription-plans";
@@ -176,60 +175,19 @@ export async function verifyTonPayment(transactionId: string): Promise<ActionRes
   const user = await getSessionUser();
   if (!user) return { success: false, error: "Not authenticated" };
 
-  const allowed = await checkRateLimit(`ton-verify:${user.id}`, 30);
+  const allowed = await checkRateLimit(`ton-verify:${user.id}`, 60);
   if (!allowed) return { success: false, error: "تعداد درخواست‌ها بیش از حد مجاز است" };
 
   const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
   if (!transaction || transaction.payerId !== user.id) {
     return { success: false, error: "تراکنش یافت نشد" };
   }
-  if (transaction.status === "PAID") return { success: true, data: { status: "PAID" } };
+
+  if (transaction.status === "PAID") {
+    revalidatePath("/app/shop");
+    revalidatePath("/app/profile");
+    return { success: true, data: { status: "PAID" } };
+  }
   if (transaction.status === "FAILED") return { success: true, data: { status: "FAILED" } };
-  if (!transaction.tonComment) return { success: false, error: "شناسه تراکنش تون یافت نشد" };
-
-  const toAddress =
-    transaction.type === "DONATION"
-      ? (await prisma.user.findUnique({ where: { id: transaction.receiverId ?? "" }, select: { cryptoWalletAddress: true } }))
-          ?.cryptoWalletAddress
-      : getPlatformTonAddress();
-
-  if (!toAddress) return { success: false, error: "آدرس گیرنده یافت نشد" };
-
-  const found = await findIncomingTonPayment({
-    toAddress,
-    comment: transaction.tonComment,
-    minAmountNanotons: tonToNanotons(Number(transaction.amount)),
-    afterUnixTime: Math.floor(transaction.createdAt.getTime() / 1000) - 60,
-  });
-
-  if (!found) return { success: true, data: { status: "PENDING" } };
-
-  const claimed = await prisma.transaction.updateMany({
-    where: { id: transaction.id, status: "PENDING" },
-    data: { status: "PAID", tonTxHash: found.hash },
-  });
-
-  if (claimed.count === 0) return { success: true, data: { status: "PAID" } };
-
-  if (transaction.type === "SUBSCRIPTION" && transaction.subscriptionPlanId) {
-    const plan = await prisma.subscriptionPlan.findUnique({ where: { id: transaction.subscriptionPlanId } });
-    if (plan) {
-      const base = user.subscriptionEnd && user.subscriptionEnd > new Date() ? user.subscriptionEnd : new Date();
-      const newEnd = new Date(base);
-      newEnd.setMonth(newEnd.getMonth() + plan.months);
-      await prisma.user.update({ where: { id: user.id }, data: { isSubscribed: true, subscriptionEnd: newEnd } });
-    }
-  }
-
-  if (transaction.type === "COIN_PURCHASE" && transaction.coinPackageId) {
-    const pack = await prisma.coinPackage.findUnique({ where: { id: transaction.coinPackageId } });
-    if (pack) {
-      await prisma.user.update({ where: { id: user.id }, data: { coinsBalance: { increment: pack.coins + pack.bonusCoins } } });
-    }
-  }
-
-  revalidatePath("/app/shop");
-  revalidatePath("/app/profile");
-
-  return { success: true, data: { status: "PAID" } };
+  return { success: true, data: { status: "PENDING" } };
 }

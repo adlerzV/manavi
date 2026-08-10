@@ -6,7 +6,7 @@ import { isLicenseCurrentlyActive } from "@/lib/license";
 import { getChapterAccessList, userHasChapterAccess } from "@/lib/chapters";
 import { getSignedImageUrls } from "@/lib/s3";
 import { recordChapterVisit } from "@/lib/analytics";
-import { COIN_CHAPTER_UNLOCK_COST } from "@/lib/billing";
+import { COIN_CHAPTER_UNLOCK_COST, hasActiveSubscription } from "@/lib/billing";
 import { ChapterReader } from "@/components/reader/chapter-reader";
 import { LockedChapterGate } from "@/components/reader/locked-chapter-gate";
 import { CommentSection } from "@/components/comments/comment-section";
@@ -66,6 +66,8 @@ export default async function ReadChapterPage({ params }: PageProps) {
     getSessionUser(),
     getChapterAccessList(chapter.comic.id),
   ]);
+
+  const showAd = !hasActiveSubscription(user?.subscriptionEnd);
 
   const entry = accessList.find((c) => c.id === chapterId);
   const locked = entry?.locked ?? false;
@@ -162,6 +164,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
         initialUserReaction={reactionData.userReaction}
         isAuthenticated={Boolean(user)}
         watermarkLabel={watermarkLabel}
+        showAd={showAd}
       />
       <div className="bg-background">
         <CommentSection

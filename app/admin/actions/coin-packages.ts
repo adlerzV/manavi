@@ -15,6 +15,7 @@ export interface CoinPackageRow {
   coins: number;
   bonusCoins: number;
   priceToman: number;
+  priceTon: number | null;
   originalPriceToman: number | null;
   badge: string | null;
   isFeatured: boolean;
@@ -30,6 +31,7 @@ export async function listCoinPackages(): Promise<CoinPackageRow[]> {
     coins: p.coins,
     bonusCoins: p.bonusCoins,
     priceToman: Number(p.priceToman),
+    priceTon: p.priceTon != null ? Number(p.priceTon) : null,
     originalPriceToman: p.originalPriceToman ? Number(p.originalPriceToman) : null,
     badge: p.badge,
     isFeatured: p.isFeatured,
@@ -38,9 +40,10 @@ export async function listCoinPackages(): Promise<CoinPackageRow[]> {
   }));
 }
 
-function validate(input: { coins: number; bonusCoins: number; priceToman: number; originalPriceToman?: number }) {
+function validate(input: { coins: number; bonusCoins: number; priceToman: number; priceTon?: number; originalPriceToman?: number }) {
   if (!Number.isFinite(input.coins) || input.coins <= 0) return "تعداد سکه باید عددی مثبت باشد";
   if (!Number.isFinite(input.priceToman) || input.priceToman <= 0) return "قیمت باید عددی مثبت باشد";
+  if (input.priceTon != null && (!Number.isFinite(input.priceTon) || input.priceTon <= 0)) return "قیمت تون باید عددی مثبت باشد";
   if (input.bonusCoins < 0) return "سکه هدیه نمی‌تواند منفی باشد";
   if (input.originalPriceToman != null && input.originalPriceToman <= input.priceToman) {
     return "قیمت قبل از تخفیف باید بیشتر از قیمت فعلی باشد";
@@ -52,6 +55,7 @@ export async function createCoinPackage(input: {
   coins: number;
   bonusCoins: number;
   priceToman: number;
+  priceTon?: number;
   originalPriceToman?: number;
   badge?: string;
   isFeatured: boolean;
@@ -67,6 +71,7 @@ export async function createCoinPackage(input: {
         coins: input.coins,
         bonusCoins: input.bonusCoins,
         priceToman: input.priceToman,
+        priceTon: input.priceTon ?? null,
         originalPriceToman: input.originalPriceToman ?? null,
         badge: input.badge?.trim() || null,
         isFeatured: input.isFeatured,
@@ -88,6 +93,7 @@ export async function updateCoinPackage(
     coins: number;
     bonusCoins: number;
     priceToman: number;
+    priceTon?: number;
     originalPriceToman?: number;
     badge?: string;
     isActive: boolean;
@@ -106,6 +112,7 @@ export async function updateCoinPackage(
         coins: input.coins,
         bonusCoins: input.bonusCoins,
         priceToman: input.priceToman,
+        priceTon: input.priceTon ?? null,
         originalPriceToman: input.originalPriceToman ?? null,
         badge: input.badge?.trim() || null,
         isActive: input.isActive,
