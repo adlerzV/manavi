@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import { verifySessionToken } from "./session";
@@ -10,7 +11,7 @@ export interface PublisherContext {
   isOwner: boolean;
 }
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get("session")?.value;
   if (!token) return null;
@@ -22,7 +23,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     where: { id: session.userId },
     include: { publisherProfile: true },
   });
-}
+});
 
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await getSessionUser();
