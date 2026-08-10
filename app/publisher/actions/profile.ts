@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 import { sanitizeCustomLinks, type ProfileLink } from "@/lib/profile-links";
 
 interface ActionResult<T = undefined> {
@@ -49,6 +50,6 @@ export async function updatePublisherProfile(input: {
     revalidatePath(`/app/publisher/${user.publisherProfile.id}`);
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUploadAccess } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 import { uploadChapterThumbnail } from "@/lib/s3";
 
 interface ActionResult<T = undefined> {
@@ -39,6 +40,6 @@ export async function saveChapterThumbnail(formData: FormData): Promise<ActionRe
     revalidatePath("/admin/comics");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

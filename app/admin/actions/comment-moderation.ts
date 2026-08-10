@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { searchComments, type SearchCommentsParams, type ModeratedCommentRow } from "@/lib/comments-moderation";
+import { safeError } from "@/lib/errors";
 import type { CommentStatus } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
@@ -35,7 +36,7 @@ export async function setCommentStatusAdmin(commentId: string, status: CommentSt
     revalidatePath("/admin/comments");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -51,7 +52,7 @@ export async function updateCommentContentAdmin(commentId: string, content: stri
     revalidatePath("/admin/comments");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -60,8 +61,6 @@ export async function deleteCommentAdmin(commentId: string): Promise<ActionResul
     await requireAdmin();
     const comment = await prisma.comment.findUnique({ where: { id: commentId }, select: { chapterId: true } });
 
-    // پاسخ‌های زیرمجموعه‌ی این نظر رو هم حذف کن، وگرنه با ON DELETE SET NULL
-    // به‌صورت نظرات یتیمِ ریشه‌ای توی صفحه‌ی خواننده نمایش داده می‌شن.
     await prisma.$transaction([
       prisma.comment.deleteMany({ where: { parentId: commentId } }),
       prisma.comment.delete({ where: { id: commentId } }),
@@ -71,6 +70,6 @@ export async function deleteCommentAdmin(commentId: string): Promise<ActionResul
     revalidatePath("/admin/comments");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

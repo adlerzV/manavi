@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser, getPublisherContext } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 import { searchComments, type SearchCommentsParams, type ModeratedCommentRow } from "@/lib/comments-moderation";
 import type { CommentStatus } from "@prisma/client";
 
@@ -51,7 +52,7 @@ export async function setCommentStatusPublisher(commentId: string, status: Comme
     revalidatePath("/publisher/comments");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -69,7 +70,7 @@ export async function updateCommentContentPublisher(commentId: string, content: 
     revalidatePath("/publisher/comments");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -87,6 +88,6 @@ export async function deleteCommentPublisher(commentId: string): Promise<ActionR
     revalidatePath("/publisher/comments");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

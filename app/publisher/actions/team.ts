@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 import type { StaffRole } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
@@ -34,7 +35,7 @@ export async function addPublisherStaff(input: { telegramUsername: string; role:
     revalidatePath("/publisher/team");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -50,6 +51,6 @@ export async function removePublisherStaff(staffId: string): Promise<ActionResul
     revalidatePath("/publisher/team");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

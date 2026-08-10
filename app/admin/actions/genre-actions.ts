@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 import { GENRE_IMAGE_OPTIONS } from "@/lib/genre-images";
 
 interface ActionResult<T = undefined> {
@@ -41,7 +42,7 @@ export async function createGenre(input: { name: string; imageUrl?: string }): P
     revalidatePath("/app/explore");
     return { success: true, data: { id: genre.id } };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -60,7 +61,7 @@ export async function updateGenreImage(genreId: string, imageUrl: string): Promi
     revalidatePath("/app/explore");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -79,6 +80,6 @@ export async function deleteGenre(genreId: string): Promise<ActionResult> {
     revalidatePath("/admin/genres");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

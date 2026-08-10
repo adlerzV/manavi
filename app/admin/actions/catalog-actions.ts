@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { deleteObject, deleteObjects } from "@/lib/s3";
 import { extractDominantColor } from "@/lib/color";
+import { safeError } from "@/lib/errors";
 import { LicenseStatus, ContentType, ReadingMode, ChapterAccessType } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
@@ -36,7 +37,7 @@ export async function createPublisher(input: {
     revalidatePath("/admin/publishers");
     return { success: true, data: { id: publisher.id } };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -82,7 +83,7 @@ export async function createLicense(input: {
     revalidatePath("/admin/licenses");
     return { success: true, data: { id: license.id } };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -96,7 +97,7 @@ export async function activateLicense(licenseId: string): Promise<ActionResult> 
     revalidatePath("/admin/licenses");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -110,7 +111,7 @@ export async function terminateLicense(licenseId: string): Promise<ActionResult>
     revalidatePath("/admin/licenses");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -173,7 +174,7 @@ export async function createComic(input: {
     if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
       return { success: false, error: "این اسلاگ قبلاً استفاده شده — لطفاً یک اسلاگ دیگر انتخاب کنید" };
     }
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -245,7 +246,7 @@ export async function updateComic(
     if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
       return { success: false, error: "این اسلاگ قبلاً استفاده شده — لطفاً یک اسلاگ دیگر انتخاب کنید" };
     }
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -289,7 +290,7 @@ export async function updateChapter(
     revalidatePath(`/app/comic/${chapter.comic.slug}`);
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -314,7 +315,7 @@ export async function removeChapterPage(chapterId: string, pageIndex: number): P
     revalidatePath(`/publisher/comics/${chapter.comicId}`);
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -359,7 +360,7 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
     revalidatePath(`/app/comic/${comic.slug}`);
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -388,7 +389,7 @@ export async function linkPublisherOwner(publisherId: string, telegramUsername: 
     revalidatePath("/admin/publishers");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -399,6 +400,6 @@ export async function unlinkPublisherOwner(publisherId: string): Promise<ActionR
     revalidatePath("/admin/publishers");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

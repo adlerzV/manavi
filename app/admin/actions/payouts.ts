@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { safeError } from "@/lib/errors";
 import { requireAdmin } from "@/lib/auth";
 
 interface ActionResult<T = undefined> {
@@ -30,6 +31,6 @@ export async function reviewPayout(
     revalidatePath("/admin/payouts");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

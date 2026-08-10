@@ -7,6 +7,7 @@ import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { notifyNewChapter } from "@/lib/telegram-bot";
 import { deleteObject, deleteObjects } from "@/lib/s3";
+import { safeError } from "@/lib/errors";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -43,7 +44,7 @@ export async function scheduleChapter(chapterId: string, scheduledAt: string): P
     if (err instanceof LicenseInactiveError) {
       return { success: false, error: `Cannot schedule: ${err.reason}` };
     }
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -62,7 +63,7 @@ export async function cancelSchedule(chapterId: string): Promise<ActionResult> {
     revalidatePath("/publisher/comics");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -125,7 +126,7 @@ export async function runScheduledPublish(): Promise<ActionResult<{ published: n
     revalidatePath("/app/explore");
     return { success: true, data: { published: publishedChapters.length } };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -141,7 +142,7 @@ export async function reorderChapterPages(chapterId: string, orderedPages: strin
     revalidatePath("/publisher/comics");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -163,7 +164,7 @@ export async function deleteChapter(chapterId: string): Promise<ActionResult> {
       prisma.chapter.delete({ where: { id: chapterId } }),
     ]);
 
-const keysToDelete = [...chapter.pages, chapter.thumbnailImage].filter(
+    const keysToDelete = [...chapter.pages, chapter.thumbnailImage].filter(
       (key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://")
     );
     await deleteObjects(keysToDelete).catch(() => {});
@@ -177,6 +178,6 @@ const keysToDelete = [...chapter.pages, chapter.thumbnailImage].filter(
     revalidatePath("/app/explore");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

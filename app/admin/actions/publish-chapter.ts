@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySessionToken } from "@/lib/session";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { notifyNewChapter } from "@/lib/telegram-bot";
+import { safeError } from "@/lib/errors";
 
 interface PublishChapterResult {
   success: boolean;
@@ -117,6 +118,6 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
     if (err instanceof LicenseInactiveError) {
       return { success: false, error: `Cannot publish: ${err.reason}` };
     }
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { safeError } from "@/lib/errors";
 import { getSessionUser } from "@/lib/auth";
 
 interface ActionResult<T = undefined> {
@@ -47,6 +48,6 @@ export async function replyToComment(commentId: string, content: string): Promis
     revalidatePath(`/app/read/${parent.chapterId}`);
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

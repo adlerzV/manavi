@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -82,7 +83,7 @@ export async function createSubscriptionPlan(input: {
     revalidatePath("/app/shop");
     return { success: true, data: { id: plan.id } };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -134,7 +135,7 @@ export async function updateSubscriptionPlan(
     revalidatePath("/app/shop");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -149,7 +150,7 @@ export async function toggleSubscriptionPlanActive(
     revalidatePath("/app/shop");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -168,6 +169,6 @@ export async function deleteSubscriptionPlan(planId: string): Promise<ActionResu
     revalidatePath("/app/shop");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

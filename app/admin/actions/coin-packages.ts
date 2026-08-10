@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -83,7 +84,7 @@ export async function createCoinPackage(input: {
     revalidatePath("/app/shop");
     return { success: true, data: { id: pack.id } };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -125,7 +126,7 @@ export async function updateCoinPackage(
     revalidatePath("/app/shop");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -137,7 +138,7 @@ export async function toggleCoinPackageActive(packageId: string, isActive: boole
     revalidatePath("/app/shop");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -158,6 +159,6 @@ export async function deleteCoinPackage(packageId: string): Promise<ActionResult
     revalidatePath("/app/shop");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

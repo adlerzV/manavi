@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 import { broadcastMessage } from "@/lib/telegram-bot";
 
 interface ActionResult<T = undefined> {
@@ -62,6 +63,6 @@ export async function sendBroadcast(input: {
 
     return { success: true, data: result };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }

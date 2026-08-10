@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 import type { TransactionType, TransactionStatus } from "@prisma/client";
 
 export interface TransactionRow {
@@ -81,9 +82,6 @@ export async function cleanupOldFailedTransactions(
     revalidatePath("/admin/transactions");
     return { success: true, data: { deleted: result.count } };
   } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Unknown error",
-    };
+    return safeError(err);
   }
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { safeError } from "@/lib/errors";
 import type { Role } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
@@ -85,7 +86,7 @@ export async function setUserRole(userId: string, role: Role): Promise<ActionRes
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -102,7 +103,7 @@ export async function banUser(userId: string, reason: string): Promise<ActionRes
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -113,7 +114,7 @@ export async function unbanUser(userId: string): Promise<ActionResult> {
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -132,7 +133,7 @@ export async function grantCoins(userId: string, amount: number, note: string): 
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -156,7 +157,7 @@ export async function revokeCoins(userId: string, amount: number, note: string):
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
 
@@ -196,6 +197,6 @@ export async function deleteUserAccount(userId: string, confirmationName: string
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error" };
+    return safeError(err);
   }
 }
