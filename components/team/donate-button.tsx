@@ -1,86 +1,106 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { TonConnectButton } from "@tonconnect/ui-react";
 import { TonPayButton } from "@/components/payments/ton-pay-button";
-import { createTonSubscriptionPayment } from "@/app/actions/ton-payments";
-import type { SubscriptionPlanView } from "@/lib/subscription-plans";
+import { createTonDonationPayment } from "@/app/actions/ton-payments";
+import { DONATION_PRESETS_TON, MIN_DONATION_TON, MAX_DONATION_TON } from "@/lib/billing";
 
-interface SubscriptionPlansProps {
-  plans: SubscriptionPlanView[];
+interface DonateButtonProps {
+  receiverId: string;
   authenticated: boolean;
-  tonConfigured: boolean;
 }
 
-function monthlyRate(plan: SubscriptionPlanView): number {
-  return (plan.priceTon ?? 0) / plan.months;
-}
+export function DonateButton({ receiverId, authenticated }: DonateButtonProps) {
+  const [open, setOpen] = useState(false);
+  const [preset, setPreset] = useState<number>(DONATION_PRESETS_TON[0]);
+  const [customAmount, setCustomAmount] = useState("");
+  const [message, setMessage] = useState("");
 
-export function SubscriptionPlans({ plans, authenticated, tonConfigured }: SubscriptionPlansProps) {
-  const router = useRouter();
-  const payable = plans.filter((p) => p.priceTon != null);
-  const baseline = payable.length > 0 ? Math.max(...payable.map(monthlyRate)) : 0;
+  const effectiveAmount = customAmount ? Number(customAmount) : preset;
+  const validAmount =
+    Number.isFinite(effectiveAmount) &&
+    effectiveAmount >= MIN_DONATION_TON &&
+    effectiveAmount <= MAX_DONATION_TON;
 
-  if (!tonConfigured) {
-    return <p className="text-sm text-text-muted">پرداخت با تون هنوز در تنظیمات محیطی پیکربندی نشده است.</p>;
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        disabled={!authenticated}
+        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+      >
+        حمایت مالی با TON
+      </button>
+    );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="w-full max-w-sm space-y-3 rounded-md border border-border bg-surface p-4">
       <div className="flex justify-center">
         <TonConnectButton />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {plans.map((plan) => {
-          const rate = monthlyRate(plan);
-          const savingsPercent = baseline > 0 && plan.priceTon != null ? Math.round((1 - rate / baseline) * 100) : 0;
-          return (
-            <div
-              key={plan.id}
-              className={`relative flex flex-col items-center gap-2 rounded-md border p-4 text-center ${
-                plan.isFeatured ? "border-primary bg-primary/5" : "border-border bg-surface"
-              }`}
-            >
-              {plan.isFeatured && (
-                <span className="absolute -top-2.5 rounded-full bg-primary px-3 py-0.5 text-[10px] font-medium text-primary-foreground">
-                  پرطرفدارترین
-                </span>
-              )}
-              <p className="text-sm font-medium text-text-main">{plan.label}</p>
-              {plan.priceTon != null ? (
-                <p className="text-lg font-semibold text-primary">{plan.priceTon} TON</p>
-              ) : (
-                <p className="text-xs text-text-muted">قیمت تون تعیین نشده</p>
-              )}
-              {savingsPercent > 0 && (
-                <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
-                  {savingsPercent.toLocaleString("fa-IR")}٪ صرفه‌جویی
-                </span>
-              )}
-              {plan.perks.length > 0 && (
-                <ul className="mt-1 space-y-1 text-right text-[11px] text-text-muted">
-                  {plan.perks.map((perk) => (
-                    <li key={perk}>• {perk}</li>
-                  ))}
-                </ul>
-              )}
-              {plan.priceTon != null && (
-                <div className="mt-2 w-full">
-                  <TonPayButton
-                    label="پرداخت"
-                    disabled={!authenticated}
-                    className="w-full rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
-                    createPayment={() => createTonSubscriptionPayment(plan.id)}
-                    onPaid={() => router.refresh()}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div className="flex flex-wrap gap-2">
+        {DONATION_PRESETS_TON.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => {
+              setPreset(p);
+              setCustomAmount("");
+            }}
+            className={`rounded-md border px-3 py-1.5 text-xs ${
+              !customAmount && preset === p
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-text-muted"
+            }`}
+          >
+            {p} TON
+          </button>
+        ))}
       </div>
-      {!authenticated && <p className="text-xs text-text-muted">برای خرید اشتراک باید از داخل تلگرام وارد شوید.</p>}
+
+      <input
+        type="number"
+        step="any"
+        min={MIN_DONATION_TON}
+        max={MAX_DONATION_TON}
+        value={customAmount}
+        onChange={(e) => setCustomAmount(e.target.value)}
+        placeholder={`مبلغ دلخواه (${MIN_DONATION_TON} تا ${MAX_DONATION_TON} TON)`}
+        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
+      />
+
+      <input
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="پیام (اختیاری)"
+        maxLength={300}
+        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
+      />
+
+      {!validAmount && (
+        <p className="text-xs text-red-400">
+          مبلغ باید بین {MIN_DONATION_TON} تا {MAX_DONATION_TON} TON باشد
+        </p>
+      )}
+
+      <TonPayButton
+        label={`حمایت با ${effectiveAmount || 0} TON`}
+        disabled={!authenticated || !validAmount}
+        createPayment={() =>
+          createTonDonationPayment({
+            receiverId,
+            amountTon: effectiveAmount,
+            message: message || undefined,
+          })
+        }
+      />
+
+      <button type="button" onClick={() => setOpen(false)} className="w-full text-center text-xs text-text-muted">
+        انصراف
+      </button>
     </div>
   );
 }

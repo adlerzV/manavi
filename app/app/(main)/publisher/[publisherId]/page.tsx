@@ -7,6 +7,7 @@ import { DonateButton } from "@/components/team/donate-button";
 import { BackButton } from "@/components/navigation/back-button";
 import { WalletAndLinks } from "@/components/support/wallet-and-links";
 import { parseCustomLinks } from "@/lib/profile-links";
+
 interface PageProps {
   params: Promise<{ publisherId: string }>;
 }
@@ -113,16 +114,16 @@ export default async function PublisherPublicProfilePage({ params }: PageProps) 
               <p className="text-xs text-text-muted">راه حمایت مالی هنوز ثبت نشده است.</p>
             )}
           </div>
-          +         <WalletAndLinks
-           cryptoWalletLabel={publisher.cryptoWalletLabel}
-          cryptoWalletAddress={publisher.cryptoWalletAddress}
-          customLinks={parseCustomLinks(publisher.customLinks)}
+          <WalletAndLinks
+            cryptoWalletLabel={publisher.cryptoWalletLabel}
+            cryptoWalletAddress={publisher.cryptoWalletAddress}
+            customLinks={parseCustomLinks(publisher.customLinks)}
           />
         </div>
 
         <h2 className="mb-3 mt-8 text-sm font-medium text-text-main">آثار این ناشر</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {comics.map((comic) => (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {comics.map((comic) => (
             <Link key={comic.id} href={`/app/comic/${comic.slug}`} className="block">
               <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
                 <Image src={comic.coverImage} alt={comic.title} fill sizes="(max-width: 768px) 50vw, 200px" className="object-cover" />
