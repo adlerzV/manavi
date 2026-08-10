@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "./prisma";
 import type { Transaction } from "@prisma/client";
+import { REFERRAL_REWARD_COINS } from "./gamification";
 import {
   getPlatformTonAddress,
   tonToNanotons,
@@ -21,6 +22,25 @@ async function resolveTonToAddress(transaction: Transaction): Promise<string | n
   return getPlatformTonAddress();
 }
 
+async function grantReferralRewardIfEligible(payerId: string): Promise<void> {
+  const payer = await prisma.user.findUnique({
+    where: { id: payerId },
+    select: { referredById: true, referralRewardGranted: true },
+  });
+  if (!payer?.referredById || payer.referralRewardGranted) return;
+
+  const claimed = await prisma.user.updateMany({
+    where: { id: payerId, referralRewardGranted: false },
+    data: { referralRewardGranted: true },
+  });
+  if (claimed.count === 0) return;
+
+  await prisma.user.update({
+    where: { id: payer.referredById },
+    data: { coinsBalance: { increment: REFERRAL_REWARD_COINS }, referralCount: { increment: 1 } },
+  });
+}
+
 async function applySettlementSideEffects(transaction: Transaction): Promise<void> {
   if (transaction.type === "SUBSCRIPTION" && transaction.subscriptionPlanId) {
     const plan = await prisma.subscriptionPlan.findUnique({ where: { id: transaction.subscriptionPlanId } });
@@ -30,6 +50,7 @@ async function applySettlementSideEffects(transaction: Transaction): Promise<voi
       const newEnd = new Date(base);
       newEnd.setMonth(newEnd.getMonth() + plan.months);
       await prisma.user.update({ where: { id: transaction.payerId }, data: { isSubscribed: true, subscriptionEnd: newEnd } });
+      await grantReferralRewardIfEligible(transaction.payerId);
     }
     return;
   }

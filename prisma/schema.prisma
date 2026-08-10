@@ -20,9 +20,7 @@ model User {
   referralCode        String          @unique
   referredById        String?
   referralCount       Int             @default(0)
-  currentStreak       Int             @default(0)
-  longestStreak       Int             @default(0)
-  lastCheckinAt       DateTime?
+  referralRewardGranted Boolean       @default(false)
   isBanned            Boolean         @default(false)
   bannedAt            DateTime?
   banReason           String?
@@ -48,6 +46,7 @@ model User {
   chapterStaffRoles   ChapterStaff[]
   chapterUnlocks      ChapterUnlock[]
   chapterReactions    ChapterReaction[]
+  devToolsStrikes     DevToolsStrike[]
   publisherProfile    Publisher?
   publisherStaffRoles PublisherStaff[]
 
@@ -408,9 +407,6 @@ model Transaction {
   subscriptionPlanId String?
   subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
 
-  gatewayAuthority String? @unique
-  gatewayRefId     String?
-
   tonComment String? @unique
   tonTxHash  String?
 
@@ -535,6 +531,16 @@ model RateLimitBucket {
   key         String   @id
   count       Int      @default(0)
   windowStart DateTime @default(now())
+}
+
+model DevToolsStrike {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }
 
 model CreatorApplication {

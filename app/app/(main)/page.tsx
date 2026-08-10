@@ -10,7 +10,6 @@ import {
 } from "@/lib/home-feed";
 import { getHomeFeedComics } from "@/app/actions/home-feed";
 import { CoinBalanceHeader } from "@/components/home/coin-balance-header";
-import { FloatingDailyClaim } from "@/components/home/floating-daily-claim";
 import { HeroCarousel } from "@/components/home/hero-carousel";
 import { NewestPopularSection } from "@/components/home/newest-popular-section";
 import { RecommendedSection } from "@/components/home/recommended-section";
@@ -19,10 +18,6 @@ import { CompletedSeriesSection } from "@/components/home/completed-series-secti
 import { LatestCommentsSection } from "@/components/home/latest-comments-section";
 
 export const revalidate = 300;
-
-function isSameCalendarDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
 
 export default async function AppHomePage() {
   const [user, allowedRatings] = await Promise.all([getSessionUser(), getAllowedAgeRatings()]);
@@ -39,7 +34,6 @@ export default async function AppHomePage() {
   ]);
 
   const shuffledHeroComics = heroComics.length > 1 ? [...heroComics].sort(() => Math.random() - 0.5) : heroComics;
-  const alreadyClaimedToday = Boolean(user?.lastCheckinAt && isSameCalendarDay(user.lastCheckinAt, new Date()));
 
   return (
     <main className="min-h-screen bg-background">
@@ -60,8 +54,6 @@ export default async function AppHomePage() {
       <CompletedSeriesSection comics={completedSeries} />
 
       <LatestCommentsSection comments={latestComments} />
-
-      {user && <FloatingDailyClaim alreadyClaimedToday={alreadyClaimedToday} />}
     </main>
   );
 }

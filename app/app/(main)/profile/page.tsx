@@ -5,15 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { EditProfileForm } from "@/components/profile/edit-profile-form";
 import { ContentPreferenceForm } from "@/components/profile/content-preference-form";
-import { DailyCheckinCard } from "@/components/gamification/daily-checkin-card";
 import { ReferralCard } from "@/components/gamification/referral-card";
 import { ComicCard } from "@/components/catalog/comic-card";
 import { getReferralLink } from "@/lib/site-config";
 import { parseCustomLinks } from "@/lib/profile-links";
-
-function isSameCalendarDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
 
 export default async function ProfilePage() {
   const user = await getSessionUser();
@@ -74,7 +69,6 @@ export default async function ProfilePage() {
       })
     : [];
 
-  const alreadyClaimedToday = Boolean(user.lastCheckinAt && isSameCalendarDay(user.lastCheckinAt, new Date()));
   const referralLink = getReferralLink(user.referralCode);
 
   return (
@@ -107,10 +101,6 @@ export default async function ProfilePage() {
                 initialCustomLinks={parseCustomLinks(user.customLinks)}
               />
             </CollapsibleSection>
-        </section>
-
-        <section>
-          <DailyCheckinCard currentStreak={user.currentStreak} alreadyClaimedToday={alreadyClaimedToday} />
         </section>
 
         <section>

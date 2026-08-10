@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { REFERRAL_REWARD_COINS } from "@/lib/gamification";
 
 interface ReferralCardProps {
   referralLink: string | null;
@@ -39,8 +40,7 @@ export function ReferralCard({ referralLink, referralCode, referralCount }: Refe
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
 
   async function handleCopy() {
-    if (!referralLink) return;
-    const ok = await copyText(referralLink);
+    const ok = await copyText(referralCode);
     setCopyState(ok ? "copied" : "error");
     setTimeout(() => setCopyState("idle"), 2000);
   }
@@ -55,12 +55,12 @@ export function ReferralCard({ referralLink, referralCode, referralCount }: Refe
     <div className="rounded-md border border-border bg-surface p-4">
       <h3 className="mb-1 text-sm font-medium text-text-main">دعوت از دوستان</h3>
       <p className="mb-3 text-xs text-text-muted">
-        به ازای هر دوستی که با لینک شما بیاید، ۱۰ سکه هدیه می‌گیرید.
+        وقتی دوستتان با لینک شما بیاید و یک اشتراک ویژه فعال کند، {REFERRAL_REWARD_COINS.toLocaleString("fa-IR")} سکه هدیه می‌گیرید.
       </p>
 
       <div className="mb-3 flex items-center justify-between rounded-md border border-border bg-background px-3 py-2">
         <span className="truncate text-xs text-text-muted">{referralCode}</span>
-        <button onClick={handleCopy} disabled={!referralLink} className="whitespace-nowrap text-xs font-medium text-primary disabled:opacity-50">
+        <button onClick={handleCopy} className="whitespace-nowrap text-xs font-medium text-primary">
           {copyState === "copied" ? "کپی شد" : copyState === "error" ? "کپی نشد، دستی کپی کنید" : "کپی کد"}
         </button>
       </div>
@@ -76,7 +76,7 @@ export function ReferralCard({ referralLink, referralCode, referralCount }: Refe
         </a>
       )}
 
-      <p className="mt-3 text-center text-xs text-text-muted">{referralCount} نفر دعوت کرده‌اید</p>
+      <p className="mt-3 text-center text-xs text-text-muted">{referralCount.toLocaleString("fa-IR")} دعوت موفق (با اشتراک فعال)</p>
     </div>
   );
 }

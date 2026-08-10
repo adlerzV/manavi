@@ -13,6 +13,7 @@ import { DoublePageReader } from "./double-page-reader";
 import { ReadingModeToggle } from "./reading-mode-toggle";
 import { EndOfChapter } from "./end-of-chapter";
 import { WatermarkOverlay } from "./watermark-overlay";
+import { DevToolsGuard } from "./dev-tools-guard";
 import { BackButton } from "@/components/navigation/back-button";
 import { getStoredReadingModeOverride, setStoredReadingModeOverride, getReadingDirection } from "@/lib/reading";
 
@@ -179,6 +180,7 @@ export function ChapterReader({
   return (
     <div className="relative min-h-screen bg-black overscroll-none">
       <WatermarkOverlay label={watermarkLabel} />
+      <DevToolsGuard />
 
       <div className={`fixed inset-x-0 top-0 z-40 flex items-center justify-between bg-black/80 px-2 py-3 backdrop-blur-sm transition-transform duration-200 ${controlsVisible ? "translate-y-0" : "-translate-y-full"}`}>
         <BackButton fallbackHref={`/app/comic/${comicSlug}`} variant="reader" />

@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { validateTelegramInitData, InvalidInitDataError } from "@/lib/telegram";
 import { createSessionToken, sessionCookieOptions } from "@/lib/session";
 import { generateReferralCode } from "@/lib/referral";
-import { REFERRAL_REWARD_COINS, REFERRAL_WELCOME_BONUS_COINS } from "@/lib/gamification";
 import type { Role } from "@prisma/client";
 
 function getBootstrapAdminTelegramIds(): Set<string> {
@@ -28,31 +27,16 @@ async function createUserWithReferral(input: {
   for (let attempt = 0; attempt < 5; attempt++) {
     const referralCode = generateReferralCode();
     try {
-      return await prisma.$transaction(async (tx) => {
-        const created = await tx.user.create({
-          data: {
-            telegramId: input.telegramId,
-            firstName: input.firstName,
-            lastName: input.lastName,
-            username: input.username,
-            role: input.role,
-            referralCode,
-            referredById: input.referrerId,
-            coinsBalance: input.referrerId ? REFERRAL_WELCOME_BONUS_COINS : 0,
-          },
-        });
-
-        if (input.referrerId) {
-          await tx.user.update({
-            where: { id: input.referrerId },
-            data: {
-              coinsBalance: { increment: REFERRAL_REWARD_COINS },
-              referralCount: { increment: 1 },
-            },
-          });
-        }
-
-        return created;
+      return await prisma.user.create({
+        data: {
+          telegramId: input.telegramId,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          username: input.username,
+          role: input.role,
+          referralCode,
+          referredById: input.referrerId,
+        },
       });
     } catch (err) {
       const isUniqueViolation = err instanceof Error && err.message.includes("Unique constraint");

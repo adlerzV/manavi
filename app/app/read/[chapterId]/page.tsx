@@ -67,6 +67,17 @@ export default async function ReadChapterPage({ params }: PageProps) {
     getChapterAccessList(chapter.comic.id),
   ]);
 
+  if (user?.isBanned) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-6 text-center">
+        <p className="text-lg font-medium text-text-main">دسترسی شما مسدود شده است</p>
+        <p className="max-w-sm text-sm text-text-muted">
+          حساب شما به دلیل نقض قوانین استفاده مسدود شده است. برای پیگیری با پشتیبانی تماس بگیرید.
+        </p>
+      </div>
+    );
+  }
+
   const showAd = !hasActiveSubscription(user?.subscriptionEnd);
 
   const entry = accessList.find((c) => c.id === chapterId);
