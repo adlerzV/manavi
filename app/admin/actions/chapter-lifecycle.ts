@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { notifyNewChapter } from "@/lib/telegram-bot";
-import { deleteObject, deleteObjects } from "@/lib/s3";
+import { deleteObject, deleteObjects, getSignedImageUrls } from "@/lib/s3";
 import { safeError } from "@/lib/errors";
 
 interface ActionResult<T = undefined> {
@@ -177,6 +177,19 @@ export async function deleteChapter(chapterId: string): Promise<ActionResult> {
     revalidatePath("/app");
     revalidatePath("/app/explore");
     return { success: true };
+  } catch (err) {
+    return safeError(err);
+  }
+}
+export async function getChapterPagePreviews(chapterId: string): Promise<ActionResult<{ previewUrls: string[] }>> {
+  try {
+    const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { pages: true, comicId: true } });
+    if (!chapter) return { success: false, error: "چپتر یافت نشد" };
+
+    await requireUploadAccess(chapter.comicId);
+
+    const previewUrls = chapter.pages.length ? await getSignedImageUrls(chapter.pages, 900) : [];
+    return { success: true, data: { previewUrls } };
   } catch (err) {
     return safeError(err);
   }

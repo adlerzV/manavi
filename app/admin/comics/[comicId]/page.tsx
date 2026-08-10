@@ -1,15 +1,13 @@
-// app/admin/comics/[comicId]/page.tsx
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAllGenres } from "@/lib/genres";
-import { getSignedImageUrls } from "@/lib/s3";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { UploadChapterForm } from "@/components/admin/upload-chapter-form";
 import { ChapterStatusPanel } from "@/components/admin/chapter-status-panel";
 import { ChapterThumbnailCropper } from "@/components/admin/chapter-thumbnail-cropper";
 import { EditComicForm } from "@/components/admin/edit-comic-form";
 import { EditChapterForm } from "@/components/admin/edit-chapter-form";
-import { ChapterPagesManager } from "@/components/admin/chapter-pages-manager";
+import { ChapterPagesLazy } from "@/components/admin/chapter-pages-lazy";
 import { ComicDeleteButton } from "@/components/admin/comic-delete-button";
 
 interface PageProps {
@@ -68,13 +66,6 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
     status: l.status,
   }));
 
-  const chaptersWithPreviews = await Promise.all(
-    comic.chapters.map(async (ch) => ({
-      ...ch,
-      previewUrls: ch.pages.length ? await getSignedImageUrls(ch.pages, 900) : [],
-    }))
-  );
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-4">
@@ -98,7 +89,7 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">چپترها ({comic.chapters.length})</h2>
         <div className="divide-y divide-border rounded-md border border-border">
-          {chaptersWithPreviews.map((ch) => (
+          {comic.chapters.map((ch) => (
             <div key={ch.id} className="space-y-3 px-4 py-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-text-main">
@@ -122,7 +113,7 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
                 initialCoinCost={ch.coinCost}
               />
               <ChapterThumbnailCropper chapterId={ch.id} />
-              <ChapterPagesManager chapterId={ch.id} pageKeys={ch.pages} previewUrls={ch.previewUrls} />
+              <ChapterPagesLazy chapterId={ch.id} pageKeys={ch.pages} />
             </div>
           ))}
           {comic.chapters.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">هنوز چپتری آپلود نشده.</p>}

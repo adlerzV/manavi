@@ -15,12 +15,18 @@ interface DoublePageReaderProps {
   hasPrevChapter: boolean;
   hasNextChapter: boolean;
   onToggleControls: () => void;
-  watermarkLabel?: string | null;
 }
 
 export function DoublePageReader({
-  pages, currentPage, direction, onPageChange,
-  onRequestPrevChapter, onRequestNextChapter, hasPrevChapter, hasNextChapter, onToggleControls, watermarkLabel,
+  pages,
+  currentPage,
+  direction,
+  onPageChange,
+  onRequestPrevChapter,
+  onRequestNextChapter,
+  hasPrevChapter,
+  hasNextChapter,
+  onToggleControls,
 }: DoublePageReaderProps) {
   const touchStartX = useRef<number | null>(null);
   const isRtl = direction === "rtl";
@@ -78,10 +84,10 @@ export function DoublePageReader({
   return (
     <div className="relative flex h-screen w-full items-center justify-center gap-1 bg-black" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className="relative h-full w-1/2">
-        {leftUrl && <ProtectedImage src={leftUrl} alt="" fill priority sizes="50vw" className="object-contain" watermarkLabel={watermarkLabel} />}
+        {leftUrl && <ProtectedImage src={leftUrl} alt="" fill priority sizes="50vw" className="object-contain" />}
       </div>
       <div className="relative h-full w-1/2">
-        {rightUrl && <ProtectedImage src={rightUrl} alt="" fill priority sizes="50vw" className="object-contain" watermarkLabel={watermarkLabel} />}
+        {rightUrl && <ProtectedImage src={rightUrl} alt="" fill priority sizes="50vw" className="object-contain" />}
       </div>
 
       <button onClick={rightAction} aria-label="ناوبری راست" className="absolute inset-y-0 right-0 z-20 w-1/4" />

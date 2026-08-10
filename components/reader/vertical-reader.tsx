@@ -13,10 +13,9 @@ interface VerticalReaderProps {
   seekToPage?: number | null;
   onToggleControls: () => void;
   controlsVisible: boolean;
-  watermarkLabel?: string | null;
 }
 
-const SCROLL_SPEEDS = [ 1, 2, 3, 5, 10];
+const SCROLL_SPEEDS = [1, 2, 3, 5, 10];
 
 export function VerticalReader({
   pages,
@@ -27,7 +26,6 @@ export function VerticalReader({
   seekToPage,
   onToggleControls,
   controlsVisible,
-  watermarkLabel,
 }: VerticalReaderProps) {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [autoScroll, setAutoScroll] = useState(false);
@@ -142,7 +140,15 @@ export function VerticalReader({
     <>
       <div onClick={onToggleControls} className="mx-auto flex max-w-2xl flex-col">
         {pages.map((url, index) => (
-          <div key={url} data-page-index={index} ref={(el) => { pageRefs.current[index] = el; }} className="relative w-full">
+          <div
+            key={url}
+            data-page-index={index}
+            ref={(el) => {
+              pageRefs.current[index] = el;
+            }}
+            className="relative w-full"
+            style={{ contentVisibility: "auto", containIntrinsicSize: "0 1400px" }}
+          >
             <ProtectedImage
               src={url}
               alt={`صفحه ${index + 1}`}
@@ -152,20 +158,35 @@ export function VerticalReader({
               className="h-auto w-full"
               priority={index < 5}
               loading={index < 5 ? "eager" : "lazy"}
-              watermarkLabel={watermarkLabel}
             />
           </div>
         ))}
       </div>
 
-      <div className={`fixed left-4 top-20 z-40 flex flex-col items-center gap-2 transition-opacity duration-200 ${controlsVisible ? "opacity-100" : "opacity-0"}`}>
-        <button onClick={(e) => { e.stopPropagation(); setAutoScroll((prev) => !prev); }} className="rounded-full bg-black/70 p-2 text-white">
+      <div
+        className={`fixed left-4 top-20 z-40 flex flex-col items-center gap-2 transition-opacity duration-200 ${
+          controlsVisible ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setAutoScroll((prev) => !prev);
+          }}
+          className="rounded-full bg-black/70 p-2 text-white"
+        >
           {autoScroll ? <PauseCircle size={24} /> : <PlayCircle size={24} />}
         </button>
         {autoScroll && (
-          <select value={speedIndex} onChange={(e) => setSpeedIndex(Number(e.target.value))} className="rounded-md bg-black/80 px-1 py-1 text-xs text-white">
+          <select
+            value={speedIndex}
+            onChange={(e) => setSpeedIndex(Number(e.target.value))}
+            className="rounded-md bg-black/80 px-1 py-1 text-xs text-white"
+          >
             {SCROLL_SPEEDS.map((speed, index) => (
-              <option key={speed} value={index} className="bg-neutral-900 text-white">{speed}x</option>
+              <option key={speed} value={index} className="bg-neutral-900 text-white">
+                {speed}x
+              </option>
             ))}
           </select>
         )}

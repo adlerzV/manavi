@@ -12,7 +12,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/admin/comments", label: "نظرات", icon: "MessageSquare" },
   { href: "/admin/users", label: "کاربران", icon: "Users" },
   { href: "/admin/subscriptions", label: "پلن‌های اشتراک", icon: "Gem" },
-  { href: "/admin/coin-packages", label: "پکیج‌های سکه", icon: "Gem" },
+  { href: "/admin/coin-packages", label: "پکیج‌های سکه", icon: "Coins" },
   { href: "/admin/transactions", label: "تراکنش‌ها", icon: "Receipt" },
   { href: "/admin/analytics", label: "آمار", icon: "BarChart3" },
   { href: "/admin/payouts", label: "تسویه‌حساب", icon: "Wallet" },

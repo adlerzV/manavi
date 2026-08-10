@@ -6,11 +6,13 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReadingMode, ContentType } from "@prisma/client";
 import { updateReadHistory } from "@/app/actions/read-history";
+import { getChapterPrefetchUrls } from "@/app/actions/chapter-prefetch";
 import { VerticalReader } from "./vertical-reader";
 import { HorizontalReader } from "./horizontal-reader";
 import { DoublePageReader } from "./double-page-reader";
 import { ReadingModeToggle } from "./reading-mode-toggle";
 import { EndOfChapter } from "./end-of-chapter";
+import { WatermarkOverlay } from "./watermark-overlay";
 import { BackButton } from "@/components/navigation/back-button";
 import { getStoredReadingModeOverride, setStoredReadingModeOverride, getReadingDirection } from "@/lib/reading";
 
@@ -97,6 +99,7 @@ export function ChapterReader({
   const [horizontalPage, setHorizontalPage] = useState(initialPage);
   const [verticalCurrentPage, setVerticalCurrentPage] = useState(initialPage);
   const lastScrollYRef = useRef(0);
+  const nextChapterPrefetchedRef = useRef(false);
 
   useEffect(() => {
     const stored = getStoredReadingModeOverride(comicId);
@@ -133,6 +136,23 @@ export function ChapterReader({
 
   const renderMode: ReadingMode = effectiveMode === "DOUBLE_PAGE" && !isDesktop ? "HORIZONTAL" : effectiveMode;
 
+  useEffect(() => {
+    if (!nextChapterId || nextChapterPrefetchedRef.current || pages.length === 0) return;
+    const currentPage = renderMode === "VERTICAL" ? verticalCurrentPage : horizontalPage;
+    const remaining = pages.length - currentPage;
+    if (remaining > 2) return;
+
+    nextChapterPrefetchedRef.current = true;
+    getChapterPrefetchUrls(nextChapterId)
+      .then((urls) => {
+        urls.forEach((url) => {
+          const img = new window.Image();
+          img.src = url;
+        });
+      })
+      .catch(() => {});
+  }, [renderMode, verticalCurrentPage, horizontalPage, pages.length, nextChapterId]);
+
   const toggleControls = useCallback(() => setControlsVisible((prev) => !prev), []);
 
   function handleModeChange(mode: ReadingMode) {
@@ -158,6 +178,8 @@ export function ChapterReader({
 
   return (
     <div className="relative min-h-screen bg-black overscroll-none">
+      <WatermarkOverlay label={watermarkLabel} />
+
       <div className={`fixed inset-x-0 top-0 z-40 flex items-center justify-between bg-black/80 px-2 py-3 backdrop-blur-sm transition-transform duration-200 ${controlsVisible ? "translate-y-0" : "-translate-y-full"}`}>
         <BackButton fallbackHref={`/app/comic/${comicSlug}`} variant="reader" />
         <div className="text-center">
@@ -177,7 +199,6 @@ export function ChapterReader({
           seekToPage={null}
           onToggleControls={toggleControls}
           controlsVisible={controlsVisible}
-          watermarkLabel={watermarkLabel}
         />
       )}
 
@@ -192,7 +213,6 @@ export function ChapterReader({
           hasPrevChapter={Boolean(prevChapterId)}
           hasNextChapter={Boolean(nextChapterId)}
           onToggleControls={toggleControls}
-          watermarkLabel={watermarkLabel}
         />
       )}
 
@@ -207,11 +227,10 @@ export function ChapterReader({
           hasPrevChapter={Boolean(prevChapterId)}
           hasNextChapter={Boolean(nextChapterId)}
           onToggleControls={toggleControls}
-          watermarkLabel={watermarkLabel}
         />
       )}
 
-{renderMode === "VERTICAL" && (
+      {renderMode === "VERTICAL" && (
         <EndOfChapter
           chapterId={chapterId}
           comicSlug={comicSlug}

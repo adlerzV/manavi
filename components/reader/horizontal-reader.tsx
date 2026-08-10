@@ -16,12 +16,18 @@ interface HorizontalReaderProps {
   hasPrevChapter: boolean;
   hasNextChapter: boolean;
   onToggleControls: () => void;
-  watermarkLabel?: string | null;
 }
 
 export function HorizontalReader({
-  pages, currentPage, direction, onPageChange,
-  onRequestPrevChapter, onRequestNextChapter, hasPrevChapter, hasNextChapter, onToggleControls, watermarkLabel,
+  pages,
+  currentPage,
+  direction,
+  onPageChange,
+  onRequestPrevChapter,
+  onRequestNextChapter,
+  hasPrevChapter,
+  hasNextChapter,
+  onToggleControls,
 }: HorizontalReaderProps) {
   const touchStartX = useRef<number | null>(null);
   const isRtl = direction === "rtl";
@@ -75,7 +81,7 @@ export function HorizontalReader({
 
   return (
     <div className="relative h-screen w-full bg-black" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-      {currentUrl && <ProtectedImage src={currentUrl} alt={`صفحه ${currentPage}`} fill priority sizes="100vw" className="object-contain" watermarkLabel={watermarkLabel} />}
+      {currentUrl && <ProtectedImage src={currentUrl} alt={`صفحه ${currentPage}`} fill priority sizes="100vw" className="object-contain" />}
 
       <button onClick={rightAction} aria-label={isRtl ? "صفحه قبل" : "صفحه بعد"} className="absolute inset-y-0 right-0 z-20 w-1/3" />
       <button onClick={leftAction} aria-label={isRtl ? "صفحه بعد" : "صفحه قبل"} className="absolute inset-y-0 left-0 z-20 w-1/3" />

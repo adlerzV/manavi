@@ -18,6 +18,7 @@ import {
   Globe,
   MessageSquare,
   Gem,
+  Coins,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -35,6 +36,7 @@ const ICONS: Record<string, LucideIcon> = {
   UserCircle,
   MessageSquare,
   Gem,
+  Coins,
 };
 
 export interface SidebarNavItem {
