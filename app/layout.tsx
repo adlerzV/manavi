@@ -24,7 +24,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="fa" dir="rtl" className={vazirFont.variable} suppressHydrationWarning>
+    <html
+      lang="fa"
+      dir="rtl"
+      className={vazirFont.variable}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className="font-sans bg-background text-text-main antialiased">
         {children}
       </body>
