@@ -10,10 +10,10 @@ interface EditChapterFormProps {
   initialChapterNumber: number;
   initialIsLocked: boolean;
   initialAccessType: ChapterAccessType;
-  initialCoinCost: number | null;
+  accessOptions?: { value: ChapterAccessType; label: string }[];
 }
 
-const ACCESS_TYPE_OPTIONS: { value: ChapterAccessType; label: string }[] = [
+const DEFAULT_ACCESS_TYPE_OPTIONS: { value: ChapterAccessType; label: string }[] = [
   { value: "FREE", label: "رایگان" },
   { value: "COIN_OR_SUBSCRIPTION", label: "سکه یا اشتراک (پیش‌فرض)" },
   { value: "COIN", label: "فقط سکه" },
@@ -26,18 +26,17 @@ export function EditChapterForm({
   initialChapterNumber,
   initialIsLocked,
   initialAccessType,
-  initialCoinCost,
+  accessOptions,
 }: EditChapterFormProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(initialTitle ?? "");
   const [chapterNumber, setChapterNumber] = useState(String(initialChapterNumber));
   const [isLocked, setIsLocked] = useState(initialIsLocked);
   const [accessType, setAccessType] = useState<ChapterAccessType>(initialAccessType);
-  const [coinCost, setCoinCost] = useState(initialCoinCost != null ? String(initialCoinCost) : "");
   const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const needsCoinCost = accessType === "COIN" || accessType === "COIN_OR_SUBSCRIPTION";
+  const options = accessOptions ?? DEFAULT_ACCESS_TYPE_OPTIONS;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -49,7 +48,6 @@ export function EditChapterForm({
       chapterNumber: Number(chapterNumber),
       isLocked,
       accessType,
-      coinCost: needsCoinCost && coinCost ? Number(coinCost) : null,
     });
 
     setStatus(result.success ? "done" : "error");
@@ -68,11 +66,24 @@ export function EditChapterForm({
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded-md bg-background p-2">
       <div className="space-y-1">
         <label className="text-xs text-text-muted" htmlFor={`ch-num-${chapterId}`}>شماره چپتر</label>
-        <input id={`ch-num-${chapterId}`} type="number" step="0.1" value={chapterNumber} onChange={(e) => setChapterNumber(e.target.value)} required className="w-24 rounded-md border border-border bg-surface px-2 py-1 text-xs text-text-main" />
+        <input
+          id={`ch-num-${chapterId}`}
+          type="number"
+          step="0.1"
+          value={chapterNumber}
+          onChange={(e) => setChapterNumber(e.target.value)}
+          required
+          className="w-24 rounded-md border border-border bg-surface px-2 py-1 text-xs text-text-main"
+        />
       </div>
       <div className="space-y-1">
         <label className="text-xs text-text-muted" htmlFor={`ch-title-${chapterId}`}>عنوان (اختیاری)</label>
-        <input id={`ch-title-${chapterId}`} value={title} onChange={(e) => setTitle(e.target.value)} className="w-40 rounded-md border border-border bg-surface px-2 py-1 text-xs text-text-main" />
+        <input
+          id={`ch-title-${chapterId}`}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-40 rounded-md border border-border bg-surface px-2 py-1 text-xs text-text-main"
+        />
       </div>
       <div className="space-y-1">
         <label className="text-xs text-text-muted" htmlFor={`ch-access-${chapterId}`}>نوع دسترسی</label>
@@ -82,25 +93,11 @@ export function EditChapterForm({
           onChange={(e) => setAccessType(e.target.value as ChapterAccessType)}
           className="w-44 rounded-md border border-border bg-surface px-2 py-1 text-xs text-text-main"
         >
-          {ACCESS_TYPE_OPTIONS.map((opt) => (
+          {options.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
       </div>
-      {needsCoinCost && (
-        <div className="space-y-1">
-          <label className="text-xs text-text-muted" htmlFor={`ch-coin-${chapterId}`}>قیمت (سکه)</label>
-          <input
-            id={`ch-coin-${chapterId}`}
-            type="number"
-            min={0}
-            placeholder="پیش‌فرض سایت"
-            value={coinCost}
-            onChange={(e) => setCoinCost(e.target.value)}
-            className="w-28 rounded-md border border-border bg-surface px-2 py-1 text-xs text-text-main"
-          />
-        </div>
-      )}
       <label className="flex items-center gap-1.5 pb-1.5 text-xs text-text-muted">
         <input type="checkbox" checked={isLocked} onChange={(e) => setIsLocked(e.target.checked)} />
         قفل دستی

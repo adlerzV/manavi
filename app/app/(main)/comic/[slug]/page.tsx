@@ -31,11 +31,10 @@ const STAFF_ROLE_LABELS: Record<string, string> = {
 
 function accessBadgeLabel(chapter: ChapterAccessInfo): string | null {
   if (!chapter.locked) {
-    return chapter.accessType === "FREE" ? "رایگان" : null;
+    return null;
   }
   if (chapter.accessType === "SUBSCRIPTION") return "فقط اشتراک ویژه";
-  if (chapter.accessType === "COIN") return `🪙 ${chapter.coinCost.toLocaleString("fa-IR")}`;
-  return `ویژه یا 🪙 ${chapter.coinCost.toLocaleString("fa-IR")}`;
+  return "🪙 نیازمند سکه یا اشتراک";
 }
 
 export default async function ComicDetailPage({ params }: PageProps) {

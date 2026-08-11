@@ -165,7 +165,7 @@ export async function createComic(input: {
       },
     });
 
-    revalidateTag("home-feed");
+    revalidateTag("home-feed", "default");
     revalidatePath("/admin/comics");
     revalidatePath("/app/explore");
     revalidatePath("/app");
@@ -235,7 +235,7 @@ export async function updateComic(
       });
     });
 
-    revalidateTag("home-feed");
+    revalidateTag("home-feed", "default");
     revalidatePath("/admin/comics");
     revalidatePath(`/admin/comics/${comicId}`);
     revalidatePath(`/app/comic/${comic.slug}`);
@@ -257,15 +257,11 @@ export async function updateChapter(
     chapterNumber: number;
     isLocked: boolean;
     accessType?: ChapterAccessType;
-    coinCost?: number | null;
   }
 ): Promise<ActionResult> {
   try {
     if (!Number.isFinite(input.chapterNumber) || input.chapterNumber <= 0) {
       return { success: false, error: "شماره چپتر نامعتبر است" };
-    }
-    if (input.coinCost != null && (!Number.isFinite(input.coinCost) || input.coinCost < 0)) {
-      return { success: false, error: "قیمت سکه نامعتبر است" };
     }
 
     const existing = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { comicId: true } });
@@ -280,7 +276,6 @@ export async function updateChapter(
         chapterNumber: input.chapterNumber,
         isLocked: input.isLocked,
         ...(input.accessType ? { accessType: input.accessType } : {}),
-        coinCost: input.coinCost ?? null,
       },
       select: { comic: { select: { id: true, slug: true } } },
     });
@@ -353,7 +348,7 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
       .filter((key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://"));
     await deleteObjects(keysToDelete).catch(() => {});
 
-    revalidateTag("home-feed");
+    revalidateTag("home-feed", "default");
     revalidatePath("/admin/comics");
     revalidatePath("/app");
     revalidatePath("/app/explore");
@@ -399,6 +394,39 @@ export async function unlinkPublisherOwner(publisherId: string): Promise<ActionR
     await prisma.publisher.update({ where: { id: publisherId }, data: { contractUserId: null } });
     revalidatePath("/admin/publishers");
     return { success: true };
+  } catch (err) {
+    return safeError(err);
+  }
+}
+
+export async function bulkUpdateChapterAccessType(
+  chapterIds: string[],
+  accessType: ChapterAccessType
+): Promise<ActionResult<{ updated: number }>> {
+  try {
+    if (chapterIds.length === 0) return { success: false, error: "چپتری انتخاب نشده" };
+
+    const chapters = await prisma.chapter.findMany({
+      where: { id: { in: chapterIds } },
+      select: { id: true, comicId: true },
+    });
+    if (chapters.length === 0) return { success: false, error: "چپتری یافت نشد" };
+
+    const comicIds = [...new Set(chapters.map((c) => c.comicId))];
+    for (const comicId of comicIds) {
+      await requireUploadAccess(comicId);
+    }
+
+    const result = await prisma.chapter.updateMany({
+      where: { id: { in: chapterIds } },
+      data: { accessType },
+    });
+
+    for (const comicId of comicIds) {
+      revalidatePath(`/admin/comics/${comicId}`);
+      revalidatePath(`/publisher/comics/${comicId}`);
+    }
+    return { success: true, data: { updated: result.count } };
   } catch (err) {
     return safeError(err);
   }

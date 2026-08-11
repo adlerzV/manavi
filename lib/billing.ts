@@ -1,4 +1,3 @@
-export const COIN_CHAPTER_UNLOCK_COST = 15;
 
 export const DONATION_PRESETS_TON = [0.5, 1, 2, 5];
 export const MIN_DONATION_TON = 0.2;

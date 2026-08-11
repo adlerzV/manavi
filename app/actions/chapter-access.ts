@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { COIN_CHAPTER_UNLOCK_COST } from "@/lib/billing";
+import { getChapterUnlockCoinCost } from "@/lib/platform-settings";
 import { ChapterAccessType } from "@prisma/client";
 
 interface UnlockResult {
@@ -19,14 +19,14 @@ export async function unlockChapterWithCoins(chapterId: string): Promise<UnlockR
 
   const chapter = await prisma.chapter.findUnique({
     where: { id: chapterId },
-    select: { id: true, comicId: true, accessType: true, coinCost: true },
+   select: { id: true, comicId: true, accessType: true },
   });
   if (!chapter) return { success: false, error: "Chapter not found" };
   if (chapter.accessType === ChapterAccessType.SUBSCRIPTION) {
     return { success: false, error: "این چپتر فقط مخصوص مشترکین ویژه است" };
   }
 
-  const cost = chapter.coinCost ?? COIN_CHAPTER_UNLOCK_COST;
+  const cost = await getChapterUnlockCoinCost();;
 
   try {
     await prisma.$transaction(async (tx) => {

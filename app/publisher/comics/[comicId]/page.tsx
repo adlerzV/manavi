@@ -35,7 +35,6 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
           isLocked: true,
           pages: true,
           accessType: true,
-          coinCost: true,
         },
       },
     },
@@ -47,7 +46,7 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
     <div className="space-y-8">
       <h1 className="text-xl font-semibold text-text-main">{comic.title}</h1>
       <CollapsibleSection triggerLabel="آپلود چپتر جدید">
-        <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} />
+        <UploadChapterForm comics={[{ id: comic.id, title: comic.title }]} restrictAccessTypes />
       </CollapsibleSection>
       <div className="space-y-2">
         <h2 className="text-lg font-medium text-text-main">چپترها</h2>
@@ -69,7 +68,6 @@ export default async function PublisherComicDetailPage({ params }: PageProps) {
                 initialChapterNumber={ch.chapterNumber}
                 initialIsLocked={ch.isLocked}
                 initialAccessType={ch.accessType}
-                initialCoinCost={ch.coinCost}
               />
               <ChapterThumbnailCropper chapterId={ch.id} />
               <ChapterPagesLazy chapterId={ch.id} pageKeys={ch.pages} />

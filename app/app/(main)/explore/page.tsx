@@ -28,34 +28,36 @@ export default async function ExplorePage({ searchParams }: PageProps) {
     after(() => recordSearchTerm(q.trim()));
   }
 
+  const showingResults = Boolean(q || genre);
+
   const [genres, topSearches, comics] = await Promise.all([
     getVisibleGenres(allowedRatings),
     getTopSearchTerms(10),
-    prisma.comic.findMany({
-      where: {
-        ageRating: { in: effectiveRatings },
-        title: q ? { contains: q, mode: "insensitive" } : undefined,
-        genres: genre ? { some: { genreId: genre } } : undefined,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        coverImage: true,
-        dominantColor: true,
-        chapters: {
-          where: { publishedAt: { not: null } },
-          orderBy: { chapterNumber: "desc" },
-          take: 1,
-          select: { chapterNumber: true },
-        },
-      },
-    }),
+    showingResults
+      ? prisma.comic.findMany({
+          where: {
+            ageRating: { in: effectiveRatings },
+            title: q ? { contains: q, mode: "insensitive" } : undefined,
+            genres: genre ? { some: { genreId: genre } } : undefined,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 40,
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            coverImage: true,
+            dominantColor: true,
+            chapters: {
+              where: { publishedAt: { not: null } },
+              orderBy: { chapterNumber: "desc" },
+              take: 1,
+              select: { chapterNumber: true },
+            },
+          },
+        })
+      : Promise.resolve([]),
   ]);
-
-  const showingResults = Boolean(q || genre);
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
@@ -100,20 +102,22 @@ export default async function ExplorePage({ searchParams }: PageProps) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {comics.map((comic, index) => (
-            <ComicCard
-              key={comic.id}
-              slug={comic.slug}
-              title={comic.title}
-              coverImage={comic.coverImage}
-              dominantColor={comic.dominantColor}
-              latestChapter={comic.chapters[0]?.chapterNumber ?? null}
-              priority={index < 4}
-            />
-          ))}
-          {comics.length === 0 && showingResults && <p className="col-span-full text-sm text-text-muted">موردی یافت نشد.</p>}
-        </div>
+        {showingResults && (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {comics.map((comic, index) => (
+              <ComicCard
+                key={comic.id}
+                slug={comic.slug}
+                title={comic.title}
+                coverImage={comic.coverImage}
+                dominantColor={comic.dominantColor}
+                latestChapter={comic.chapters[0]?.chapterNumber ?? null}
+                priority={index < 4}
+              />
+            ))}
+            {comics.length === 0 && <p className="col-span-full text-sm text-text-muted">موردی یافت نشد.</p>}
+          </div>
+        )}
       </div>
     </main>
   );

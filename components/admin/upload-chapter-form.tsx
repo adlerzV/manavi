@@ -6,25 +6,24 @@ import type { ChapterAccessType } from "@prisma/client";
 import { uploadChapter } from "@/app/admin/actions/upload-chapter";
 import { BatchPageUploader } from "./batch-page-uploader";
 import { useCollapsibleClose } from "@/components/ui/collapsible-section";
-import { CHAPTER_ACCESS_TYPE_OPTIONS } from "@/lib/chapter-access";
+import { CHAPTER_ACCESS_TYPE_OPTIONS, PUBLISHER_CHAPTER_ACCESS_TYPE_OPTIONS } from "@/lib/chapter-access";
+
 interface ComicOption {
   id: string;
   title: string;
 }
 
-export function UploadChapterForm({ comics }: { comics: ComicOption[] }) {
+export function UploadChapterForm({ comics, restrictAccessTypes }: { comics: ComicOption[]; restrictAccessTypes?: boolean }) {
+  const accessOptions = restrictAccessTypes ? PUBLISHER_CHAPTER_ACCESS_TYPE_OPTIONS : CHAPTER_ACCESS_TYPE_OPTIONS;
   const router = useRouter();
   const close = useCollapsibleClose();
   const [comicId, setComicId] = useState(comics[0]?.id ?? "");
   const [chapterNumber, setChapterNumber] = useState("");
   const [title, setTitle] = useState("");
   const [accessType, setAccessType] = useState<ChapterAccessType>("FREE");
-  const [coinCost, setCoinCost] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [status, setStatus] = useState<"idle" | "uploading" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
-
-  const needsCoinCost = accessType === "COIN" || accessType === "COIN_OR_SUBSCRIPTION";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -42,7 +41,6 @@ export function UploadChapterForm({ comics }: { comics: ComicOption[] }) {
     formData.set("chapterNumber", chapterNumber);
     formData.set("title", title);
     formData.set("accessType", accessType);
-    if (needsCoinCost && coinCost) formData.set("coinCost", coinCost);
     files.forEach((file) => formData.append("pages", file));
 
     const result = await uploadChapter(formData);
@@ -52,7 +50,6 @@ export function UploadChapterForm({ comics }: { comics: ComicOption[] }) {
       setChapterNumber("");
       setTitle("");
       setAccessType("FREE");
-      setCoinCost("");
       setFiles([]);
       router.refresh();
       setTimeout(() => close?.(), 1000);
@@ -90,26 +87,18 @@ export function UploadChapterForm({ comics }: { comics: ComicOption[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="chapter-access">نوع دسترسی</label>
-          <select
-            id="chapter-access"
-            value={accessType}
-            onChange={(e) => setAccessType(e.target.value as ChapterAccessType)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
-          >
-            {CHAPTER_ACCESS_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-        {needsCoinCost && (
-          <div className="space-y-1">
-            <label className="text-sm text-text-muted" htmlFor="chapter-coin-cost">قیمت (سکه) <span className="text-text-muted">(اختیاری، پیش‌فرض سایت)</span></label>
-            <input id="chapter-coin-cost" type="number" min={0} value={coinCost} onChange={(e) => setCoinCost(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
-          </div>
-        )}
+      <div className="space-y-1">
+        <label className="text-sm text-text-muted" htmlFor="chapter-access">نوع دسترسی</label>
+        <select
+          id="chapter-access"
+          value={accessType}
+          onChange={(e) => setAccessType(e.target.value as ChapterAccessType)}
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
+        >
+          {accessOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
       </div>
 
       <BatchPageUploader onFilesChange={setFiles} />

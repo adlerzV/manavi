@@ -1,6 +1,6 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import type { AgeRating } from "@prisma/client";
+import type { AgeRating, ContentType } from "@prisma/client";
 import { prisma } from "./prisma";
 
 const HOME_FEED_REVALIDATE_SECONDS = 120;
@@ -48,6 +48,7 @@ export interface RecommendedComic {
   slug: string;
   coverImage: string;
   latestChapter: number | null;
+  latestChapterPublishedAt: Date | null;
 }
 
 export async function getGenreBasedRecommendations(userId: string, allowedRatings: AgeRating[]): Promise<RecommendedComic[]> {
@@ -84,11 +85,18 @@ export async function getGenreBasedRecommendations(userId: string, allowedRating
       title: true,
       slug: true,
       coverImage: true,
-      chapters: { where: { publishedAt: { not: null } }, orderBy: { chapterNumber: "desc" }, take: 1, select: { chapterNumber: true } },
+      chapters: { where: { publishedAt: { not: null } }, orderBy: { chapterNumber: "desc" }, take: 1, select: { chapterNumber: true, publishedAt: true } },
     },
   });
 
-  return comics.map((c) => ({ id: c.id, title: c.title, slug: c.slug, coverImage: c.coverImage, latestChapter: c.chapters[0]?.chapterNumber ?? null }));
+  return comics.map((c) => ({
+    id: c.id,
+    title: c.title,
+    slug: c.slug,
+    coverImage: c.coverImage,
+    latestChapter: c.chapters[0]?.chapterNumber ?? null,
+    latestChapterPublishedAt: c.chapters[0]?.publishedAt ?? null,
+  }));
 }
 
 export interface LatestCommentItem {
@@ -211,6 +219,54 @@ async function fetchMostBookmarkedComics(allowedRatings: AgeRating[], limit = 12
 }
 
 export const getMostBookmarkedComics = unstable_cache(fetchMostBookmarkedComics, ["home-feed:most-bookmarked"], {
+  revalidate: HOME_FEED_REVALIDATE_SECONDS,
+  tags: [HOME_FEED_TAG],
+});
+
+export interface HomeFeedComic {
+  id: string;
+  title: string;
+  slug: string;
+  coverImage: string;
+  latestChapter: number | null;
+  latestChapterPublishedAt: Date | null;
+}
+
+export interface CategoryPreview {
+  contentType: ContentType;
+  comics: HomeFeedComic[];
+}
+
+async function fetchCategoryPreview(contentType: ContentType, allowedRatings: AgeRating[]): Promise<HomeFeedComic[]> {
+  const comics = await prisma.comic.findMany({
+    where: { contentType, ageRating: { in: allowedRatings } },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      coverImage: true,
+      chapters: {
+        where: { publishedAt: { not: null } },
+        orderBy: { chapterNumber: "desc" },
+        take: 1,
+        select: { chapterNumber: true, publishedAt: true },
+      },
+    },
+  });
+
+  return comics.map((c) => ({
+    id: c.id,
+    title: c.title,
+    slug: c.slug,
+    coverImage: c.coverImage,
+    latestChapter: c.chapters[0]?.chapterNumber ?? null,
+    latestChapterPublishedAt: c.chapters[0]?.publishedAt ?? null,
+  }));
+}
+
+export const getCategoryPreview = unstable_cache(fetchCategoryPreview, ["home-feed:category-preview"], {
   revalidate: HOME_FEED_REVALIDATE_SECONDS,
   tags: [HOME_FEED_TAG],
 });

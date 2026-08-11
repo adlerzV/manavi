@@ -8,12 +8,19 @@ import { unlockChapterWithCoins } from "@/app/actions/chapter-access";
 
 interface LockedChapterGateProps {
   chapterId: string;
+  comicSlug: string;
   coinsBalance: number;
   accessType: ChapterAccessType;
   coinCost: number;
 }
 
-export function LockedChapterGate({ chapterId, coinsBalance, accessType, coinCost }: LockedChapterGateProps) {
+export function LockedChapterGate({
+  chapterId,
+  comicSlug,
+  coinsBalance,
+  accessType,
+  coinCost,
+}: LockedChapterGateProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +39,9 @@ export function LockedChapterGate({ chapterId, coinsBalance, accessType, coinCos
 
   const showSubscription = accessType === "SUBSCRIPTION" || accessType === "COIN_OR_SUBSCRIPTION";
   const showCoinOptions = accessType === "COIN" || accessType === "COIN_OR_SUBSCRIPTION";
+  const returnTo = `/app/read/${chapterId}`;
+  const shortfall = Math.max(0, coinCost - coinsBalance);
+  const hasEnoughCoins = coinsBalance >= coinCost;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
@@ -45,19 +55,31 @@ export function LockedChapterGate({ chapterId, coinsBalance, accessType, coinCos
       </p>
 
       {showSubscription && (
-        <Link href="/app/shop" className="w-full max-w-xs rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+        <Link
+          href={`/app/shop?tab=subscriptions&redirect=${encodeURIComponent(returnTo)}`}
+          className="w-full max-w-xs rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
           تهیه اشتراک ویژه
         </Link>
       )}
 
       {showCoinOptions && (
-        <button
-          onClick={handleCoinUnlock}
-          disabled={pending || coinsBalance < coinCost}
-          className="w-full max-w-xs rounded-md border border-accent px-4 py-2 text-sm font-medium text-accent disabled:opacity-50"
-        >
-          باز کردن با {coinCost.toLocaleString("fa-IR")} سکه (موجودی: {coinsBalance.toLocaleString("fa-IR")})
-        </button>
+        hasEnoughCoins ? (
+          <button
+            onClick={handleCoinUnlock}
+            disabled={pending}
+            className="w-full max-w-xs rounded-md border border-accent px-4 py-2 text-sm font-medium text-accent disabled:opacity-50"
+          >
+            {pending ? "در حال پرداخت…" : `پرداخت ${coinCost.toLocaleString("fa-IR")} سکه و خواندن`}
+          </button>
+        ) : (
+          <Link
+            href={`/app/shop?tab=coins&redirect=${encodeURIComponent(returnTo)}`}
+            className="w-full max-w-xs rounded-md border border-accent px-4 py-2 text-center text-sm font-medium text-accent"
+          >
+            خرید سکه (کسری: {shortfall.toLocaleString("fa-IR")} سکه)
+          </Link>
+        )
       )}
 
       {error && <p className="text-sm text-red-400">{error}</p>}

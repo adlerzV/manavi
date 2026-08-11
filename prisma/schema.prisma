@@ -264,7 +264,6 @@ model Chapter {
   thumbnailImage String?
   isLocked       Boolean           @default(false)
   accessType     ChapterAccessType @default(FREE)
-  coinCost       Int?
   status         ChapterStatus     @default(DRAFT)
   scheduledAt    DateTime?
   publishedAt    DateTime?
@@ -573,4 +572,11 @@ enum CommentStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model PlatformSettings {
+  id                       String   @id @default("singleton")
+  chapterUnlockCoinCost    Int      @default(15)
+  newReleaseThresholdHours Int      @default(72)
+  updatedAt                DateTime @updatedAt
 }

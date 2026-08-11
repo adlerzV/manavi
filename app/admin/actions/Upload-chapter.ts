@@ -24,7 +24,6 @@ export async function uploadChapter(formData: FormData): Promise<ActionResult<{ 
     const chapterNumberRaw = formData.get("chapterNumber");
     const title = formData.get("title");
     const accessTypeRaw = formData.get("accessType");
-    const coinCostRaw = formData.get("coinCost");
     const pages = formData.getAll("pages") as File[];
 
     if (typeof comicId !== "string" || !comicId) {
@@ -43,12 +42,6 @@ export async function uploadChapter(formData: FormData): Promise<ActionResult<{ 
         ? (accessTypeRaw as ChapterAccessType)
         : ChapterAccessType.FREE;
 
-    const needsCoinCost = accessType === ChapterAccessType.COIN || accessType === ChapterAccessType.COIN_OR_SUBSCRIPTION;
-    const coinCost =
-      needsCoinCost && typeof coinCostRaw === "string" && coinCostRaw.trim() ? Number(coinCostRaw) : null;
-    if (coinCost != null && (!Number.isFinite(coinCost) || coinCost < 0)) {
-      return { success: false, error: "قیمت سکه نامعتبر است" };
-    }
 
     if (pages.length === 0) {
       return { success: false, error: "At least one page is required" };
@@ -89,7 +82,6 @@ export async function uploadChapter(formData: FormData): Promise<ActionResult<{ 
         pages: pageUrls,
         status: "DRAFT",
         accessType,
-        coinCost,
       },
     });
 

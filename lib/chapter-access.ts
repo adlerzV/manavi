@@ -6,10 +6,8 @@ export interface ChapterAccessInfo {
   title: string | null;
   publishedAt: Date | null;
   manuallyLocked: boolean;
-  recentlyLocked: boolean;
   locked: boolean;
   accessType: ChapterAccessType;
-  coinCost: number;
 }
 
 export const CHAPTER_ACCESS_TYPE_OPTIONS: { value: ChapterAccessType; label: string }[] = [
@@ -17,4 +15,8 @@ export const CHAPTER_ACCESS_TYPE_OPTIONS: { value: ChapterAccessType; label: str
   { value: ChapterAccessType.COIN_OR_SUBSCRIPTION, label: "سکه یا اشتراک" },
   { value: ChapterAccessType.COIN, label: "فقط سکه" },
   { value: ChapterAccessType.SUBSCRIPTION, label: "فقط اشتراک ویژه" },
+];
+export const PUBLISHER_CHAPTER_ACCESS_TYPE_OPTIONS: { value: ChapterAccessType; label: string }[] = [
+  { value: ChapterAccessType.FREE, label: "رایگان" },
+  { value: ChapterAccessType.COIN, label: "سکه‌ای" },
 ];

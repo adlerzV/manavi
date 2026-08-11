@@ -10,13 +10,14 @@ interface SubscriptionPlansProps {
   plans: SubscriptionPlanView[];
   authenticated: boolean;
   tonConfigured: boolean;
+  redirectTo?: string;
 }
 
 function monthlyRate(plan: SubscriptionPlanView): number {
   return (plan.priceTon ?? 0) / plan.months;
 }
 
-export function SubscriptionPlans({ plans, authenticated, tonConfigured }: SubscriptionPlansProps) {
+export function SubscriptionPlans({ plans, authenticated, tonConfigured, redirectTo }: SubscriptionPlansProps) {
   const router = useRouter();
   const payable = plans.filter((p) => p.priceTon != null);
   const baseline = payable.length > 0 ? Math.max(...payable.map(monthlyRate)) : 0;
@@ -72,7 +73,7 @@ export function SubscriptionPlans({ plans, authenticated, tonConfigured }: Subsc
                     disabled={!authenticated}
                     className="w-full rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
                     createPayment={() => createTonSubscriptionPayment(plan.id)}
-                    onPaid={() => router.refresh()}
+                    onPaid={() => (redirectTo ? router.push(redirectTo) : router.refresh())}
                   />
                 </div>
               )}

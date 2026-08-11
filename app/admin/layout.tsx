@@ -17,6 +17,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/admin/analytics", label: "آمار", icon: "BarChart3" },
   { href: "/admin/payouts", label: "تسویه‌حساب", icon: "Wallet" },
   { href: "/admin/broadcast", label: "پیام همگانی", icon: "Megaphone" },
+  { href: "/admin/settings", label: "تنظیمات سراسری", icon: "LayoutDashboard" },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

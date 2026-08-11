@@ -6,7 +6,8 @@ import { isLicenseCurrentlyActive } from "@/lib/license";
 import { getChapterAccessList, userHasChapterAccess } from "@/lib/chapters";
 import { getSignedImageUrls } from "@/lib/s3";
 import { recordChapterVisit } from "@/lib/analytics";
-import { COIN_CHAPTER_UNLOCK_COST, hasActiveSubscription } from "@/lib/billing";
+import { hasActiveSubscription } from "@/lib/billing";
+import { getChapterUnlockCoinCost } from "@/lib/platform-settings";
 import { ChapterReader } from "@/components/reader/chapter-reader";
 import { LockedChapterGate } from "@/components/reader/locked-chapter-gate";
 import { CommentSection } from "@/components/comments/comment-section";
@@ -28,7 +29,6 @@ export default async function ReadChapterPage({ params }: PageProps) {
       pages: true,
       publishedAt: true,
       accessType: true,
-      coinCost: true,
       comic: {
         select: {
           id: true,
@@ -86,12 +86,14 @@ export default async function ReadChapterPage({ params }: PageProps) {
   if (locked) {
     const hasAccess = await userHasChapterAccess(user?.id ?? null, chapterId, user?.role);
     if (!hasAccess) {
+       const coinCost = await getChapterUnlockCoinCost();
       return (
         <LockedChapterGate
           chapterId={chapterId}
+          comicSlug={chapter.comic.slug}
           coinsBalance={user?.coinsBalance ?? 0}
           accessType={chapter.accessType}
-          coinCost={chapter.coinCost ?? COIN_CHAPTER_UNLOCK_COST}
+          coinCost={coinCost}
         />
       );
     }

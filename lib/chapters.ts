@@ -2,11 +2,9 @@ import "server-only";
 
 import { prisma } from "./prisma";
 import { ChapterAccessType } from "@prisma/client";
-import { COIN_CHAPTER_UNLOCK_COST } from "./billing";
 import type { ChapterAccessInfo } from "./chapter-access";
 
 export type { ChapterAccessInfo };
-export const RECENT_LOCK_COUNT = 10;
 
 export async function getChapterAccessList(comicId: string): Promise<ChapterAccessInfo[]> {
   const chapters = await prisma.chapter.findMany({
@@ -19,24 +17,20 @@ export async function getChapterAccessList(comicId: string): Promise<ChapterAcce
       publishedAt: true,
       isLocked: true,
       accessType: true,
-      coinCost: true,
     },
   });
 
-  return chapters.map((chapter, index) => {
-    const recentlyLocked = index < RECENT_LOCK_COUNT;
+  return chapters.map((chapter) => {
     const isFree = chapter.accessType === ChapterAccessType.FREE;
-    const locked = !isFree && (chapter.isLocked || recentlyLocked);
+    const locked = !isFree && chapter.isLocked;
     return {
       id: chapter.id,
       chapterNumber: chapter.chapterNumber,
       title: chapter.title,
       publishedAt: chapter.publishedAt,
       manuallyLocked: chapter.isLocked,
-      recentlyLocked,
       locked,
       accessType: chapter.accessType,
-      coinCost: chapter.coinCost ?? COIN_CHAPTER_UNLOCK_COST,
     };
   });
 }
@@ -56,26 +50,21 @@ export async function userHasChapterAccess(
   if (!userId) return false;
   if (role === "ADMIN") return true;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { subscriptionEnd: true },
-  });
-
   const now = new Date();
-  const hasActiveSubscription = Boolean(user?.subscriptionEnd && user.subscriptionEnd > now);
 
   if (chapter.accessType === ChapterAccessType.SUBSCRIPTION) {
-    return hasActiveSubscription;
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { subscriptionEnd: true } });
+    return Boolean(user?.subscriptionEnd && user.subscriptionEnd > now);
   }
 
-  const unlock = await prisma.chapterUnlock.findUnique({
-    where: { userId_chapterId: { userId, chapterId } },
-  });
-  const hasCoinOrAdUnlock = Boolean(unlock && (!unlock.expiresAt || unlock.expiresAt > now));
+  const unlock = await prisma.chapterUnlock.findUnique({ where: { userId_chapterId: { userId, chapterId } } });
+  const hasCoinUnlock = Boolean(unlock && (!unlock.expiresAt || unlock.expiresAt > now));
 
   if (chapter.accessType === ChapterAccessType.COIN) {
-    return hasCoinOrAdUnlock;
+    return hasCoinUnlock;
   }
 
-  return hasActiveSubscription || hasCoinOrAdUnlock;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { subscriptionEnd: true } });
+  const hasActiveSubscription = Boolean(user?.subscriptionEnd && user.subscriptionEnd > now);
+  return hasActiveSubscription || hasCoinUnlock;
 }
