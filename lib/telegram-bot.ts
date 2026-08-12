@@ -1,8 +1,13 @@
 import "server-only";
 import { processInBatches } from "./batch-upload";
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN as string;
-const MINI_APP_URL = process.env.NEXT_PUBLIC_MINI_APP_URL as string;
+function getBotToken(): string | null {
+  return process.env.TELEGRAM_BOT_TOKEN || null;
+}
+
+function getMiniAppUrl(): string | null {
+  return process.env.NEXT_PUBLIC_MINI_APP_URL || null;
+}
 
 interface NotifyChapterInput {
   telegramIds: bigint[];
@@ -17,12 +22,12 @@ interface SendOptions {
   buttonUrl?: string;
 }
 
-async function sendTelegramMessage(chatId: bigint, text: string, options?: SendOptions) {
+async function sendTelegramMessage(botToken: string, chatId: bigint, text: string, options?: SendOptions) {
   const reply_markup = options?.buttonText && options?.buttonUrl
     ? { inline_keyboard: [[{ text: options.buttonText, web_app: { url: options.buttonUrl } }]] }
     : undefined;
 
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -34,14 +39,16 @@ async function sendTelegramMessage(chatId: bigint, text: string, options?: SendO
 }
 
 export async function notifyNewChapter(input: NotifyChapterInput) {
-  if (!BOT_TOKEN || input.telegramIds.length === 0) return;
+  const botToken = getBotToken();
+  const miniAppUrl = getMiniAppUrl();
+  if (!botToken || !miniAppUrl || input.telegramIds.length === 0) return;
 
-  const readUrl = `${MINI_APP_URL}/app/read/${input.chapterId}`;
+  const readUrl = `${miniAppUrl}/app/read/${input.chapterId}`;
   const text = `فصل جدید ${input.comicTitle} منتشر شد: چپتر ${input.chapterNumber}`;
 
   await processInBatches(input.telegramIds, 20, async (telegramId) => {
     try {
-      await sendTelegramMessage(telegramId, text, { buttonText: "خواندن چپتر جدید", buttonUrl: readUrl });
+      await sendTelegramMessage(botToken, telegramId, text, { buttonText: "خواندن چپتر جدید", buttonUrl: readUrl });
     } catch {}
   });
 }
@@ -57,14 +64,15 @@ export async function broadcastMessage(input: {
   buttonText?: string;
   buttonUrl?: string;
 }): Promise<BroadcastResult> {
-  if (!BOT_TOKEN) return { sent: 0, failed: input.telegramIds.length };
+  const botToken = getBotToken();
+  if (!botToken) return { sent: 0, failed: input.telegramIds.length };
 
   let sent = 0;
   let failed = 0;
 
   await processInBatches(input.telegramIds, 20, async (telegramId) => {
     try {
-      await sendTelegramMessage(telegramId, input.text, { buttonText: input.buttonText, buttonUrl: input.buttonUrl });
+      await sendTelegramMessage(botToken, telegramId, input.text, { buttonText: input.buttonText, buttonUrl: input.buttonUrl });
       sent += 1;
     } catch {
       failed += 1;

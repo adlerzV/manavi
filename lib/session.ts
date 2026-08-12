@@ -1,20 +1,23 @@
 import "server-only";
 import crypto from "crypto";
 
-const SESSION_SECRET = process.env.SESSION_SECRET;
-if (!SESSION_SECRET) {
-  throw new Error("SESSION_SECRET is not set");
-}
-
-const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days
+const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
 interface SessionPayload {
   userId: string;
-  exp: number; // unix seconds
+  exp: number;
+}
+
+function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error("SESSION_SECRET is not set");
+  }
+  return secret;
 }
 
 function sign(payload: string): string {
-  return crypto.createHmac("sha256", SESSION_SECRET as string).update(payload).digest("hex");
+  return crypto.createHmac("sha256", getSessionSecret()).update(payload).digest("hex");
 }
 
 export function sessionCookieOptions() {
@@ -27,6 +30,7 @@ export function sessionCookieOptions() {
     path: "/",
   };
 }
+
 export function createSessionToken(userId: string): string {
   const payload: SessionPayload = {
     userId,

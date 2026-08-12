@@ -14,7 +14,7 @@ export const READING_MODE_LABELS: Record<ReadingMode, string> = {
 };
 
 export type ReadingDirection = "rtl" | "ltr";
-
+export const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
 
 export function getReadingDirection(contentType: ContentType): ReadingDirection {
   return contentType === "MANGA" || contentType === "COMIC" ? "rtl" : "ltr";

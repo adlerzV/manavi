@@ -9,6 +9,12 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 
+const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
+const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
+if (!S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) {
+  throw new Error("S3_ACCESS_KEY_ID یا S3_SECRET_ACCESS_KEY تنظیم نشده است.");
+}
+
 const s3 = new S3Client({
   region: process.env.S3_REGION || "us-east-1",
   endpoint: process.env.S3_ENDPOINT || undefined,
@@ -16,15 +22,21 @@ const s3 = new S3Client({
   requestChecksumCalculation: "WHEN_REQUIRED",
   responseChecksumValidation: "WHEN_REQUIRED",
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY_ID as string,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY as string,
+    accessKeyId: S3_ACCESS_KEY_ID,
+    secretAccessKey: S3_SECRET_ACCESS_KEY,
   },
 });
 
-const BUCKET = process.env.S3_BUCKET as string;
+function getS3Bucket(): string {
+  const bucket = process.env.S3_BUCKET;
+  if (!bucket) {
+    throw new Error("S3_BUCKET تنظیم نشده است.");
+  }
+  return bucket;
+}
+
 const PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL;
 
-// حداکثر تعداد آبجکت مجاز در هر درخواست DeleteObjects (محدودیت استاندارد S3 / Backblaze B2)
 const MAX_KEYS_PER_DELETE_REQUEST = 1000;
 
 export class BannerPublicUrlNotConfiguredError extends Error {
@@ -36,9 +48,6 @@ export class BannerPublicUrlNotConfiguredError extends Error {
   }
 }
 
-/**
- * استخراج Key خام از URL کامل در صورت وجود PUBLIC_BASE_URL
- */
 function extractS3Key(keyOrUrl: string): string {
   if (!keyOrUrl) return keyOrUrl;
   if (PUBLIC_BASE_URL && keyOrUrl.startsWith(PUBLIC_BASE_URL)) {
@@ -60,7 +69,7 @@ export async function uploadPageImage(
 
   await s3.send(
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: getS3Bucket(),
       Key: key,
       Body: file,
       ContentType: contentType,
@@ -82,7 +91,7 @@ export async function uploadChapterThumbnail(
 
   await s3.send(
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: getS3Bucket(),
       Key: key,
       Body: file,
       ContentType: contentType,
@@ -107,7 +116,7 @@ export async function uploadComicBanner(
 
   await s3.send(
     new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: getS3Bucket(),
       Key: key,
       Body: file,
       ContentType: contentType,
@@ -119,7 +128,7 @@ export async function uploadComicBanner(
 }
 
 export async function getSignedImageUrl(key: string, expiresInSec: number = 21600): Promise<string> {
-  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+  const command = new GetObjectCommand({ Bucket: getS3Bucket(), Key: key });
   return await getSignedUrl(s3, command, { expiresIn: expiresInSec });
 }
 
@@ -135,7 +144,7 @@ export async function getSignedImageUrls(keys: string[], expiresInSec: number = 
 
 export async function deleteObject(keyOrUrl: string): Promise<void> {
   const key = extractS3Key(keyOrUrl);
-  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+  await s3.send(new DeleteObjectCommand({ Bucket: getS3Bucket(), Key: key }));
 }
 
 export async function deleteObjects(keysOrUrls: string[]): Promise<void> {
@@ -145,11 +154,12 @@ export async function deleteObjects(keysOrUrls: string[]): Promise<void> {
 
   if (realKeys.length === 0) return;
 
+  const bucket = getS3Bucket();
   for (let i = 0; i < realKeys.length; i += MAX_KEYS_PER_DELETE_REQUEST) {
     const batch = realKeys.slice(i, i + MAX_KEYS_PER_DELETE_REQUEST);
     await s3.send(
       new DeleteObjectsCommand({
-        Bucket: BUCKET,
+        Bucket: bucket,
         Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
       })
     );

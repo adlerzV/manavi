@@ -1,11 +1,6 @@
 import "server-only";
 import crypto from "crypto";
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-if (!BOT_TOKEN) {
-  throw new Error("TELEGRAM_BOT_TOKEN is not set");
-}
-
 const MAX_AUTH_AGE_SECONDS = 60 * 60;
 
 export interface TelegramUser {
@@ -31,6 +26,14 @@ export class InvalidInitDataError extends Error {
   }
 }
 
+function getBotToken(): string {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    throw new Error("TELEGRAM_BOT_TOKEN is not set");
+  }
+  return token;
+}
+
 export function validateTelegramInitData(initData: string): ValidatedInitData {
   const params = new URLSearchParams(initData);
 
@@ -47,7 +50,7 @@ export function validateTelegramInitData(initData: string): ValidatedInitData {
 
   const secretKey = crypto
     .createHmac("sha256", "WebAppData")
-    .update(BOT_TOKEN as string)
+    .update(getBotToken())
     .digest();
 
   const computedHash = crypto

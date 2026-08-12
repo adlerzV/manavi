@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN as string;
-const MINI_APP_URL = process.env.NEXT_PUBLIC_MINI_APP_URL as string;
+function getBotToken(): string | null {
+  return process.env.TELEGRAM_BOT_TOKEN || null;
+}
+
+const MINI_APP_URL = process.env.NEXT_PUBLIC_MINI_APP_URL ?? "";
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 const MINI_APP_SHORT_NAME = process.env.NEXT_PUBLIC_TELEGRAM_MINI_APP_SHORT_NAME;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -38,8 +41,8 @@ function parseStartCommand(text: string): { isStart: boolean; startParam?: strin
   return { isStart: true, startParam: parts.length > 1 ? parts[1] : undefined };
 }
 
-async function sendWelcomeMessage(chatId: number, startParam?: string) {
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+async function sendWelcomeMessage(botToken: string, chatId: number, startParam?: string) {
+  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -67,8 +70,9 @@ export async function POST(req: NextRequest) {
 
   if (typeof text === "string" && typeof chatId === "number") {
     const { isStart, startParam } = parseStartCommand(text);
-    if (isStart) {
-      after(() => sendWelcomeMessage(chatId, startParam));
+    const botToken = getBotToken();
+    if (isStart && botToken) {
+      after(() => sendWelcomeMessage(botToken, chatId, startParam));
     }
   }
 
