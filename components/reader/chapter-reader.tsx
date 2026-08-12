@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { ReadingMode, ContentType } from "@prisma/client";
+import type { ReadingMode } from "@prisma/client";
+import type { ReadingDirection } from "@/lib/reading";
 import { updateReadHistory } from "@/app/actions/read-history";
 import { getChapterPrefetchUrls } from "@/app/actions/chapter-prefetch";
 import { VerticalReader } from "./vertical-reader";
@@ -15,7 +16,7 @@ import { EndOfChapter } from "./end-of-chapter";
 import { WatermarkOverlay } from "./watermark-overlay";
 import { DevToolsGuard } from "./dev-tools-guard";
 import { BackButton } from "@/components/navigation/back-button";
-import { getStoredReadingModeOverride, setStoredReadingModeOverride, getReadingDirection } from "@/lib/reading";
+import { getStoredReadingModeOverride, setStoredReadingModeOverride } from "@/lib/reading";
 
 interface ChapterOption { id: string; chapterNumber: number; title: string | null }
 interface ReactionSummary { emoji: string; count: number }
@@ -25,7 +26,7 @@ interface ChapterReaderProps {
   comicId: string;
   comicSlug: string;
   comicTitle: string;
-  contentType: ContentType;
+  readingDirection: ReadingDirection;
   chapterNumber: number;
   pages: string[];
   readingMode: ReadingMode;
@@ -85,13 +86,13 @@ function useImmersiveReading() {
 }
 
 export function ChapterReader({
-  chapterId, comicId, comicSlug, comicTitle, contentType, chapterNumber, pages, readingMode,
+  chapterId, comicId, comicSlug, comicTitle, readingDirection, chapterNumber, pages, readingMode,
   prevChapterId, nextChapterId, chapterOptions, initialPage, initialScrollFraction,
   reactionSummary, initialUserReaction, isAuthenticated, watermarkLabel, showAd,
 }: ChapterReaderProps) {
   const router = useRouter();
   const isDesktop = useIsDesktop();
-  const direction = getReadingDirection(contentType);
+  const direction = readingDirection;
 
   useImmersiveReading();
 

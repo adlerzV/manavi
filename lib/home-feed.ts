@@ -1,6 +1,6 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import type { AgeRating, ContentType } from "@prisma/client";
+import type { AgeRating } from "@prisma/client";
 import { prisma } from "./prisma";
 
 const HOME_FEED_REVALIDATE_SECONDS = 120;
@@ -233,13 +233,13 @@ export interface HomeFeedComic {
 }
 
 export interface CategoryPreview {
-  contentType: ContentType;
+  categoryId: string;
   comics: HomeFeedComic[];
 }
 
-async function fetchCategoryPreview(contentType: ContentType, allowedRatings: AgeRating[]): Promise<HomeFeedComic[]> {
+async function fetchCategoryPreview(categoryId: string, allowedRatings: AgeRating[]): Promise<HomeFeedComic[]> {
   const comics = await prisma.comic.findMany({
-    where: { contentType, ageRating: { in: allowedRatings } },
+    where: { categoryId, ageRating: { in: allowedRatings } },
     orderBy: { createdAt: "desc" },
     take: 10,
     select: {

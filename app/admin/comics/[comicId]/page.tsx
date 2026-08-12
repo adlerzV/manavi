@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAllGenres } from "@/lib/genres";
+import { getAllCategories } from "@/lib/categories";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { UploadChapterForm } from "@/components/admin/upload-chapter-form";
 import { EditComicForm } from "@/components/admin/edit-comic-form";
@@ -14,7 +15,7 @@ interface PageProps {
 export default async function AdminComicDetailPage({ params }: PageProps) {
   const { comicId } = await params;
 
-  const [comic, licenses, genres] = await Promise.all([
+  const [comic, licenses, genres, categories] = await Promise.all([
     prisma.comic.findUnique({
       where: { id: comicId },
       select: {
@@ -26,7 +27,7 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
         bannerImage: true,
         licenseId: true,
         ageRating: true,
-        contentType: true,
+        categoryId: true,
         readingMode: true,
         isFeaturedOnHome: true,
         featuredBadge: true,
@@ -51,6 +52,7 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
       include: { publisher: { select: { name: true } } },
     }),
     getAllGenres(),
+    getAllCategories(),
   ]);
 
   if (!comic) notFound();
@@ -74,6 +76,7 @@ export default async function AdminComicDetailPage({ params }: PageProps) {
           comic={comic}
           licenses={licenseOptions}
           genres={genres.map((g) => ({ id: g.id, name: g.name }))}
+          categories={categories.map((c) => ({ id: c.id, name: c.name }))}
           initialGenreIds={comic.genres.map((g) => g.genreId)}
         />
       </CollapsibleSection>

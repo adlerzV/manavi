@@ -1,7 +1,7 @@
 import { getSessionUser } from "@/lib/auth";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
 import { getAllGenres } from "@/lib/genres";
-import { CONTENT_TYPES } from "@/lib/reading";
+import { getHomepageCategories } from "@/lib/categories";
 import {
   getHeroComics,
   getGenreBasedRecommendations,
@@ -28,24 +28,28 @@ export default async function AppHomePage() {
   const [
     heroComics,
     genres,
+    homepageCategories,
     newest,
     popular,
     mostBookmarked,
     completedSeries,
     latestComments,
     recommendations,
-    categoryPreviews,
   ] = await Promise.all([
     getHeroComics(allowedRatings),
     getAllGenres(),
+    getHomepageCategories(),
     getHomeFeedComics("newest"),
     getHomeFeedComics("popular"),
     getMostBookmarkedComics(allowedRatings),
     getCompletedSeries(allowedRatings),
     getLatestComments(allowedRatings),
     user ? getGenreBasedRecommendations(user.id, allowedRatings) : Promise.resolve([]),
-    Promise.all(CONTENT_TYPES.map((type) => getCategoryPreview(type, allowedRatings))),
   ]);
+
+  const categoryPreviews = await Promise.all(
+    homepageCategories.map((category) => getCategoryPreview(category.id, allowedRatings))
+  );
 
   const shuffledHeroComics = heroComics.length > 1 ? [...heroComics].sort(() => Math.random() - 0.5) : heroComics;
 
@@ -63,8 +67,8 @@ export default async function AppHomePage() {
 
       {recommendations.length > 0 && <RecommendedSection comics={recommendations} />}
 
-      {CONTENT_TYPES.map((type, i) => (
-        <CategoryRowSection key={type} contentType={type} comics={categoryPreviews[i]} />
+      {homepageCategories.map((category, i) => (
+        <CategoryRowSection key={category.id} category={category} comics={categoryPreviews[i]} />
       ))}
 
       <MostBookmarkedSection comics={mostBookmarked} />

@@ -14,6 +14,7 @@ import {
   Wallet,
   Megaphone,
   Tags,
+  Layers,
   UserCircle,
   Globe,
   MessageSquare,
@@ -23,20 +24,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
-  LayoutDashboard,
-  Building2,
-  FileSignature,
-  BookOpen,
-  Users,
-  Receipt,
-  BarChart3,
-  Wallet,
-  Megaphone,
-  Tags,
-  UserCircle,
-  MessageSquare,
-  Gem,
-  Coins,
+  LayoutDashboard, Building2, FileSignature, BookOpen, Users, Receipt,
+  BarChart3, Wallet, Megaphone, Tags, Layers, UserCircle, MessageSquare, Gem, Coins,
 };
 
 export interface SidebarNavItem {

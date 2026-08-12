@@ -12,6 +12,7 @@ import { ChapterReader } from "@/components/reader/chapter-reader";
 import { LockedChapterGate } from "@/components/reader/locked-chapter-gate";
 import { CommentSection } from "@/components/comments/comment-section";
 import { getChapterReactionSummary } from "@/app/actions/reactions";
+import { categoryDirectionToReaderDirection } from "@/lib/reading";
 
 interface PageProps {
   params: Promise<{ chapterId: string }>;
@@ -35,7 +36,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
           title: true,
           slug: true,
           readingMode: true,
-          contentType: true,
+          category: { select: { readingDirection: true } },
           license: {
             select: {
               publisherId: true,
@@ -164,7 +165,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
         comicId={chapter.comic.id}
         comicSlug={chapter.comic.slug}
         comicTitle={chapter.comic.title}
-        contentType={chapter.comic.contentType}
+        readingDirection={categoryDirectionToReaderDirection(chapter.comic.category.readingDirection)}
         chapterNumber={chapter.chapterNumber}
         pages={pageUrls}
         readingMode={chapter.comic.readingMode}

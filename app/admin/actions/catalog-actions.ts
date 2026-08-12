@@ -6,7 +6,8 @@ import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { deleteObject, deleteObjects } from "@/lib/s3";
 import { extractDominantColor } from "@/lib/color";
 import { safeError } from "@/lib/errors";
-import { LicenseStatus, ContentType, ReadingMode, ChapterAccessType } from "@prisma/client";
+import { LicenseStatus, ChapterAccessType } from "@prisma/client";
+import type { ReadingMode } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -123,26 +124,29 @@ export async function createComic(input: {
   bannerImage?: string;
   licenseId: string;
   ageRating: "NORMAL" | "EIGHTEEN_PLUS" | "NSFW";
-  contentType: ContentType;
+  categoryId: string;
   readingMode: ReadingMode;
   genreIds?: string[];
 }): Promise<ActionResult<{ id: string }>> {
   try {
     await requireAdmin();
 
-    if (!input.title.trim() || !input.slug.trim() || !input.licenseId) {
-      return { success: false, error: "Title, slug, and license are required" };
+    if (!input.title.trim() || !input.slug.trim() || !input.licenseId || !input.categoryId) {
+      return { success: false, error: "Title, slug, license, and category are required" };
     }
 
-    const license = await prisma.license.findUnique({ where: { id: input.licenseId } });
+    const [license, category] = await Promise.all([
+      prisma.license.findUnique({ where: { id: input.licenseId } }),
+      prisma.category.findUnique({ where: { id: input.categoryId } }),
+    ]);
     if (!license) {
       return { success: false, error: "License not found" };
     }
     if (license.status === LicenseStatus.EXPIRED || license.status === LicenseStatus.TERMINATED) {
-      return {
-        success: false,
-        error: `Cannot attach content to a ${license.status.toLowerCase()} license`,
-      };
+      return { success: false, error: `Cannot attach content to a ${license.status.toLowerCase()} license` };
+    }
+    if (!category || !category.isActive) {
+      return { success: false, error: "دسته‌بندی انتخاب‌شده معتبر نیست" };
     }
 
     const dominantColor = await extractDominantColor(input.coverImage);
@@ -157,7 +161,7 @@ export async function createComic(input: {
         dominantColor,
         licenseId: input.licenseId,
         ageRating: input.ageRating,
-        contentType: input.contentType,
+        categoryId: input.categoryId,
         readingMode: input.readingMode,
         genres: input.genreIds?.length
           ? { create: input.genreIds.map((genreId) => ({ genreId })) }
@@ -188,7 +192,7 @@ export async function updateComic(
     bannerImage?: string;
     licenseId: string;
     ageRating: "NORMAL" | "EIGHTEEN_PLUS" | "NSFW";
-    contentType: ContentType;
+    categoryId: string;
     readingMode: ReadingMode;
     isFeaturedOnHome: boolean;
     featuredBadge?: string;
@@ -198,8 +202,8 @@ export async function updateComic(
   try {
     await requireAdmin();
 
-    if (!input.title.trim() || !input.slug.trim() || !input.licenseId) {
-      return { success: false, error: "عنوان، اسلاگ و لایسنس الزامی است" };
+    if (!input.title.trim() || !input.slug.trim() || !input.licenseId || !input.categoryId) {
+      return { success: false, error: "عنوان، اسلاگ، لایسنس و دسته‌بندی الزامی است" };
     }
 
     const existing = await prisma.comic.findUnique({ where: { id: comicId }, select: { coverImage: true } });
@@ -227,7 +231,7 @@ export async function updateComic(
           ...(dominantColor !== undefined ? { dominantColor } : {}),
           licenseId: input.licenseId,
           ageRating: input.ageRating,
-          contentType: input.contentType,
+          categoryId: input.categoryId,
           readingMode: input.readingMode,
           isFeaturedOnHome: input.isFeaturedOnHome,
           featuredBadge: input.featuredBadge?.trim() || null,

@@ -14,7 +14,6 @@ import { ChapterOnePreview } from "@/components/catalog/chapter-one-preview";
 import { BackButton } from "@/components/navigation/back-button";
 import { getChapterAccessList, type ChapterAccessInfo } from "@/lib/chapters";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
-import { CONTENT_TYPE_LABELS } from "@/lib/reading";
 
 export const revalidate = 300;
 
@@ -43,6 +42,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
   const comic = await prisma.comic.findUnique({
     where: { slug },
     include: {
+      category: { select: { name: true } },
       license: { select: { status: true, publisher: { select: { id: true, name: true, avatarUrl: true } } } },
       genres: { include: { genre: true } },
       staff: { include: { user: { select: { id: true, firstName: true, username: true } } } },
@@ -135,7 +135,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
             <h1 className="text-2xl font-semibold text-text-main">{comic.title}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-text-muted">
               <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-primary">
-                {CONTENT_TYPE_LABELS[comic.contentType]}
+                {comic.category.name}
               </span>
               <span>{comic.status}</span>
               <span>·</span>

@@ -2,9 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import type { ContentType, ReadingMode } from "@prisma/client";
+import type { ReadingMode } from "@prisma/client";
 import { updateComic } from "@/app/admin/actions/catalog-actions";
-import { CONTENT_TYPE_LABELS, READING_MODE_LABELS } from "@/lib/reading";
+import { READING_MODE_LABELS } from "@/lib/reading";
 import { useCollapsibleClose } from "@/components/ui/collapsible-section";
 import { BannerUploader } from "@/components/admin/banner-uploader";
 
@@ -20,6 +20,11 @@ interface GenreOption {
   name: string;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+}
+
 interface EditComicFormProps {
   comic: {
     id: string;
@@ -30,20 +35,20 @@ interface EditComicFormProps {
     bannerImage: string | null;
     licenseId: string;
     ageRating: "NORMAL" | "EIGHTEEN_PLUS" | "NSFW";
-    contentType: ContentType;
+    categoryId: string;
     readingMode: ReadingMode;
     isFeaturedOnHome: boolean;
     featuredBadge: string | null;
   };
   licenses: LicenseOption[];
   genres: GenreOption[];
+  categories: CategoryOption[];
   initialGenreIds: string[];
 }
 
-const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
 const READING_MODES: ReadingMode[] = ["VERTICAL", "HORIZONTAL", "DOUBLE_PAGE"];
 
-export function EditComicForm({ comic, licenses, genres, initialGenreIds }: EditComicFormProps) {
+export function EditComicForm({ comic, licenses, genres, categories, initialGenreIds }: EditComicFormProps) {
   const router = useRouter();
   const close = useCollapsibleClose();
 
@@ -54,7 +59,7 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds }: Edit
   const [bannerImage, setBannerImage] = useState(comic.bannerImage ?? "");
   const [licenseId, setLicenseId] = useState(comic.licenseId);
   const [ageRating, setAgeRating] = useState(comic.ageRating);
-  const [contentType, setContentType] = useState<ContentType>(comic.contentType);
+  const [categoryId, setCategoryId] = useState(comic.categoryId);
   const [readingMode, setReadingMode] = useState<ReadingMode>(comic.readingMode);
   const [isFeaturedOnHome, setIsFeaturedOnHome] = useState(comic.isFeaturedOnHome);
   const [featuredBadge, setFeaturedBadge] = useState(comic.featuredBadge ?? "");
@@ -65,6 +70,10 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds }: Edit
   const licenseOptions = licenses.some((l) => l.id === comic.licenseId)
     ? licenses
     : [{ id: comic.licenseId, publisherName: "(لایسنس فعلی)", territory: [], status: "" }, ...licenses];
+
+  const categoryOptions = categories.some((c) => c.id === comic.categoryId)
+    ? categories
+    : [{ id: comic.categoryId, name: "(دسته‌بندی فعلی)" }, ...categories];
 
   function toggleGenre(genreId: string) {
     setGenreIds((prev) => (prev.includes(genreId) ? prev.filter((id) => id !== genreId) : [...prev, genreId]));
@@ -83,7 +92,7 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds }: Edit
       bannerImage: bannerImage || undefined,
       licenseId,
       ageRating,
-      contentType,
+      categoryId,
       readingMode,
       isFeaturedOnHome,
       featuredBadge: featuredBadge || undefined,
@@ -135,9 +144,7 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds }: Edit
         <label className="text-sm text-text-muted" htmlFor="edit-comic-license">لایسنس</label>
         <select id="edit-comic-license" value={licenseId} onChange={(e) => setLicenseId(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary">
           {licenseOptions.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.publisherName} {l.territory.length ? `— ${l.territory.join("/")}` : ""} {l.status ? `(${l.status})` : ""}
-            </option>
+            <option key={l.id} value={l.id}>{l.publisherName} {l.territory.length ? `— ${l.territory.join("/")}` : ""} {l.status ? `(${l.status})` : ""}</option>
           ))}
         </select>
       </div>
@@ -152,10 +159,10 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds }: Edit
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="edit-comic-content-type">نوع محتوا</label>
-          <select id="edit-comic-content-type" value={contentType} onChange={(e) => setContentType(e.target.value as ContentType)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary">
-            {CONTENT_TYPES.map((type) => (
-              <option key={type} value={type}>{CONTENT_TYPE_LABELS[type]}</option>
+          <label className="text-sm text-text-muted" htmlFor="edit-comic-category">دسته‌بندی اصلی</label>
+          <select id="edit-comic-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary">
+            {categoryOptions.map((category) => (
+              <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </select>
         </div>
@@ -176,14 +183,7 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds }: Edit
         ) : (
           <div className="flex flex-wrap gap-2">
             {genres.map((genre) => (
-              <button
-                type="button"
-                key={genre.id}
-                onClick={() => toggleGenre(genre.id)}
-                className={`rounded-full border px-3 py-1 text-xs ${
-                  genreIds.includes(genre.id) ? "border-primary bg-primary/10 text-primary" : "border-border text-text-muted"
-                }`}
-              >
+              <button type="button" key={genre.id} onClick={() => toggleGenre(genre.id)} className={`rounded-full border px-3 py-1 text-xs ${genreIds.includes(genre.id) ? "border-primary bg-primary/10 text-primary" : "border-border text-text-muted"}`}>
                 {genre.name}
               </button>
             ))}
@@ -203,7 +203,6 @@ export function EditComicForm({ comic, licenses, genres, initialGenreIds }: Edit
               <label className="text-xs text-text-muted" htmlFor="edit-comic-badge">متن بج (مثلاً «چپتر جدید»)</label>
               <input id="edit-comic-badge" value={featuredBadge} onChange={(e) => setFeaturedBadge(e.target.value)} className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-main outline-none focus:border-primary" />
             </div>
-
             <BannerUploader comicId={comic.id} currentUrl={bannerImage} onUploaded={setBannerImage} />
           </>
         )}

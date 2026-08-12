@@ -1,11 +1,4 @@
-import type { ContentType, ReadingMode } from "@prisma/client";
-
-export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
-  MANHWA: "مانهوا",
-  MANGA: "مانگا",
-  COMIC: "کامیک",
-  WEBTOON: "وبتون",
-};
+import type { ReadingMode } from "@prisma/client";
 
 export const READING_MODE_LABELS: Record<ReadingMode, string> = {
   VERTICAL: "اسکرول عمودی",
@@ -14,14 +7,9 @@ export const READING_MODE_LABELS: Record<ReadingMode, string> = {
 };
 
 export type ReadingDirection = "rtl" | "ltr";
-export const CONTENT_TYPES: ContentType[] = ["MANHWA", "MANGA", "COMIC", "WEBTOON"];
 
-export function getReadingDirection(contentType: ContentType): ReadingDirection {
-  return contentType === "MANGA" || contentType === "COMIC" ? "rtl" : "ltr";
-}
-
-export function suggestReadingMode(contentType: ContentType): ReadingMode {
-  return contentType === "MANGA" || contentType === "COMIC" ? "HORIZONTAL" : "VERTICAL";
+export function categoryDirectionToReaderDirection(direction: "RTL" | "LTR"): ReadingDirection {
+  return direction === "RTL" ? "rtl" : "ltr";
 }
 
 const READING_MODE_STORAGE_PREFIX = "manavi-reading-mode";

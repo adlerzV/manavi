@@ -130,11 +130,28 @@ model License {
   @@index([status])
 }
 
-enum ContentType {
-  MANHWA
-  MANGA
-  COMIC
-  WEBTOON
+enum ReadingDirection {
+  LTR
+  RTL
+}
+
+model Category {
+  id                 String           @id @default(uuid())
+  name               String           @unique
+  slug               String           @unique
+  imageUrl           String?
+  readingDirection   ReadingDirection @default(LTR)
+  defaultReadingMode ReadingMode      @default(VERTICAL)
+  showOnHomepage     Boolean          @default(true)
+  isActive           Boolean          @default(true)
+  sortOrder          Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  comics Comic[]
+
+  @@index([showOnHomepage, sortOrder])
+  @@index([isActive, sortOrder])
 }
 
 enum ReadingMode {
@@ -153,7 +170,8 @@ model Comic {
   dominantColor String?
   ageRating     AgeRating   @default(NORMAL)
   status        ComicStatus @default(ONGOING)
-  contentType   ContentType @default(MANHWA)
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id])
   readingMode   ReadingMode @default(VERTICAL)
   viewCount     Int         @default(0)
   createdAt     DateTime    @default(now())
@@ -172,6 +190,7 @@ model Comic {
   readHistory  ReadHistory[]
   readMarks    ChapterReadMark[]
 
+  @@index([categoryId])
   @@index([licenseId])
   @@index([viewCount])
   @@index([createdAt])

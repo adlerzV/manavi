@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateReferralCode } from "@/lib/referral";
 
-const ADMIN_TELEGRAM_ID = 1000000001n;
-const USER_TELEGRAM_ID = 1000000002n;
-const PUBLISHER_TELEGRAM_ID = 1000000003n;
+const ADMIN_TELEGRAM_ID = BigInt("1000000001");
+const USER_TELEGRAM_ID = BigInt("1000000002");
+const PUBLISHER_TELEGRAM_ID = BigInt("1000000003");
 
 export async function GET() {
   if (process.env.NODE_ENV === "production") {
@@ -73,6 +73,12 @@ export async function GET() {
     });
   }
 
+  const category = await prisma.category.upsert({
+    where: { slug: "manhwa" },
+    update: {},
+    create: { name: "مانهوا", slug: "manhwa", readingDirection: "LTR", defaultReadingMode: "VERTICAL" },
+  });
+
   let comic = await prisma.comic.findUnique({ where: { slug: "test-manhwa" } });
   if (!comic) {
     comic = await prisma.comic.create({
@@ -83,7 +89,7 @@ export async function GET() {
         coverImage: "https://picsum.photos/seed/manavi-cover/400/600",
         bannerImage: "https://picsum.photos/seed/manavi-banner/1200/400",
         ageRating: "NORMAL",
-        contentType: "MANHWA",
+        categoryId: category.id,
         readingMode: "VERTICAL",
         licenseId: license.id,
       },
