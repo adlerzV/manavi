@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { getActiveSubscriptionPlans } from "@/lib/subscription-plans";
 import { getActiveCoinPackages } from "@/lib/coin-packages";
@@ -31,6 +32,9 @@ export default async function ShopPage({ searchParams }: PageProps) {
               اشتراک ویژه تا {user.subscriptionEnd.toLocaleDateString("fa-IR")} فعال است
             </p>
           )}
+          <Link href="/buy-with-ton" className="mt-2 inline-block text-xs text-primary underline">
+            آموزش خرید با TON
+          </Link>
         </div>
 
         {!tonConfigured && (

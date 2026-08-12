@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 interface GlowCtaButtonProps {
   href?: string;
@@ -12,9 +12,9 @@ interface GlowCtaButtonProps {
 const MOBILE_UA_PATTERN = /android|iphone|ipad|ipod|iemobile|blackberry|opera mini|mobile/i;
 const NATIVE_APP_FALLBACK_MS = 1500;
 
-export function GlowCtaButton({ href, nativeHref, children }: GlowCtaButtonProps) {
+export function GlowCtaButton({ href = "/app", nativeHref, children }: GlowCtaButtonProps) {
   const [isMobile, setIsMobile] = useState(false);
-  const shouldReduceMotion = useReducedMotion();
+  const router = useRouter();
 
   useEffect(() => {
     setIsMobile(MOBILE_UA_PATTERN.test(navigator.userAgent));
@@ -23,8 +23,14 @@ export function GlowCtaButton({ href, nativeHref, children }: GlowCtaButtonProps
   function handleClick() {
     if (!href) return;
 
+    const isInternal = href.startsWith("/");
+
     if (!isMobile || !nativeHref) {
-      window.location.href = href;
+      if (isInternal) {
+        router.push(href);
+      } else {
+        window.location.href = href;
+      }
       return;
     }
 
@@ -37,7 +43,11 @@ export function GlowCtaButton({ href, nativeHref, children }: GlowCtaButtonProps
 
     const fallbackTimer = setTimeout(() => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.location.href = href;
+      if (isInternal) {
+        router.push(href);
+      } else {
+        window.location.href = href;
+      }
     }, NATIVE_APP_FALLBACK_MS);
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -49,21 +59,17 @@ export function GlowCtaButton({ href, nativeHref, children }: GlowCtaButtonProps
       type="button"
       onClick={handleClick}
       disabled={!href}
-      className="group relative inline-flex rounded-full p-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
+      className="group relative inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#00DC64] px-8 py-3.5 text-base font-bold text-black shadow-[0_0_20px_rgba(0,220,100,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#12e873] hover:shadow-[0_0_28px_rgba(0,220,100,0.5)] active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <motion.span
-        aria-hidden
-        className="absolute inset-0 rounded-full will-change-transform"
-        style={{
-          background: "conic-gradient(from 0deg, #00DC64, #EC4899, #00DC64, #22c55e, #00DC64)",
-        }}
-        initial={{ rotate: 0 }}
-        animate={shouldReduceMotion ? undefined : { rotate: 360 }}
-        transition={shouldReduceMotion ? undefined : { duration: 5, repeat: Infinity, ease: "linear" }}
-      />
-      <span className="relative flex items-center justify-center gap-2 rounded-full bg-background px-8 py-3.5 text-sm font-semibold text-text-main transition-colors group-hover:bg-surface">
-        {children}
-      </span>
+      <span>{children}</span>
+      <svg
+        className="h-4 w-4 stroke-[2.5] transition-transform duration-200 group-hover:-translate-x-1"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+      </svg>
     </button>
   );
 }

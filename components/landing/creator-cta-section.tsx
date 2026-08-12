@@ -10,7 +10,7 @@ export function CreatorCtaSection() {
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="relative mx-auto max-w-3xl px-4 py-20">
+    <section id="join" className="relative mx-auto max-w-3xl px-4 py-20">
       <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-surface/60 p-8 text-center backdrop-blur-sm sm:p-12">
         <HalftoneOverlay opacity={0.05} gap={16} />
         <div className="relative">

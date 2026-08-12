@@ -12,7 +12,7 @@ export function ReaderPreview({
   panelImageSrc = "/images/hero/ch_1_2.jpg",
 }: ReaderPreviewProps) {
   return (
-    <section className="relative mx-auto max-w-6xl px-4 py-20">
+    <section id="reader" className="relative mx-auto max-w-6xl px-4 py-20">
       <div className="grid grid-cols-1 items-center gap-14 md:grid-cols-2">
         <div className="order-2 flex flex-col items-center text-center md:order-1 md:items-start md:text-right">
           <span className="text-xs font-medium tracking-widest text-primary">تجربه خواندن</span>

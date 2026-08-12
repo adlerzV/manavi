@@ -46,26 +46,25 @@ export function ReaderPreviewMarquee({ panelImageSrc }: ReaderPreviewMarqueeProp
     >
       {panelImageSrc ? (
         <>
-          <div className="relative w-full">
+          <div className="relative h-[1040px] w-full flex-shrink-0">
             <Image
               src={panelImageSrc}
               alt="پیش‌نمایش ریدر مانهوا"
-              width={260}
-              height={1200}
+              fill
+              unoptimized
               sizes="260px"
-              className="h-auto w-full object-cover"
+              className="object-cover object-top"
               priority
             />
           </div>
-          <div className="relative w-full">
+          <div className="relative h-[1040px] w-full flex-shrink-0">
             <Image
               src={panelImageSrc}
               alt="پیش‌نمایش ریدر مانهوا"
-              width={260}
-              height={1200}
+              fill
+              unoptimized
               sizes="260px"
-              className="h-auto w-full object-cover"
-              loading="lazy"
+              className="object-cover object-top"
             />
           </div>
         </>

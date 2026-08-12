@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { GlowOrbs } from "./glow-orbs";
 import { HalftoneOverlay } from "./halftone-overlay";
 import { AnimatedHeadline } from "./animated-headline";
@@ -14,7 +15,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
   return (
-    <section className="relative overflow-hidden pb-20 pt-28 sm:pt-32">
+    <section className="relative overflow-hidden pb-20 pt-6 sm:pt-10">
       <div className="absolute inset-0 -z-10 bg-background" />
       <GlowOrbs />
       <HalftoneOverlay opacity={0.05} gap={18} />
@@ -55,12 +56,12 @@ export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
               <p className="text-sm text-accent">لینک مینی‌اپ هنوز در تنظیمات محیطی ست نشده است.</p>
             )}
 
-            <a
+            <Link
               href="#features"
               className="w-full rounded-md border border-border bg-surface/60 px-6 py-3 text-center text-sm font-medium text-text-main backdrop-blur-sm transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto"
             >
-              کاوش در دنیای مانوی
-            </a>
+              کاوش در دنیای مناوی
+            </Link>
           </div>
         </div>
 

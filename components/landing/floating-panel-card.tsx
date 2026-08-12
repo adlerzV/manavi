@@ -62,28 +62,32 @@ export function FloatingPanelCard({
             src={imageSrc}
             alt={sublabel}
             fill
+            unoptimized
             sizes="(max-width: 640px) 160px, 176px"
             className="object-cover"
             priority={priority}
-            loading={priority ? undefined : "lazy"}
           />
         )}
 
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(115deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 1px, transparent 1px, transparent 10px)",
-          }}
-        />
-        <HalftoneOverlay dotColor="255,255,255" opacity={0.16} gap={10} dotSize={1.1} />
-
-        {imageSrc && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+        {/* لایه‌های گرافیکی فقط در صورت عدم وجود عکس یا با شفافیت بسیار پایین نمایش داده می‌شوند */}
+        {!imageSrc && (
+          <>
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(115deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 1px, transparent 1px, transparent 10px)",
+              }}
+            />
+            <HalftoneOverlay dotColor="255,255,255" opacity={0.16} gap={10} dotSize={1.1} />
+          </>
         )}
 
+        {/* گرادینت ملایم فقط برای خوانایی متن‌ها */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+
         <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
-          <span className="rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+          <span className="rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-md">
             {label}
           </span>
           <span className="relative flex h-2 w-2">
@@ -92,7 +96,7 @@ export function FloatingPanelCard({
           </span>
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+        <div className="absolute inset-x-0 bottom-0 p-3">
           <p className="text-xs font-medium text-white">{sublabel}</p>
           <p className="text-[10px] text-white/70">چپتر تازه منتشر شد</p>
         </div>
