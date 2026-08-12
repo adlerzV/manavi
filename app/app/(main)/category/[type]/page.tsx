@@ -1,22 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import type { ContentType, ComicStatus } from "@prisma/client";
+import type { ComicStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ComicCard } from "@/components/catalog/comic-card";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
 import { getVisibleGenres } from "@/lib/genres";
-import { CONTENT_TYPE_LABELS } from "@/lib/reading";
+import { getCategoryBySlug } from "@/lib/categories";
+import { resolveExploreWhere } from "@/lib/explore";
 
 export const revalidate = 300;
 
 const PAGE_SIZE = 24;
-
-const CONTENT_TYPE_SLUGS: Record<string, ContentType> = {
-  manhwa: "MANHWA",
-  manga: "MANGA",
-  comic: "COMIC",
-  webtoon: "WEBTOON",
-};
 
 const STATUS_OPTIONS: { value: ComicStatus; label: string }[] = [
   { value: "ONGOING", label: "در حال انتشار" },
@@ -38,8 +32,8 @@ interface PageProps {
 
 export default async function CategoryPage({ params, searchParams }: PageProps) {
   const { type } = await params;
-  const contentType = CONTENT_TYPE_SLUGS[type.toLowerCase()];
-  if (!contentType) {
+  const category = await getCategoryBySlug(type);
+  if (!category) {
     notFound();
   }
 
@@ -50,13 +44,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const sort: SortOption = sortParam === "popular" ? "popular" : "newest";
   const page = Math.max(1, Number(pageParam) || 1);
 
-  const where = {
-    contentType,
-    ageRating: { in: allowedRatings },
-    status,
-    genres: genre ? { some: { genreId: genre } } : undefined,
-  };
-
+  const where = await resolveExploreWhere({ categorySlug: type, genreIds: genre ? [genre] : undefined, status });
   const orderBy = sort === "popular" ? { viewCount: "desc" as const } : { createdAt: "desc" as const };
 
   function buildHref(overrides: { genre?: string; status?: ComicStatus; sort?: SortOption; page?: number }): string {
@@ -104,7 +92,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="mb-4 text-xl font-semibold text-text-main">{CONTENT_TYPE_LABELS[contentType]}</h1>
+        <h1 className="mb-4 text-xl font-semibold text-text-main">{category.name}</h1>
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Link

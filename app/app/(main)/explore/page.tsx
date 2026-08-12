@@ -16,16 +16,18 @@ export const revalidate = 60;
 
 const VALID_STATUSES: ComicStatus[] = ["ONGOING", "COMPLETED", "HIATUS"];
 const POPULAR_GENRE_LIMIT = 8;
+const PAGE_SIZE = 24;
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; type?: string; genres?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; genres?: string; status?: string; page?: string }>;
 }
 
 export default async function ExplorePage({ searchParams }: PageProps) {
-  const { q, type, genres: genresParam, status: statusParam } = await searchParams;
+  const { q, type, genres: genresParam, status: statusParam, page: pageParam } = await searchParams;
 
   const genreIds = genresParam ? genresParam.split(",").filter(Boolean) : [];
   const status = statusParam && VALID_STATUSES.includes(statusParam as ComicStatus) ? (statusParam as ComicStatus) : undefined;
+  const page = Math.max(1, Number(pageParam) || 1);
 
   const showingResults = Boolean(q?.trim() || type || genreIds.length > 0 || status);
 
@@ -34,35 +36,49 @@ export default async function ExplorePage({ searchParams }: PageProps) {
   }
 
   const allowedRatings = await getAllowedAgeRatings();
+  const exploreWhere = showingResults ? await resolveExploreWhere({ q, categorySlug: type, genreIds, status }) : null;
 
-  const [categories, allGenres, popularGenres, topSearches, comics] = await Promise.all([
+  const [categories, allGenres, popularGenres, topSearches, comics, total] = await Promise.all([
     getAllCategories(),
     getAllGenres(),
     showingResults ? Promise.resolve([]) : getPopularGenres(allowedRatings, POPULAR_GENRE_LIMIT),
     showingResults ? Promise.resolve([]) : getTopSearchTerms(10),
-    showingResults
-      ? resolveExploreWhere({ q, categorySlug: type, genreIds, status }).then((where) =>
-          prisma.comic.findMany({
-            where,
-            orderBy: { createdAt: "desc" },
-            take: 60,
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              coverImage: true,
-              dominantColor: true,
-              chapters: {
-                where: { publishedAt: { not: null } },
-                orderBy: { chapterNumber: "desc" },
-                take: 1,
-                select: { chapterNumber: true },
-              },
+    exploreWhere
+      ? prisma.comic.findMany({
+          where: exploreWhere,
+          orderBy: { createdAt: "desc" },
+          skip: (page - 1) * PAGE_SIZE,
+          take: PAGE_SIZE,
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            coverImage: true,
+            dominantColor: true,
+            chapters: {
+              where: { publishedAt: { not: null } },
+              orderBy: { chapterNumber: "desc" },
+              take: 1,
+              select: { chapterNumber: true },
             },
-          })
-        )
+          },
+        })
       : Promise.resolve([]),
+    exploreWhere ? prisma.comic.count({ where: exploreWhere }) : Promise.resolve(0),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  function buildPageHref(nextPage: number): string {
+    const qp = new URLSearchParams();
+    if (q?.trim()) qp.set("q", q.trim());
+    if (type) qp.set("type", type);
+    if (genreIds.length > 0) qp.set("genres", genreIds.join(","));
+    if (status) qp.set("status", status);
+    if (nextPage > 1) qp.set("page", String(nextPage));
+    const qs = qp.toString();
+    return `/app/explore${qs ? `?${qs}` : ""}`;
+  }
 
   const categoryFilterOptions = categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }));
   const genreFilterOptions = allGenres.map((g) => ({ id: g.id, name: g.name }));
@@ -93,7 +109,7 @@ export default async function ExplorePage({ searchParams }: PageProps) {
         {showingResults && (
           <div className="mt-6">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm text-text-muted">{comics.length.toLocaleString("fa-IR")} نتیجه</p>
+              <p className="text-sm text-text-muted">{total.toLocaleString("fa-IR")} نتیجه</p>
               <Link href="/app/explore" className="text-xs text-primary">
                 پاک کردن و شروع دوباره
               </Link>
@@ -117,6 +133,30 @@ export default async function ExplorePage({ searchParams }: PageProps) {
                 </p>
               )}
             </div>
+
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-between text-xs text-text-muted">
+                <Link
+                  href={buildPageHref(page - 1)}
+                  className={`rounded-md border border-border px-3 py-1.5 ${
+                    page <= 1 ? "pointer-events-none opacity-30" : "hover:border-primary"
+                  }`}
+                >
+                  قبلی
+                </Link>
+                <span>
+                  صفحه {page.toLocaleString("fa-IR")} از {totalPages.toLocaleString("fa-IR")}
+                </span>
+                <Link
+                  href={buildPageHref(page + 1)}
+                  className={`rounded-md border border-border px-3 py-1.5 ${
+                    page >= totalPages ? "pointer-events-none opacity-30" : "hover:border-primary"
+                  }`}
+                >
+                  بعدی
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -45,6 +45,7 @@ export function ExploreSearchClient({ categories, genres }: ExploreSearchClientP
 
   function pushParams(next: { q?: string; type?: string | null; genreIds?: string[]; status?: string | null }) {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
 
     const nextQ = next.q !== undefined ? next.q : q;
     const nextType = next.type !== undefined ? next.type : type;
@@ -64,7 +65,8 @@ export function ExploreSearchClient({ categories, genres }: ExploreSearchClientP
     else params.delete("status");
 
     startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
+      const queryString = params.toString();
+      router.push(`${pathname}${queryString ? `?${queryString}` : ""}`);
     });
   }
 
@@ -87,7 +89,11 @@ export function ExploreSearchClient({ categories, genres }: ExploreSearchClientP
           placeholder="جستجوی عنوان..."
           className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
         />
-        <button type="submit" disabled={isPending} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        >
           جستجو
         </button>
         <button
@@ -110,24 +116,37 @@ export function ExploreSearchClient({ categories, genres }: ExploreSearchClientP
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {type && (
-            <button onClick={() => pushParams({ type: null })} className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+            <button
+              onClick={() => pushParams({ type: null })}
+              className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary"
+            >
               {categories.find((c) => c.slug === type)?.name ?? type}
               <X size={12} />
             </button>
           )}
           {genreIds.map((genreId) => (
-            <button key={genreId} onClick={() => removeGenre(genreId)} className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+            <button
+              key={genreId}
+              onClick={() => removeGenre(genreId)}
+              className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary"
+            >
               {genres.find((g) => g.id === genreId)?.name ?? "ژانر"}
               <X size={12} />
             </button>
           ))}
           {status && (
-            <button onClick={() => pushParams({ status: null })} className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+            <button
+              onClick={() => pushParams({ status: null })}
+              className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary"
+            >
               {STATUS_LABELS[status] ?? status}
               <X size={12} />
             </button>
           )}
-          <button onClick={() => pushParams({ type: null, genreIds: [], status: null })} className="text-xs text-text-muted underline decoration-dotted">
+          <button
+            onClick={() => pushParams({ type: null, genreIds: [], status: null })}
+            className="text-xs text-text-muted underline decoration-dotted"
+          >
             پاک کردن همه
           </button>
         </div>
