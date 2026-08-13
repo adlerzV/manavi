@@ -7,7 +7,7 @@ import {
   DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { randomUUID } from "crypto";
+import { randomUUID, createHmac } from "crypto";
 
 const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
 const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
@@ -36,13 +36,53 @@ function getS3Bucket(): string {
 }
 
 const PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL;
+const STORAGE_CDN_BASE_URL = process.env.STORAGE_CDN_BASE_URL;
+const STORAGE_CDN_TOKEN_KEY = process.env.STORAGE_CDN_TOKEN_KEY;
+const DEFAULT_READ_URL_TTL_SECONDS = 24 * 60 * 60;
 
-const MAX_KEYS_PER_DELETE_REQUEST = 1000;
+const CDN_URL_CACHE_BUCKET_SECONDS = 15 * 60;
+
+export class StorageCdnMisconfiguredError extends Error {
+  constructor() {
+    super(
+      "STORAGE_CDN_BASE_URL و STORAGE_CDN_TOKEN_KEY باید همزمان تنظیم بشن — الان فقط یکی از این دو ست شده. تا وقتی هر دو کامل نشن، دسترسی به تصاویر از این مسیر شکسته می‌مونه."
+    );
+    this.name = "StorageCdnMisconfiguredError";
+  }
+}
+
+function isCdnConfigured(): boolean {
+  return Boolean(STORAGE_CDN_BASE_URL || STORAGE_CDN_TOKEN_KEY);
+}
+
+function bucketedExpiry(ttlSeconds: number): number {
+  const now = Math.floor(Date.now() / 1000);
+  const minExpiry = now + ttlSeconds;
+  return Math.ceil(minExpiry / CDN_URL_CACHE_BUCKET_SECONDS) * CDN_URL_CACHE_BUCKET_SECONDS;
+}
+
+function signCdnUrl(key: string, expiresInSec: number): string {
+  if (!STORAGE_CDN_BASE_URL || !STORAGE_CDN_TOKEN_KEY) {
+    throw new StorageCdnMisconfiguredError();
+  }
+
+  const path = `/${key.replace(/^\/+/, "")}`;
+  const expires = bucketedExpiry(expiresInSec);
+
+
+  const hashableBase = `${path}${expires}`;
+  const token = `HS256-${createHmac("sha256", STORAGE_CDN_TOKEN_KEY)
+    .update(hashableBase)
+    .digest("base64url")}`;
+
+  const base = STORAGE_CDN_BASE_URL.replace(/\/+$/, "");
+  return `${base}${path}?token=${token}&expires=${expires}`;
+}
 
 export class BannerPublicUrlNotConfiguredError extends Error {
   constructor() {
     super(
-      "S3_PUBLIC_BASE_URL تنظیم نشده است. بنر باید همیشه از یک URL دائمی (باکت عمومی) سرو شود، وگرنه بعد از انقضای لینک امضاشده (اینجا فقط ۷ روز) تصویر می‌شکند. قبل از آپلود بنر، متغیر محیطی S3_PUBLIC_BASE_URL را تنظیم کنید."
+      "S3_PUBLIC_BASE_URL تنظیم نشده است. بنر باید همیشه از یک URL دائمی سرو شود (باکت عمومی یا یک Pull Zone عمومی روی CDN)، وگرنه بعد از انقضای لینک امضاشده تصویر می‌شکند. قبل از آپلود بنر این متغیر محیطی را تنظیم کنید."
     );
     this.name = "BannerPublicUrlNotConfiguredError";
   }
@@ -56,6 +96,8 @@ function extractS3Key(keyOrUrl: string): string {
   }
   return keyOrUrl;
 }
+
+const MAX_KEYS_PER_DELETE_REQUEST = 1000;
 
 export async function uploadPageImage(
   comicId: string,
@@ -127,19 +169,27 @@ export async function uploadComicBanner(
   return `${PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
 }
 
-export async function getSignedImageUrl(key: string, expiresInSec: number = 21600): Promise<string> {
+export async function getSignedImageUrl(
+  key: string,
+  expiresInSec: number = DEFAULT_READ_URL_TTL_SECONDS
+): Promise<string> {
+  if (key.startsWith("http://") || key.startsWith("https://")) {
+    return key;
+  }
+
+  if (isCdnConfigured()) {
+    return signCdnUrl(key, expiresInSec);
+  }
+
   const command = new GetObjectCommand({ Bucket: getS3Bucket(), Key: key });
   return await getSignedUrl(s3, command, { expiresIn: expiresInSec });
 }
 
-export async function getSignedImageUrls(keys: string[], expiresInSec: number = 21600): Promise<string[]> {
-  return Promise.all(
-    keys.map((key) =>
-      key.startsWith("http://") || key.startsWith("https://")
-        ? Promise.resolve(key)
-        : getSignedImageUrl(key, expiresInSec)
-    )
-  );
+export async function getSignedImageUrls(
+  keys: string[],
+  expiresInSec: number = DEFAULT_READ_URL_TTL_SECONDS
+): Promise<string[]> {
+  return Promise.all(keys.map((key) => getSignedImageUrl(key, expiresInSec)));
 }
 
 export async function deleteObject(keyOrUrl: string): Promise<void> {
