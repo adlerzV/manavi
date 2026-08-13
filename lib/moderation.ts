@@ -1,28 +1,24 @@
 import "server-only";
-import { prisma } from "./prisma";
+import { Ratelimit } from "@upstash/ratelimit";
+import { redis } from "./redis";
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW = "60 s";
+const limiterCache = new Map<number, Ratelimit>();
+
+function getLimiter(limit: number): Ratelimit {
+  let limiter = limiterCache.get(limit);
+  if (!limiter) {
+    limiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.fixedWindow(limit, RATE_LIMIT_WINDOW),
+      prefix: "ratelimit",
+    });
+    limiterCache.set(limit, limiter);
+  }
+  return limiter;
+}
 
 export async function checkRateLimit(key: string, limit: number): Promise<boolean> {
-  const now = new Date();
-  const bucket = await prisma.rateLimitBucket.findUnique({ where: { key } });
-
-  if (!bucket || now.getTime() - bucket.windowStart.getTime() > RATE_LIMIT_WINDOW_MS) {
-    await prisma.rateLimitBucket.upsert({
-      where: { key },
-      update: { count: 1, windowStart: now },
-      create: { key, count: 1, windowStart: now },
-    });
-    return true;
-  }
-
-  if (bucket.count >= limit) {
-    return false;
-  }
-
-  await prisma.rateLimitBucket.update({
-    where: { key },
-    data: { count: { increment: 1 } },
-  });
-  return true;
+  const { success } = await getLimiter(limit).limit(key);
+  return success;
 }

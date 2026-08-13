@@ -2,6 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import { verifySessionToken } from "./session";
+import { redis } from "./redis";
 import type { User, Publisher } from "@prisma/client";
 
 export type SessionUser = User & { publisherProfile: Publisher | null };
@@ -9,6 +10,52 @@ export type SessionUser = User & { publisherProfile: Publisher | null };
 export interface PublisherContext {
   publisherId: string;
   isOwner: boolean;
+}
+
+const SESSION_CACHE_TTL_SECONDS = 45;
+const sessionCacheKey = (userId: string) => `session-user:${userId}`;
+
+interface SerializedSessionUser extends Omit<SessionUser, "telegramId"> {
+  telegramId: string;
+}
+function toStorable(user: SessionUser): SerializedSessionUser {
+  return { ...user, telegramId: user.telegramId.toString() };
+}
+
+function fromStorable(raw: SerializedSessionUser): SessionUser {
+  return {
+    ...raw,
+    telegramId: BigInt(raw.telegramId),
+    subscriptionEnd: raw.subscriptionEnd ? new Date(raw.subscriptionEnd) : null,
+    bannedAt: raw.bannedAt ? new Date(raw.bannedAt) : null,
+    deletedAt: raw.deletedAt ? new Date(raw.deletedAt) : null,
+    createdAt: new Date(raw.createdAt),
+    updatedAt: new Date(raw.updatedAt),
+    publisherProfile: raw.publisherProfile
+      ? { ...raw.publisherProfile, createdAt: new Date(raw.publisherProfile.createdAt) }
+      : null,
+  } as SessionUser;
+}
+
+async function fetchSessionUser(userId: string): Promise<SessionUser | null> {
+  const cacheKey = sessionCacheKey(userId);
+
+  try {
+    const cached = await redis.get<SerializedSessionUser>(cacheKey);
+    if (cached) return fromStorable(cached);
+  } catch {
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { publisherProfile: true },
+  });
+
+  if (user) {
+    redis.set(cacheKey, toStorable(user), { ex: SESSION_CACHE_TTL_SECONDS }).catch(() => {});
+  }
+
+  return user;
 }
 
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
@@ -19,11 +66,12 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const session = verifySessionToken(token);
   if (!session) return null;
 
-  return prisma.user.findUnique({
-    where: { id: session.userId },
-    include: { publisherProfile: true },
-  });
+  return fetchSessionUser(session.userId);
 });
+
+export async function invalidateSessionUserCache(userId: string): Promise<void> {
+  await redis.del(sessionCacheKey(userId)).catch(() => {});
+}
 
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await getSessionUser();

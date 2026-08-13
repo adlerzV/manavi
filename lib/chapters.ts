@@ -3,8 +3,49 @@ import "server-only";
 import { prisma } from "./prisma";
 import { ChapterAccessType } from "@prisma/client";
 import type { ChapterAccessInfo } from "./chapter-access";
+import { redis } from "./redis";
 
 export type { ChapterAccessInfo };
+
+const SUBSCRIPTION_CACHE_TTL_SECONDS = 60;
+const COIN_UNLOCK_CACHE_TTL_SECONDS = 300;
+
+const subscriptionCacheKey = (userId: string) => `has-sub:${userId}`;
+const coinUnlockCacheKey = (userId: string, chapterId: string) => `chapter-unlock:${userId}:${chapterId}`;
+
+async function hasActiveSubscriptionCached(userId: string): Promise<boolean> {
+  const key = subscriptionCacheKey(userId);
+  try {
+    const cached = await redis.get<boolean>(key);
+    if (cached !== null) return cached;
+  } catch {}
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { subscriptionEnd: true } });
+  const active = Boolean(user?.subscriptionEnd && user.subscriptionEnd > new Date());
+  redis.set(key, active, { ex: SUBSCRIPTION_CACHE_TTL_SECONDS }).catch(() => {});
+  return active;
+}
+
+async function hasCoinUnlockCached(userId: string, chapterId: string): Promise<boolean> {
+  const key = coinUnlockCacheKey(userId, chapterId);
+  try {
+    const cached = await redis.get<boolean>(key);
+    if (cached !== null) return cached;
+  } catch {}
+
+  const unlock = await prisma.chapterUnlock.findUnique({ where: { userId_chapterId: { userId, chapterId } } });
+  const hasUnlock = Boolean(unlock && (!unlock.expiresAt || unlock.expiresAt > new Date()));
+  redis.set(key, hasUnlock, { ex: COIN_UNLOCK_CACHE_TTL_SECONDS }).catch(() => {});
+  return hasUnlock;
+}
+
+export async function invalidateSubscriptionCache(userId: string): Promise<void> {
+  await redis.del(subscriptionCacheKey(userId)).catch(() => {});
+}
+
+export async function invalidateChapterUnlockCache(userId: string, chapterId: string): Promise<void> {
+  await redis.del(coinUnlockCacheKey(userId, chapterId)).catch(() => {});
+}
 
 export async function getChapterAccessList(comicId: string): Promise<ChapterAccessInfo[]> {
   const chapters = await prisma.chapter.findMany({
@@ -50,21 +91,15 @@ export async function userHasChapterAccess(
   if (!userId) return false;
   if (role === "ADMIN") return true;
 
-  const now = new Date();
-
   if (chapter.accessType === ChapterAccessType.SUBSCRIPTION) {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { subscriptionEnd: true } });
-    return Boolean(user?.subscriptionEnd && user.subscriptionEnd > now);
+    return hasActiveSubscriptionCached(userId);
   }
-
-  const unlock = await prisma.chapterUnlock.findUnique({ where: { userId_chapterId: { userId, chapterId } } });
-  const hasCoinUnlock = Boolean(unlock && (!unlock.expiresAt || unlock.expiresAt > now));
 
   if (chapter.accessType === ChapterAccessType.COIN) {
-    return hasCoinUnlock;
+    return hasCoinUnlockCached(userId, chapterId);
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { subscriptionEnd: true } });
-  const hasActiveSubscription = Boolean(user?.subscriptionEnd && user.subscriptionEnd > now);
+  const hasActiveSubscription = await hasActiveSubscriptionCached(userId);
+  const hasCoinUnlock = await hasCoinUnlockCached(userId, chapterId);
   return hasActiveSubscription || hasCoinUnlock;
 }

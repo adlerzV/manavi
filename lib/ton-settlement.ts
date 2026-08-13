@@ -2,6 +2,8 @@ import "server-only";
 import { prisma } from "./prisma";
 import type { Transaction } from "@prisma/client";
 import { REFERRAL_REWARD_COINS } from "./gamification";
+import { invalidateSessionUserCache } from "./auth";
+import { invalidateSubscriptionCache } from "./chapters";
 import {
   getPlatformTonAddress,
   tonToNanotons,
@@ -51,6 +53,10 @@ async function applySettlementSideEffects(transaction: Transaction): Promise<voi
       newEnd.setMonth(newEnd.getMonth() + plan.months);
       await prisma.user.update({ where: { id: transaction.payerId }, data: { isSubscribed: true, subscriptionEnd: newEnd } });
       await grantReferralRewardIfEligible(transaction.payerId);
+      await Promise.all([
+        invalidateSessionUserCache(transaction.payerId),
+        invalidateSubscriptionCache(transaction.payerId),
+      ]);
     }
     return;
   }
@@ -59,6 +65,7 @@ async function applySettlementSideEffects(transaction: Transaction): Promise<voi
     const pack = await prisma.coinPackage.findUnique({ where: { id: transaction.coinPackageId } });
     if (pack) {
       await prisma.user.update({ where: { id: transaction.payerId }, data: { coinsBalance: { increment: pack.coins + pack.bonusCoins } } });
+      await invalidateSessionUserCache(transaction.payerId);
     }
   }
 }

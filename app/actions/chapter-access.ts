@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, invalidateSessionUserCache } from "@/lib/auth";
+import { invalidateChapterUnlockCache } from "@/lib/chapters";
 import { getChapterUnlockCoinCost } from "@/lib/platform-settings";
 import { ChapterAccessType } from "@prisma/client";
 
@@ -19,14 +20,14 @@ export async function unlockChapterWithCoins(chapterId: string): Promise<UnlockR
 
   const chapter = await prisma.chapter.findUnique({
     where: { id: chapterId },
-   select: { id: true, comicId: true, accessType: true },
+    select: { id: true, comicId: true, accessType: true },
   });
   if (!chapter) return { success: false, error: "Chapter not found" };
   if (chapter.accessType === ChapterAccessType.SUBSCRIPTION) {
     return { success: false, error: "این چپتر فقط مخصوص مشترکین ویژه است" };
   }
 
-  const cost = await getChapterUnlockCoinCost();;
+  const cost = await getChapterUnlockCoinCost();
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -55,6 +56,11 @@ export async function unlockChapterWithCoins(chapterId: string): Promise<UnlockR
     }
     throw err;
   }
+
+  await Promise.all([
+    invalidateSessionUserCache(user.id),
+    invalidateChapterUnlockCache(user.id, chapterId),
+  ]);
 
   revalidatePath(`/app/read/${chapterId}`);
   return { success: true };

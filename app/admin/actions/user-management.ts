@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, invalidateSessionUserCache } from "@/lib/auth";
 import { safeError } from "@/lib/errors";
 import type { Role } from "@prisma/client";
 
@@ -83,6 +83,7 @@ export async function setUserRole(userId: string, role: Role): Promise<ActionRes
       return { success: false, error: "نمی‌توانید نقش خودتان را تغییر دهید" };
     }
     await prisma.user.update({ where: { id: userId }, data: { role } });
+    await invalidateSessionUserCache(userId);
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -100,6 +101,7 @@ export async function banUser(userId: string, reason: string): Promise<ActionRes
       where: { id: userId },
       data: { isBanned: true, bannedAt: new Date(), banReason: reason.trim() || null },
     });
+    await invalidateSessionUserCache(userId);
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -111,6 +113,7 @@ export async function unbanUser(userId: string): Promise<ActionResult> {
   try {
     await requireAdmin();
     await prisma.user.update({ where: { id: userId }, data: { isBanned: false, bannedAt: null, banReason: null } });
+    await invalidateSessionUserCache(userId);
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -130,6 +133,7 @@ export async function grantCoins(userId: string, amount: number, note: string): 
       }),
     ]);
 
+    await invalidateSessionUserCache(userId);
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -154,6 +158,7 @@ export async function revokeCoins(userId: string, amount: number, note: string):
       data: { type: "ADMIN_REVOKE", status: "PAID", amount, currency: "COIN", payerId: userId, message: note.trim() || null },
     });
 
+    await invalidateSessionUserCache(userId);
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -194,6 +199,7 @@ export async function deleteUserAccount(userId: string, confirmationName: string
       },
     });
 
+    await invalidateSessionUserCache(userId);
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
