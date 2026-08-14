@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "./prisma";
 import { ChapterAccessType } from "@prisma/client";
 
-export const MAX_CHAPTER_PAGES = 300;
+export const MAX_CHAPTER_PAGES = 500;
 
 export interface IngestChapterInput {
   comicId: string;

@@ -222,3 +222,32 @@ export async function deleteObjects(keysOrUrls: string[]): Promise<void> {
     );
   }
 }
+const ALLOWED_PAGE_CONTENT_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+const PRESIGN_PUT_TTL_SECONDS = 10 * 60;
+
+export function isAllowedPageContentType(contentType: string): boolean {
+  return contentType in ALLOWED_PAGE_CONTENT_TYPES;
+}
+
+export function buildStagingPageKey(comicId: string, uploadId: string, index: number, contentType: string): string {
+  const extension = ALLOWED_PAGE_CONTENT_TYPES[contentType] ?? "bin";
+  return `staging/${comicId}/${uploadId}/${index}.${extension}`;
+}
+
+export async function createPagePresignedPutUrl(
+  key: string,
+  contentType: string,
+  expiresInSec: number = PRESIGN_PUT_TTL_SECONDS
+): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: getS3Bucket(),
+    Key: key,
+    ContentType: contentType,
+  });
+  return getSignedUrl(s3, command, { expiresIn: expiresInSec });
+}
