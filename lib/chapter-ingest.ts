@@ -1,0 +1,65 @@
+import "server-only";
+import { prisma } from "./prisma";
+import { ChapterAccessType } from "@prisma/client";
+
+export const MAX_CHAPTER_PAGES = 300;
+
+export interface IngestChapterInput {
+  comicId: string;
+  chapterNumber: number;
+  title?: string | null;
+  accessType?: string | null;
+  pageKeys: string[];
+}
+
+export interface IngestChapterResult {
+  success: boolean;
+  error?: string;
+  chapterId?: string;
+}
+
+export async function ingestChapter(input: IngestChapterInput): Promise<IngestChapterResult> {
+  if (!input.comicId) return { success: false, error: "comicId الزامی است" };
+  if (!Number.isFinite(input.chapterNumber) || input.chapterNumber <= 0) {
+    return { success: false, error: "شماره چپتر نامعتبر است" };
+  }
+  if (input.pageKeys.length === 0) return { success: false, error: "حداقل یک صفحه لازم است" };
+  if (input.pageKeys.length > MAX_CHAPTER_PAGES) {
+    return { success: false, error: `چپتر نمی‌تواند بیش از ${MAX_CHAPTER_PAGES} صفحه داشته باشد` };
+  }
+
+  const comic = await prisma.comic.findUnique({
+    where: { id: input.comicId },
+    select: { license: { select: { status: true } } },
+  });
+  if (!comic) return { success: false, error: "عنوان یافت نشد" };
+  if (comic.license.status === "EXPIRED" || comic.license.status === "TERMINATED") {
+    return { success: false, error: `آپلود ممکن نیست — لایسنس ${comic.license.status} است` };
+  }
+
+  const duplicate = await prisma.chapter.findFirst({
+    where: { comicId: input.comicId, chapterNumber: input.chapterNumber },
+    select: { id: true },
+  });
+  if (duplicate) {
+    return { success: false, error: `چپتر ${input.chapterNumber} قبلاً برای این عنوان ثبت شده است` };
+  }
+
+  const accessType: ChapterAccessType =
+    typeof input.accessType === "string" && input.accessType in ChapterAccessType
+      ? (input.accessType as ChapterAccessType)
+      : ChapterAccessType.FREE;
+
+  const chapter = await prisma.chapter.create({
+    data: {
+      comicId: input.comicId,
+      chapterNumber: input.chapterNumber,
+      title: input.title?.trim() || null,
+      pages: input.pageKeys,
+      status: "DRAFT",
+      accessType,
+    },
+  });
+
+  return { success: true, chapterId: chapter.id };
+}

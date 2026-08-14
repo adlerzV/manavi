@@ -8,6 +8,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID, createHmac } from "crypto";
+import sharp from "sharp";
 
 const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
 const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
@@ -69,7 +70,6 @@ function signCdnUrl(key: string, expiresInSec: number): string {
   const path = `/${key.replace(/^\/+/, "")}`;
   const expires = bucketedExpiry(expiresInSec);
 
-
   const hashableBase = `${path}${expires}`;
   const token = `HS256-${createHmac("sha256", STORAGE_CDN_TOKEN_KEY)
     .update(hashableBase)
@@ -99,6 +99,10 @@ function extractS3Key(keyOrUrl: string): string {
 
 const MAX_KEYS_PER_DELETE_REQUEST = 1000;
 
+export function buildChapterPageKey(comicId: string, chapterNumber: number, pageIndex: number): string {
+  return `comics/${comicId}/chapters/${chapterNumber}/${pageIndex}.webp`;
+}
+
 export async function uploadPageImage(
   comicId: string,
   chapterNumber: number,
@@ -106,15 +110,18 @@ export async function uploadPageImage(
   file: Buffer,
   contentType: string
 ): Promise<string> {
-  const extension = contentType.split("/")[1] || "bin";
-  const key = `comics/${comicId}/chapters/${chapterNumber}/${pageIndex}-${randomUUID()}.${extension}`;
+  const key = buildChapterPageKey(comicId, chapterNumber, pageIndex);
+
+  // همه‌ی مسیرهای آپلود (دستی ادمین و Worker) به webp نرمال می‌شن تا هم کلید
+  // با پسوند واقعی فایل یکی باشد، هم حجم CDN/باند پایین بیاید.
+  const webpBuffer = contentType === "image/webp" ? file : await sharp(file).webp({ quality: 82 }).toBuffer();
 
   await s3.send(
     new PutObjectCommand({
       Bucket: getS3Bucket(),
       Key: key,
-      Body: file,
-      ContentType: contentType,
+      Body: webpBuffer,
+      ContentType: "image/webp",
       CacheControl: "private, max-age=31536000, immutable",
     })
   );

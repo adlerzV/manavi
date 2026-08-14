@@ -7,6 +7,7 @@ import { uploadPageImage } from "@/lib/s3";
 import { processInBatches } from "@/lib/batch-upload";
 import { describeUploadError } from "@/lib/upload-error";
 import { ChapterAccessType } from "@prisma/client";
+import { ingestChapter } from "@/lib/chapter-ingest";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -42,7 +43,6 @@ export async function uploadChapter(formData: FormData): Promise<ActionResult<{ 
         ? (accessTypeRaw as ChapterAccessType)
         : ChapterAccessType.FREE;
 
-
     if (pages.length === 0) {
       return { success: false, error: "At least one page is required" };
     }
@@ -74,20 +74,19 @@ export async function uploadChapter(formData: FormData): Promise<ActionResult<{ 
       return await uploadPageImage(comicId, chapterNumber, i, buffer, page.type);
     });
 
-    const chapter = await prisma.chapter.create({
-      data: {
-        comicId,
-        chapterNumber,
-        title: typeof title === "string" && title.trim() ? title.trim() : null,
-        pages: pageUrls,
-        status: "DRAFT",
-        accessType,
-      },
+    const result = await ingestChapter({
+      comicId,
+      chapterNumber,
+      title: typeof title === "string" ? title : null,
+      accessType,
+      pageKeys: pageUrls,
     });
+
+    if (!result.success) return result;
 
     revalidatePath("/admin/comics");
     revalidatePath("/publisher/comics");
-    return { success: true, data: { chapterId: chapter.id } };
+    return { success: true, data: { chapterId: result.chapterId! } };
   } catch (err) {
     return { success: false, error: describeUploadError(err) };
   }
