@@ -26,7 +26,7 @@ export async function commitUploadedChapter(input: {
       return { success: false, error: `چپتر نمی‌تواند بیش از ${MAX_CHAPTER_PAGES} صفحه داشته باشد` };
     }
 
-    await requireUploadAccess(input.comicId);
+    const user = await requireUploadAccess(input.comicId);
 
     const result = await ingestChapter({
       comicId: input.comicId,
@@ -34,6 +34,7 @@ export async function commitUploadedChapter(input: {
       title: input.title ?? null,
       accessType: input.accessType,
       pageKeys: input.pageKeys,
+      uploadedById: user.id,
     });
 
     if (!result.success) return result;

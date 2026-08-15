@@ -11,20 +11,20 @@ interface ActionResult<T = undefined> {
   data?: T;
 }
 
-export async function requestPayout(input: { amountToman: number; periodStart: string; periodEnd: string }): Promise<ActionResult> {
+export async function requestPayout(input: { amountTon: number; periodStart: string; periodEnd: string }): Promise<ActionResult> {
   try {
     const user = await getSessionUser();
     if (!user?.publisherProfile) {
       return { success: false, error: "دسترسی غیرمجاز" };
     }
-    if (input.amountToman <= 0) {
+    if (!Number.isFinite(input.amountTon) || input.amountTon <= 0) {
       return { success: false, error: "مبلغ باید مثبت باشد" };
     }
 
     await prisma.payoutRequest.create({
       data: {
         publisherId: user.publisherProfile.id,
-        amountToman: input.amountToman,
+        amountTon: input.amountTon,
         periodStart: new Date(input.periodStart),
         periodEnd: new Date(input.periodEnd),
       },

@@ -13,7 +13,12 @@ export default async function AdminPayoutsPage() {
       <h1 className="text-xl font-semibold text-text-main">درخواست‌های تسویه‌حساب</h1>
       <div className="divide-y divide-border rounded-md border border-border">
         {payouts.map((p) => (
-          <PayoutReviewPanel key={p.id} payoutId={p.id} publisherName={p.publisher.name} amountToman={Number(p.amountToman)} />
+          <PayoutReviewPanel
+            key={p.id}
+            payoutId={p.id}
+            publisherName={p.publisher.name}
+            amountTon={p.amountTon != null ? Number(p.amountTon) : null}
+          />
         ))}
         {payouts.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">درخواستی در انتظار نیست.</p>}
       </div>

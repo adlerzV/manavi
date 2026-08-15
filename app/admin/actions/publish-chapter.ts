@@ -5,6 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySessionToken } from "@/lib/session";
+import { getUploaderVerification } from "@/lib/auth";
 import { assertLicenseActive, LicenseInactiveError } from "@/lib/license";
 import { notifyNewChapter } from "@/lib/telegram-bot";
 import { safeError } from "@/lib/errors";
@@ -12,9 +13,10 @@ import { safeError } from "@/lib/errors";
 interface PublishChapterResult {
   success: boolean;
   error?: string;
+  data?: { status: "PUBLISHED" | "PENDING_APPROVAL" };
 }
 
-async function requirePublishAccess(comicId: string): Promise<void> {
+async function requirePublishAccess(comicId: string): Promise<{ userId: string }> {
   const cookieStore = await cookies();
   const token = cookieStore.get("session")?.value;
   if (!token) {
@@ -36,7 +38,7 @@ async function requirePublishAccess(comicId: string): Promise<void> {
   }
 
   if (user.role === "ADMIN") {
-    return;
+    return { userId: user.id };
   }
 
   const comic = await prisma.comic.findUnique({
@@ -48,14 +50,14 @@ async function requirePublishAccess(comicId: string): Promise<void> {
   }
 
   if (user.role === "PUBLISHER" && user.publisherProfile?.id === comic.license.publisherId) {
-    return;
+    return { userId: user.id };
   }
 
   const staffLink = await prisma.publisherStaff.findFirst({
     where: { userId: user.id, publisherId: comic.license.publisherId, canUpload: true },
   });
   if (staffLink) {
-    return;
+    return { userId: user.id };
   }
 
   throw new Error("Not authorized to publish this chapter");
@@ -69,16 +71,40 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
         id: true,
         chapterNumber: true,
         publishedAt: true,
+        status: true,
         comic: { select: { id: true, slug: true, title: true } },
       },
     });
 
     if (!chapter) {
-      return { success: false, error: "Chapter not found" };
+      return { success: false, error: "چپتر یافت نشد" };
     }
 
-    await requirePublishAccess(chapter.comic.id);
+    const { userId } = await requirePublishAccess(chapter.comic.id);
     await assertLicenseActive(chapter.comic.id);
+
+    if (chapter.status === "PENDING_APPROVAL") {
+      return { success: false, error: "این چپتر در انتظار تایید ادمین است" };
+    }
+    if (chapter.publishedAt) {
+      return { success: false, error: "این چپتر قبلاً منتشر شده است" };
+    }
+
+    const isVerified = await getUploaderVerification(userId, chapter.comic.id);
+
+    if (!isVerified) {
+      const updated = await prisma.chapter.updateMany({
+        where: { id: chapterId, publishedAt: null },
+        data: { status: "PENDING_APPROVAL", scheduledAt: null },
+      });
+      if (updated.count === 0) {
+        return { success: false, error: "این چپتر قبلاً منتشر شده است" };
+      }
+      revalidatePath("/admin/comics");
+      revalidatePath("/publisher/comics");
+      revalidatePath("/admin/chapter-approvals");
+      return { success: true, data: { status: "PENDING_APPROVAL" } };
+    }
 
     const updated = await prisma.chapter.updateMany({
       where: { id: chapterId, publishedAt: null },
@@ -86,7 +112,7 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
     });
 
     if (updated.count === 0) {
-      return { success: false, error: "Chapter is already published" };
+      return { success: false, error: "این چپتر قبلاً منتشر شده است" };
     }
 
     revalidateTag("home-feed");
@@ -113,10 +139,10 @@ export async function publishChapter(chapterId: string): Promise<PublishChapterR
       );
     }
 
-    return { success: true };
+    return { success: true, data: { status: "PUBLISHED" } };
   } catch (err) {
     if (err instanceof LicenseInactiveError) {
-      return { success: false, error: `Cannot publish: ${err.reason}` };
+      return { success: false, error: `انتشار ممکن نیست: ${err.reason}` };
     }
     return safeError(err);
   }

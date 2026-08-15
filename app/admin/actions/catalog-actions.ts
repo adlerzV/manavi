@@ -24,7 +24,7 @@ export async function createPublisher(input: {
     await requireAdmin();
 
     if (!input.name.trim() || !input.contactEmail.trim()) {
-      return { success: false, error: "Name and contact email are required" };
+      return { success: false, error: "نام و ایمیل ارتباطی الزامی است" };
     }
 
     const publisher = await prisma.publisher.create({
@@ -54,19 +54,19 @@ export async function createLicense(input: {
     await requireAdmin();
 
     if (!input.publisherId) {
-      return { success: false, error: "Publisher is required" };
+      return { success: false, error: "انتخاب ناشر الزامی است" };
     }
     if (input.territory.length === 0) {
-      return { success: false, error: "At least one territory is required" };
+      return { success: false, error: "حداقل یک قلمرو باید مشخص شود" };
     }
     if (input.royaltyPercentage < 0 || input.royaltyPercentage > 100) {
-      return { success: false, error: "Royalty percentage must be between 0 and 100" };
+      return { success: false, error: "درصد رویالتی باید بین ۰ تا ۱۰۰ باشد" };
     }
 
     const startDate = new Date(input.startDate);
     const endDate = input.endDate ? new Date(input.endDate) : null;
     if (endDate && endDate <= startDate) {
-      return { success: false, error: "End date must be after start date" };
+      return { success: false, error: "تاریخ پایان باید بعد از تاریخ شروع باشد" };
     }
 
     const license = await prisma.license.create({

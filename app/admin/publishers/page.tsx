@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CreatePublisherForm } from "@/components/admin/create-publisher-form";
 import { PublisherOwnerLink } from "@/components/admin/publisher-owner-link";
+import { PublisherVerificationPanel } from "@/components/admin/publisher-verification-panel";
 
 const PAGE_SIZE = 50;
 
@@ -38,15 +39,18 @@ export default async function AdminPublishersPage({ searchParams }: PageProps) {
         </div>
         <div className="divide-y divide-border rounded-md border border-border">
           {publishers.map((p) => (
-            <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-              <div>
-                <p className="text-sm text-text-main">{p.name}</p>
-                <p className="text-xs text-text-muted">{p.contactEmail}</p>
+            <div key={p.id} className="space-y-2 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-text-main">{p.name}</p>
+                  <p className="text-xs text-text-muted">{p.contactEmail}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-text-muted">{p.licenses.length} لایسنس</span>
+                  <PublisherOwnerLink publisherId={p.id} ownerUsername={p.contractUser?.username ?? null} />
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-text-muted">{p.licenses.length} لایسنس</span>
-                <PublisherOwnerLink publisherId={p.id} ownerUsername={p.contractUser?.username ?? null} />
-              </div>
+              <PublisherVerificationPanel publisherId={p.id} initialIsVerified={p.isVerified} />
             </div>
           ))}
           {publishers.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">هنوز ناشری ثبت نشده است.</p>}

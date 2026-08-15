@@ -42,26 +42,24 @@ export function CreateLicenseForm({ publishers, onCreated }: { publishers: Publi
       setTimeout(() => onCreated?.(), 1000);
     } else {
       setStatus("error");
-      setError(result.error ?? "Something went wrong");
+      setError(result.error ?? "یه مشکلی پیش اومد");
     }
   }
 
   if (publishers.length === 0) {
     return (
       <div className="rounded-md border border-border bg-surface p-6 text-sm text-text-muted">
-        No publishers yet — add one before creating a license.
+        هنوز ناشری ثبت نشده — قبل از ساخت لایسنس، اول یک ناشر اضافه کن.
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-border bg-surface p-6">
-      <h2 className="text-lg font-medium text-text-main">Add license</h2>
+      <h2 className="text-lg font-medium text-text-main">افزودن لایسنس</h2>
 
       <div className="space-y-1">
-        <label className="text-sm text-text-muted" htmlFor="license-publisher">
-          Publisher
-        </label>
+        <label className="text-sm text-text-muted" htmlFor="license-publisher">ناشر</label>
         <select
           id="license-publisher"
           value={publisherId}
@@ -70,16 +68,14 @@ export function CreateLicenseForm({ publishers, onCreated }: { publishers: Publi
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary"
         >
           {publishers.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
+            <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
       </div>
 
       <div className="space-y-1">
         <label className="text-sm text-text-muted" htmlFor="license-territory">
-          Territory <span className="text-text-muted">(comma-separated ISO codes, e.g. IR, GLOBAL)</span>
+          قلمرو <span className="text-text-muted">(کدهای ISO با کاما جدا شوند، مثلاً IR, GLOBAL)</span>
         </label>
         <input
           id="license-territory"
@@ -93,9 +89,7 @@ export function CreateLicenseForm({ publishers, onCreated }: { publishers: Publi
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="license-royalty">
-            Publisher royalty %
-          </label>
+          <label className="text-sm text-text-muted" htmlFor="license-royalty">درصد رویالتی ناشر</label>
           <input
             id="license-royalty"
             type="number"
@@ -110,7 +104,7 @@ export function CreateLicenseForm({ publishers, onCreated }: { publishers: Publi
         </div>
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="license-contract-ref">
-            Contract reference <span className="text-text-muted">(optional)</span>
+            شماره قرارداد <span className="text-text-muted">(اختیاری)</span>
           </label>
           <input
             id="license-contract-ref"
@@ -123,9 +117,7 @@ export function CreateLicenseForm({ publishers, onCreated }: { publishers: Publi
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="license-start">
-            Start date
-          </label>
+          <label className="text-sm text-text-muted" htmlFor="license-start">تاریخ شروع</label>
           <input
             id="license-start"
             type="date"
@@ -137,7 +129,7 @@ export function CreateLicenseForm({ publishers, onCreated }: { publishers: Publi
         </div>
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="license-end">
-            End date <span className="text-text-muted">(optional — open-ended if blank)</span>
+            تاریخ پایان <span className="text-text-muted">(اختیاری — بدون محدودیت اگر خالی بماند)</span>
           </label>
           <input
             id="license-end"
@@ -150,18 +142,18 @@ export function CreateLicenseForm({ publishers, onCreated }: { publishers: Publi
       </div>
 
       <p className="text-xs text-text-muted">
-        New licenses are created as PENDING. Activate them from the license list once the signed contract is confirmed.
+        لایسنس‌های جدید با وضعیت «در انتظار» ساخته می‌شوند. بعد از تایید قرارداد امضاشده، از لیست لایسنس‌ها فعالش کن.
       </p>
 
       {status === "error" && <p className="text-sm text-red-400">{error}</p>}
-      {status === "done" && <p className="text-sm text-primary">License created.</p>}
+      {status === "done" && <p className="text-sm text-primary">لایسنس ساخته شد.</p>}
 
       <button
         type="submit"
         disabled={status === "saving" || !publisherId}
         className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
-        {status === "saving" ? "Saving…" : "Create license"}
+        {status === "saving" ? "در حال ذخیره…" : "ساخت لایسنس"}
       </button>
     </form>
   );

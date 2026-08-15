@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChapterReactions } from "./chapter-reactions";
 import { ChapterAdSlot } from "./chapter-ad-slot";
+import { ChapterStaffCredits, type StaffCreditItem } from "./chapter-staff-credits";
 
 interface ReactionSummary { emoji: string; count: number }
 
@@ -14,13 +15,16 @@ interface EndOfChapterProps {
   initialUserReaction: string | null;
   isAuthenticated: boolean;
   showAd: boolean;
+  staffCredits: StaffCreditItem[];
 }
 
-export function EndOfChapter({ chapterId, comicSlug, nextChapterId, reactionSummary, initialUserReaction, isAuthenticated, showAd }: EndOfChapterProps) {
+export function EndOfChapter({ chapterId, comicSlug, nextChapterId, reactionSummary, initialUserReaction, isAuthenticated, showAd, staffCredits }: EndOfChapterProps) {
   return (
     <div className="border-t border-white/10 bg-black py-8">
       <p className="mb-4 text-center text-sm text-white/60">پایان چپتر — واکنش نشون بده</p>
       <ChapterReactions chapterId={chapterId} initialSummary={reactionSummary} initialUserReaction={initialUserReaction} isAuthenticated={isAuthenticated} />
+
+      <ChapterStaffCredits staff={staffCredits} isAuthenticated={isAuthenticated} />
 
       {showAd && <ChapterAdSlot />}
 

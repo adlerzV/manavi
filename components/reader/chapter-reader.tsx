@@ -17,6 +17,7 @@ import { WatermarkOverlay } from "./watermark-overlay";
 import { DevToolsGuard } from "./dev-tools-guard";
 import { BackButton } from "@/components/navigation/back-button";
 import { getStoredReadingModeOverride, setStoredReadingModeOverride } from "@/lib/reading";
+import type { StaffCreditItem } from "./chapter-staff-credits";
 
 interface ChapterOption { id: string; chapterNumber: number; title: string | null }
 interface ReactionSummary { emoji: string; count: number }
@@ -40,6 +41,7 @@ interface ChapterReaderProps {
   isAuthenticated: boolean;
   watermarkLabel?: string | null;
   showAd: boolean;
+  staffCredits: StaffCreditItem[];
 }
 
 const DESKTOP_BREAKPOINT_PX = 768;
@@ -88,7 +90,7 @@ function useImmersiveReading() {
 export function ChapterReader({
   chapterId, comicId, comicSlug, comicTitle, readingDirection, chapterNumber, pages, readingMode,
   prevChapterId, nextChapterId, chapterOptions, initialPage, initialScrollFraction,
-  reactionSummary, initialUserReaction, isAuthenticated, watermarkLabel, showAd,
+  reactionSummary, initialUserReaction, isAuthenticated, watermarkLabel, showAd, staffCredits,
 }: ChapterReaderProps) {
   const router = useRouter();
   const isDesktop = useIsDesktop();
@@ -242,6 +244,7 @@ export function ChapterReader({
           initialUserReaction={initialUserReaction}
           isAuthenticated={isAuthenticated}
           showAd={showAd}
+          staffCredits={staffCredits}
         />
       )}
 

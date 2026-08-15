@@ -34,7 +34,18 @@ export default async function PublisherPayoutsPage() {
       <div className="divide-y divide-border rounded-md border border-border">
         {payouts.map((p) => (
           <div key={p.id} className="flex items-center justify-between px-4 py-3">
-            <p className="text-sm text-text-main">{Number(p.amountToman).toLocaleString("fa-IR")} تومان</p>
+            <div>
+              <p className="text-sm text-text-main">
+                {p.amountTon != null
+                  ? `${Number(p.amountTon)} TON`
+                  : p.amountToman != null
+                  ? `${Number(p.amountToman).toLocaleString("fa-IR")} تومان (قدیمی)`
+                  : "—"}
+              </p>
+              {p.paidAmountTon != null && (
+                <p className="text-xs text-text-muted">مبلغ واریزشده: {Number(p.paidAmountTon)} TON</p>
+              )}
+            </div>
             <p className="text-xs text-text-muted">{p.status}</p>
           </div>
         ))}

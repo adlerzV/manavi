@@ -14,6 +14,7 @@ import { AgeVerificationGate } from "@/components/reader/age-verification-gate";
 import { CommentSection } from "@/components/comments/comment-section";
 import { getChapterReactionSummary } from "@/app/actions/reactions";
 import { categoryDirectionToReaderDirection } from "@/lib/reading";
+import type { StaffCreditItem } from "@/components/reader/chapter-staff-credits";
 
 interface PageProps {
   params: Promise<{ chapterId: string }>;
@@ -126,7 +127,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
 
   after(() => recordChapterVisit(chapterId, chapter.comic.id, user?.id ?? null).catch(() => {}));
 
-  const [readHistory, pageUrls, reactionData, comments] = await Promise.all([
+  const [readHistory, pageUrls, reactionData, comments, staffRows] = await Promise.all([
     user
       ? prisma.readHistory.findUnique({
           where: { userId_comicId: { userId: user.id, comicId: chapter.comic.id } },
@@ -160,10 +161,25 @@ export default async function ReadChapterPage({ params }: PageProps) {
         },
       },
     }),
+    prisma.chapterStaff.findMany({
+      where: { chapterId },
+      select: {
+        roleTitle: true,
+        user: { select: { id: true, firstName: true, username: true, cryptoWalletAddress: true } },
+      },
+    }),
   ]);
 
   const resumeMatch = readHistory?.lastChapterId === chapter.id;
   const watermarkLabel = user ? (user.username ? `@${user.username}` : `#${user.id.slice(0, 8)}`) : null;
+
+  const staffCredits: StaffCreditItem[] = staffRows.map((s) => ({
+    userId: s.user.id,
+    firstName: s.user.firstName,
+    username: s.user.username,
+    roleTitle: s.roleTitle,
+    hasWallet: Boolean(s.user.cryptoWalletAddress),
+  }));
 
   return (
     <>
@@ -186,6 +202,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
         isAuthenticated={Boolean(user)}
         watermarkLabel={watermarkLabel}
         showAd={showAd}
+        staffCredits={staffCredits}
       />
       <div className="bg-background">
         <CommentSection

@@ -14,8 +14,9 @@ interface ChapterStatusPanelProps {
   chapterLabel: string;
 }
 
-export function ChapterStatusPanel({ chapterId, status, scheduledAt, chapterLabel }: ChapterStatusPanelProps) {
+export function ChapterStatusPanel({ chapterId, status: initialStatus, scheduledAt, chapterLabel }: ChapterStatusPanelProps) {
   const router = useRouter();
+  const [status, setStatus] = useState<ChapterStatus>(initialStatus);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [scheduleValue, setScheduleValue] = useState(scheduledAt ? scheduledAt.slice(0, 16) : "");
@@ -25,7 +26,11 @@ export function ChapterStatusPanel({ chapterId, status, scheduledAt, chapterLabe
     setError(null);
     startTransition(async () => {
       const result = await publishChapter(chapterId);
-      if (!result.success) setError(result.error ?? "خطا در انتشار");
+      if (!result.success) {
+        setError(result.error ?? "خطا در انتشار");
+      } else if (result.data) {
+        setStatus(result.data.status);
+      }
     });
   }
 
@@ -37,8 +42,12 @@ export function ChapterStatusPanel({ chapterId, status, scheduledAt, chapterLabe
     }
     startTransition(async () => {
       const result = await scheduleChapter(chapterId, new Date(scheduleValue).toISOString());
-      if (!result.success) setError(result.error ?? "خطا در زمان‌بندی");
-      else setShowSchedule(false);
+      if (!result.success) {
+        setError(result.error ?? "خطا در زمان‌بندی");
+      } else {
+        setStatus("SCHEDULED");
+        setShowSchedule(false);
+      }
     });
   }
 
@@ -46,7 +55,11 @@ export function ChapterStatusPanel({ chapterId, status, scheduledAt, chapterLabe
     setError(null);
     startTransition(async () => {
       const result = await cancelSchedule(chapterId);
-      if (!result.success) setError(result.error ?? "خطا");
+      if (!result.success) {
+        setError(result.error ?? "خطا");
+      } else {
+        setStatus("DRAFT");
+      }
     });
   }
 
@@ -66,6 +79,16 @@ export function ChapterStatusPanel({ chapterId, status, scheduledAt, chapterLabe
       <div className="flex items-center gap-2">
         <span className="text-xs text-primary">منتشرشده</span>
         {deleteButton}
+      </div>
+    );
+  }
+
+  if (status === "PENDING_APPROVAL") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-accent">در انتظار تایید ادمین</span>
+        {deleteButton}
+        {error && <span className="text-xs text-red-400">{error}</span>}
       </div>
     );
   }

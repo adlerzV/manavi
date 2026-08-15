@@ -8,6 +8,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/admin/publishers", label: "ناشران", icon: "Building2" },
   { href: "/admin/licenses", label: "لایسنس‌ها", icon: "FileSignature" },
   { href: "/admin/comics", label: "عناوین", icon: "BookOpen" },
+  { href: "/admin/chapter-approvals", label: "تایید چپترها", icon: "CheckCircle2" },
   { href: "/admin/categories", label: "دسته‌بندی‌های اصلی", icon: "Layers" },
   { href: "/admin/genres", label: "ژانرها", icon: "Tags" },
   { href: "/admin/comments", label: "نظرات", icon: "MessageSquare" },

@@ -10,6 +10,7 @@ export interface IngestChapterInput {
   title?: string | null;
   accessType?: string | null;
   pageKeys: string[];
+  uploadedById?: string | null;
 }
 
 export interface IngestChapterResult {
@@ -58,6 +59,7 @@ export async function ingestChapter(input: IngestChapterInput): Promise<IngestCh
       pages: input.pageKeys,
       status: "DRAFT",
       accessType,
+      uploadedById: input.uploadedById ?? null,
     },
   });
 

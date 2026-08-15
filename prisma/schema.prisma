@@ -50,6 +50,7 @@ model User {
   devToolsStrikes     DevToolsStrike[]
   publisherProfile    Publisher?
   publisherStaffRoles PublisherStaff[]
+  uploadedChapters    Chapter[]         @relation("ChapterUploader")
 
   @@index([role])
   @@index([referredById])
@@ -72,6 +73,7 @@ model Publisher {
   contactEmail        String
   contractUserId      String?  @unique
   contractUser        User?    @relation(fields: [contractUserId], references: [id])
+  isVerified          Boolean  @default(false)
   bio                 String?
   avatarUrl           String?
   telegramUrl         String?
@@ -87,6 +89,8 @@ model Publisher {
   licenses       License[]
   staff          PublisherStaff[]
   payoutRequests PayoutRequest[]
+
+  @@index([isVerified])
 }
 
 model PublisherStaff {
@@ -95,6 +99,7 @@ model PublisherStaff {
   userId      String
   role        StaffRole
   canUpload   Boolean   @default(true)
+  isVerified  Boolean   @default(false)
   createdAt   DateTime  @default(now())
 
   publisher Publisher @relation(fields: [publisherId], references: [id])
@@ -265,6 +270,7 @@ enum StaffRole {
 enum ChapterStatus {
   DRAFT
   SCHEDULED
+  PENDING_APPROVAL
   PUBLISHED
 }
 
@@ -288,19 +294,22 @@ model Chapter {
   scheduledAt    DateTime?
   publishedAt    DateTime?
   viewCount      Int               @default(0)
+  uploadedById   String?
   createdAt      DateTime          @default(now())
 
-  comic     Comic             @relation(fields: [comicId], references: [id])
-  comments  Comment[]
-  staff     ChapterStaff[]
-  unlocks   ChapterUnlock[]
-  reactions ChapterReaction[]
-  readMarks ChapterReadMark[]
+  comic      Comic             @relation(fields: [comicId], references: [id])
+  uploadedBy User?             @relation("ChapterUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  comments   Comment[]
+  staff      ChapterStaff[]
+  unlocks    ChapterUnlock[]
+  reactions  ChapterReaction[]
+  readMarks  ChapterReadMark[]
 
   @@index([comicId, publishedAt])
   @@index([comicId, chapterNumber])
   @@index([status, scheduledAt])
   @@index([viewCount])
+  @@index([uploadedById])
 }
 
 model ChapterStaff {
@@ -528,17 +537,19 @@ enum PayoutStatus {
 }
 
 model PayoutRequest {
-  id           String       @id @default(uuid())
-  publisherId  String
-  amountToman  Decimal      @db.Decimal(12, 2)
-  periodStart  DateTime
-  periodEnd    DateTime
-  status       PayoutStatus @default(PENDING)
-  reviewedById String?
-  reviewNote   String?
-  requestedAt  DateTime     @default(now())
-  reviewedAt   DateTime?
-  paidAt       DateTime?
+  id            String       @id @default(uuid())
+  publisherId   String
+  amountToman   Decimal?     @db.Decimal(12, 2)
+  amountTon     Decimal?     @db.Decimal(20, 9)
+  paidAmountTon Decimal?     @db.Decimal(20, 9)
+  periodStart   DateTime
+  periodEnd     DateTime
+  status        PayoutStatus @default(PENDING)
+  reviewedById  String?
+  reviewNote    String?
+  requestedAt   DateTime     @default(now())
+  reviewedAt    DateTime?
+  paidAt        DateTime?
 
   publisher Publisher @relation(fields: [publisherId], references: [id])
 

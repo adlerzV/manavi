@@ -15,7 +15,7 @@ export function PayoutRequestForm() {
     setStatus("saving");
     setError(null);
 
-    const result = await requestPayout({ amountToman: Number(amount), periodStart, periodEnd });
+    const result = await requestPayout({ amountTon: Number(amount), periodStart, periodEnd });
 
     if (result.success) {
       setStatus("done");
@@ -28,12 +28,12 @@ export function PayoutRequestForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-border bg-surface p-6">
-      <h2 className="text-lg font-medium text-text-main">درخواست تسویه‌حساب</h2>
+      <h2 className="text-lg font-medium text-text-main">درخواست تسویه‌حساب با TON</h2>
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="payout-amount">مبلغ (تومان)</label>
-          <input id="payout-amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
+          <label className="text-sm text-text-muted" htmlFor="payout-amount">مبلغ (TON)</label>
+          <input id="payout-amount" type="number" step="any" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
         </div>
         <div className="space-y-1">
           <label className="text-sm text-text-muted" htmlFor="payout-start">شروع بازه</label>
@@ -44,6 +44,10 @@ export function PayoutRequestForm() {
           <input id="payout-end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
         </div>
       </div>
+
+      <p className="text-xs text-text-muted">
+        مبلغ رو بر اساس سکه‌های بازشده‌ی سهم خودتون در بخش «سهم این ماه» بالا تخمین بزنید. ادمین بعد از بررسی، مبلغ نهایی TON واریزی رو ثبت می‌کنه.
+      </p>
 
       {status === "error" && <p className="text-sm text-red-400">{error}</p>}
       {status === "done" && <p className="text-sm text-primary">درخواست ثبت شد.</p>}

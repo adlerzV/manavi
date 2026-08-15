@@ -14,7 +14,8 @@ interface ActionResult<T = undefined> {
 export async function reviewPayout(
   payoutId: string,
   decision: "APPROVED" | "REJECTED" | "PAID",
-  note?: string
+  note?: string,
+  paidAmountTon?: number
 ): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
@@ -26,6 +27,7 @@ export async function reviewPayout(
         reviewNote: note?.trim() || null,
         reviewedAt: new Date(),
         paidAt: decision === "PAID" ? new Date() : undefined,
+        paidAmountTon: decision === "PAID" && paidAmountTon != null ? paidAmountTon : undefined,
       },
     });
     revalidatePath("/admin/payouts");

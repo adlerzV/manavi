@@ -130,3 +130,40 @@ export async function getPublisherContext(user: SessionUser | null): Promise<Pub
 
   return null;
 }
+
+export async function getUploaderVerification(userId: string, comicId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, publisherProfile: { select: { id: true } } },
+  });
+  if (!user) return false;
+  if (user.role === "ADMIN") return true;
+
+  const comic = await prisma.comic.findUnique({
+    where: { id: comicId },
+    select: { license: { select: { publisherId: true } } },
+  });
+  if (!comic) return false;
+
+  const publisherId = comic.license.publisherId;
+
+  if (user.publisherProfile?.id === publisherId) {
+    const publisher = await prisma.publisher.findUnique({ where: { id: publisherId }, select: { isVerified: true } });
+    return Boolean(publisher?.isVerified);
+  }
+
+  const verifiedStaffLink = await prisma.publisherStaff.findFirst({
+    where: { userId: user.id, publisherId, isVerified: true },
+    select: { id: true },
+  });
+  if (verifiedStaffLink) return true;
+
+  const anyStaffLink = await prisma.publisherStaff.findFirst({
+    where: { userId: user.id, publisherId },
+    select: { id: true },
+  });
+  if (!anyStaffLink) return false;
+
+  const publisher = await prisma.publisher.findUnique({ where: { id: publisherId }, select: { isVerified: true } });
+  return Boolean(publisher?.isVerified);
+}

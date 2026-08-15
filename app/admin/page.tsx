@@ -1,13 +1,13 @@
-// app/admin/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminDashboard() {
-  const [publisherCount, licenseCount, comicCount, pendingChapters] = await Promise.all([
+  const [publisherCount, licenseCount, comicCount, pendingChapters, pendingApprovals] = await Promise.all([
     prisma.publisher.count(),
     prisma.license.count(),
     prisma.comic.count(),
     prisma.chapter.count({ where: { publishedAt: null } }),
+    prisma.chapter.count({ where: { status: "PENDING_APPROVAL" } }),
   ]);
 
   const stats = [
@@ -15,10 +15,11 @@ export default async function AdminDashboard() {
     { label: "لایسنس‌ها", value: licenseCount, href: "/admin/licenses" },
     { label: "عناوین", value: comicCount, href: "/admin/comics" },
     { label: "چپترهای منتشرنشده", value: pendingChapters, href: "/admin/comics" },
+    { label: "در انتظار تایید", value: pendingApprovals, href: "/admin/chapter-approvals" },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
       {stats.map((stat) => (
         <Link
           key={stat.label}
