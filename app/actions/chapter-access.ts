@@ -17,6 +17,7 @@ class InsufficientCoinsError extends Error {}
 export async function unlockChapterWithCoins(chapterId: string): Promise<UnlockResult> {
   const user = await getSessionUser();
   if (!user) return { success: false, error: "Not authenticated" };
+  if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
 
   const chapter = await prisma.chapter.findUnique({
     where: { id: chapterId },

@@ -1,6 +1,6 @@
 import "server-only";
 import { Ratelimit } from "@upstash/ratelimit";
-import { redis } from "./redis";
+import { redis, isRedisConfigured } from "./redis";
 
 const RATE_LIMIT_WINDOW = "60 s";
 const limiterCache = new Map<number, Ratelimit>();
@@ -19,6 +19,12 @@ function getLimiter(limit: number): Ratelimit {
 }
 
 export async function checkRateLimit(key: string, limit: number): Promise<boolean> {
-  const { success } = await getLimiter(limit).limit(key);
-  return success;
+  if (!isRedisConfigured) return true;
+
+  try {
+    const { success } = await getLimiter(limit).limit(key);
+    return success;
+  } catch {
+    return true;
+  }
 }

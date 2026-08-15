@@ -1,7 +1,9 @@
 import "server-only";
 import crypto from "crypto";
+import { redis, isRedisConfigured } from "./redis";
 
 const MAX_AUTH_AGE_SECONDS = 60 * 60;
+const REPLAY_GUARD_PREFIX = "telegram-initdata-used";
 
 export interface TelegramUser {
   id: number;
@@ -26,6 +28,13 @@ export class InvalidInitDataError extends Error {
   }
 }
 
+export class ReplayedInitDataError extends InvalidInitDataError {
+  constructor() {
+    super("این initData قبلاً استفاده شده است (احتمال حملهٔ replay)");
+    this.name = "ReplayedInitDataError";
+  }
+}
+
 function getBotToken(): string {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
@@ -34,7 +43,7 @@ function getBotToken(): string {
   return token;
 }
 
-export function validateTelegramInitData(initData: string): ValidatedInitData {
+export async function validateTelegramInitData(initData: string): Promise<ValidatedInitData> {
   const params = new URLSearchParams(initData);
 
   const hash = params.get("hash");
@@ -80,6 +89,22 @@ export function validateTelegramInitData(initData: string): ValidatedInitData {
   }
   if (ageSeconds < -60) {
     throw new InvalidInitDataError("auth_date is in the future");
+  }
+
+
+  if (isRedisConfigured) {
+    try {
+      const remainingTtl = Math.max(1, Math.ceil(MAX_AUTH_AGE_SECONDS - ageSeconds));
+      const claimed = await redis.set(`${REPLAY_GUARD_PREFIX}:${hash}`, "1", {
+        ex: remainingTtl,
+        nx: true,
+      });
+      if (!claimed) {
+        throw new ReplayedInitDataError();
+      }
+    } catch (err) {
+      if (err instanceof ReplayedInitDataError) throw err;
+    }
   }
 
   const userRaw = params.get("user");

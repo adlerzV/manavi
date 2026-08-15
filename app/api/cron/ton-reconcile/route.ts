@@ -4,8 +4,7 @@ import { settlePendingTonTransactions } from "@/lib/ton-settlement";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const RECONCILE_MIN_AGE_MS = 15_000;
-const RECONCILE_MAX_AGE_MS = 60 * 60 * 1000;
-
+const RECONCILE_MAX_AGE_MS = 25 * 60 * 60 * 1000;
 export async function GET(req: NextRequest) {
   if (CRON_SECRET) {
     const provided = req.headers.get("authorization");

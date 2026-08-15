@@ -2,13 +2,23 @@ import type { NextConfig } from "next";
 
 function buildRemotePatterns() {
   const patterns: { protocol: "https"; hostname: string }[] = [];
+  const seen = new Set<string>();
 
-  if (process.env.S3_PUBLIC_BASE_URL) {
+  function addHostFromUrl(rawUrl: string | undefined) {
+    if (!rawUrl) return;
     try {
-      const hostname = new URL(process.env.S3_PUBLIC_BASE_URL).hostname;
-      patterns.push({ protocol: "https", hostname });
-    } catch {}
+      const hostname = new URL(rawUrl).hostname;
+      if (!seen.has(hostname)) {
+        seen.add(hostname);
+        patterns.push({ protocol: "https", hostname });
+      }
+    } catch {
+    
+    }
   }
+
+  addHostFromUrl(process.env.S3_PUBLIC_BASE_URL);
+  addHostFromUrl(process.env.STORAGE_CDN_BASE_URL);
 
   const extraHosts = (process.env.NEXT_PUBLIC_IMAGE_HOSTS ?? "")
     .split(",")
@@ -16,10 +26,13 @@ function buildRemotePatterns() {
     .filter(Boolean);
 
   for (const hostname of extraHosts) {
-    patterns.push({ protocol: "https", hostname });
+    if (!seen.has(hostname)) {
+      seen.add(hostname);
+      patterns.push({ protocol: "https", hostname });
+    }
   }
 
-  return patterns.length > 0 ? patterns : [{ protocol: "https" as const, hostname: "**" }];
+  return patterns;
 }
 
 const nextConfig: NextConfig = {

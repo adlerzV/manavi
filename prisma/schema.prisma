@@ -17,6 +17,7 @@ model User {
   subscriptionEnd     DateTime?
   coinsBalance        Int             @default(0)
   contentPreference   AgeRating       @default(NORMAL)
+  isAgeVerified       Boolean         @default(false)
   referralCode        String          @unique
   referredById        String?
   referralCount       Int             @default(0)

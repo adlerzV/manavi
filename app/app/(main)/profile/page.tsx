@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { EditProfileForm } from "@/components/profile/edit-profile-form";
-import { ContentPreferenceForm } from "@/components/profile/content-preference-form";
+import { AgeVerificationToggle } from "@/components/profile/age-verification-toggle";
 import { ReferralCard } from "@/components/gamification/referral-card";
 import { ComicCard } from "@/components/catalog/comic-card";
 import { getReferralLink } from "@/lib/site-config";
@@ -113,7 +113,7 @@ export default async function ProfilePage() {
 
         <section>
           <h2 className="mb-3 text-sm font-medium text-text-main">تنظیمات محتوا</h2>
-          <ContentPreferenceForm current={user.contentPreference} />
+          <AgeVerificationToggle current={user.isAgeVerified} />
         </section>
 
         <section>

@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   let validated;
   try {
-    validated = validateTelegramInitData(initData);
+    validated = await validateTelegramInitData(initData);
   } catch (err) {
     if (err instanceof InvalidInitDataError) {
       return NextResponse.json({ error: err.message }, { status: 401 });

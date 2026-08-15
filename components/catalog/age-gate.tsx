@@ -1,38 +1,26 @@
-"use client";
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { getSessionUser } from "@/lib/auth";
 
-import { useEffect, useState, type ReactNode } from "react";
+export async function AgeGate({ children }: { children: ReactNode }) {
+  const user = await getSessionUser();
 
-const STORAGE_KEY = "age-gate-confirmed";
-
-export function AgeGate({ children }: { children: ReactNode }) {
-  const [confirmed, setConfirmed] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    setConfirmed(window.localStorage.getItem(STORAGE_KEY) === "true");
-  }, []);
-
-  function confirm() {
-    window.localStorage.setItem(STORAGE_KEY, "true");
-    setConfirmed(true);
-  }
-
-  if (confirmed === null) {
-    return <div className="min-h-[240px]" />;
-  }
-
-  if (confirmed) {
+  if (user?.isAgeVerified) {
     return <>{children}</>;
   }
 
   return (
     <div className="flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-md border border-border bg-surface p-8 text-center">
       <p className="text-sm text-text-main">این عنوان محتوای بزرگسال دارد.</p>
-      <button
-        onClick={confirm}
+      <p className="max-w-xs text-xs text-text-muted">
+        برای مشاهدهٔ محتوای ۱۸+، ابتدا از صفحهٔ پروفایل تاییدیهٔ سنی را فعال کنید.
+      </p>
+      <Link
+        href="/app/profile"
         className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
       >
-        بالای ۱۸ سال دارم — ادامه
-      </button>
+        رفتن به تنظیمات پروفایل
+      </Link>
     </div>
   );
 }

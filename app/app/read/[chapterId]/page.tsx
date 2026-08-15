@@ -10,6 +10,7 @@ import { hasActiveSubscription } from "@/lib/billing";
 import { getChapterUnlockCoinCost } from "@/lib/platform-settings";
 import { ChapterReader } from "@/components/reader/chapter-reader";
 import { LockedChapterGate } from "@/components/reader/locked-chapter-gate";
+import { AgeVerificationGate } from "@/components/reader/age-verification-gate";
 import { CommentSection } from "@/components/comments/comment-section";
 import { getChapterReactionSummary } from "@/app/actions/reactions";
 import { categoryDirectionToReaderDirection } from "@/lib/reading";
@@ -36,6 +37,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
           title: true,
           slug: true,
           readingMode: true,
+          ageRating: true,
           category: { select: { readingDirection: true } },
           license: {
             select: {
@@ -77,6 +79,11 @@ export default async function ReadChapterPage({ params }: PageProps) {
         </p>
       </div>
     );
+  }
+
+  const isAdultContent = chapter.comic.ageRating !== "NORMAL";
+  if (isAdultContent && !user?.isAgeVerified) {
+  return <AgeVerificationGate isAuthenticated={Boolean(user)} />;
   }
 
   const showAd = !hasActiveSubscription(user?.subscriptionEnd);

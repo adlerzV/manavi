@@ -59,6 +59,7 @@ async function createPendingTransaction(input: {
 export async function createTonSubscriptionPayment(planId: string): Promise<ActionResult<TonPaymentRequest>> {
   const user = await getSessionUser();
   if (!user) return { success: false, error: "برای خرید باید وارد شوید" };
+  if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
   if (!isTonConfigured()) return { success: false, error: "پرداخت تون هنوز پیکربندی نشده است" };
 
   const allowed = await checkRateLimit(`ton-subscribe:${user.id}`, 5);
@@ -90,6 +91,7 @@ export async function createTonSubscriptionPayment(planId: string): Promise<Acti
 export async function createTonCoinPayment(packageId: string): Promise<ActionResult<TonPaymentRequest>> {
   const user = await getSessionUser();
   if (!user) return { success: false, error: "برای خرید باید وارد شوید" };
+  if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
   if (!isTonConfigured()) return { success: false, error: "پرداخت تون هنوز پیکربندی نشده است" };
 
   const allowed = await checkRateLimit(`ton-coins:${user.id}`, 5);
@@ -125,6 +127,7 @@ export async function createTonDonationPayment(input: {
 }): Promise<ActionResult<TonPaymentRequest>> {
   const user = await getSessionUser();
   if (!user) return { success: false, error: "برای حمایت مالی باید وارد شوید" };
+  if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
   if (!isTonConfigured()) return { success: false, error: "پرداخت تون هنوز پیکربندی نشده است" };
   if (input.receiverId === user.id) return { success: false, error: "نمی‌توانید به خودتان حمایت مالی کنید" };
   if (!Number.isFinite(input.amountTon) || input.amountTon < MIN_DONATION_TON || input.amountTon > MAX_DONATION_TON) {
