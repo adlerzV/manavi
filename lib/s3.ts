@@ -8,7 +8,6 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID, createHmac } from "crypto";
-import sharp from "sharp";
 
 const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
 const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
@@ -79,6 +78,21 @@ function signCdnUrl(key: string, expiresInSec: number): string {
   return `${base}${path}?token=${token}&expires=${expires}`;
 }
 
+export interface ImageTransformOptions {
+  width?: number;
+  quality?: number;
+}
+
+function withImageTransform(url: string, transform?: ImageTransformOptions): string {
+  const params = new URLSearchParams();
+  params.set("format", "auto");
+  if (transform?.width) params.set("width", String(transform.width));
+  if (transform?.quality) params.set("quality", String(transform.quality));
+
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}${params.toString()}`;
+}
+
 export class BannerPublicUrlNotConfiguredError extends Error {
   constructor() {
     super(
@@ -98,36 +112,6 @@ function extractS3Key(keyOrUrl: string): string {
 }
 
 const MAX_KEYS_PER_DELETE_REQUEST = 1000;
-
-export function buildChapterPageKey(comicId: string, chapterNumber: number, pageIndex: number): string {
-  return `comics/${comicId}/chapters/${chapterNumber}/${pageIndex}.webp`;
-}
-
-export async function uploadPageImage(
-  comicId: string,
-  chapterNumber: number,
-  pageIndex: number,
-  file: Buffer,
-  contentType: string
-): Promise<string> {
-  const key = buildChapterPageKey(comicId, chapterNumber, pageIndex);
-
-  // همه‌ی مسیرهای آپلود (دستی ادمین و Worker) به webp نرمال می‌شن تا هم کلید
-  // با پسوند واقعی فایل یکی باشد، هم حجم CDN/باند پایین بیاید.
-  const webpBuffer = contentType === "image/webp" ? file : await sharp(file).webp({ quality: 82 }).toBuffer();
-
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: getS3Bucket(),
-      Key: key,
-      Body: webpBuffer,
-      ContentType: "image/webp",
-      CacheControl: "private, max-age=31536000, immutable",
-    })
-  );
-
-  return key;
-}
 
 export async function uploadChapterThumbnail(
   comicId: string,
@@ -178,14 +162,15 @@ export async function uploadComicBanner(
 
 export async function getSignedImageUrl(
   key: string,
-  expiresInSec: number = DEFAULT_READ_URL_TTL_SECONDS
+  expiresInSec: number = DEFAULT_READ_URL_TTL_SECONDS,
+  transform?: ImageTransformOptions
 ): Promise<string> {
   if (key.startsWith("http://") || key.startsWith("https://")) {
     return key;
   }
 
   if (isCdnConfigured()) {
-    return signCdnUrl(key, expiresInSec);
+    return withImageTransform(signCdnUrl(key, expiresInSec), transform);
   }
 
   const command = new GetObjectCommand({ Bucket: getS3Bucket(), Key: key });
@@ -194,9 +179,10 @@ export async function getSignedImageUrl(
 
 export async function getSignedImageUrls(
   keys: string[],
-  expiresInSec: number = DEFAULT_READ_URL_TTL_SECONDS
+  expiresInSec: number = DEFAULT_READ_URL_TTL_SECONDS,
+  transform?: ImageTransformOptions
 ): Promise<string[]> {
-  return Promise.all(keys.map((key) => getSignedImageUrl(key, expiresInSec)));
+  return Promise.all(keys.map((key) => getSignedImageUrl(key, expiresInSec, transform)));
 }
 
 export async function deleteObject(keyOrUrl: string): Promise<void> {
@@ -222,6 +208,7 @@ export async function deleteObjects(keysOrUrls: string[]): Promise<void> {
     );
   }
 }
+
 const ALLOWED_PAGE_CONTENT_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",

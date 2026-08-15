@@ -126,7 +126,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
           select: { lastChapterId: true, lastPage: true, scrollFraction: true },
         })
       : Promise.resolve(null),
-    getSignedImageUrls(chapter.pages),
+    getSignedImageUrls(chapter.pages, undefined, { width: 960 }),
     getChapterReactionSummary(chapterId, user?.id ?? null),
     prisma.comment.findMany({
       where: { chapterId, parentId: null, status: "APPROVED" },

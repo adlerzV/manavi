@@ -188,8 +188,7 @@ export async function getChapterPagePreviews(chapterId: string): Promise<ActionR
 
     await requireUploadAccess(chapter.comicId);
 
-    const previewUrls = chapter.pages.length ? await getSignedImageUrls(chapter.pages, 900) : [];
-    return { success: true, data: { previewUrls } };
+    const previewUrls = chapter.pages.length ? await getSignedImageUrls(chapter.pages, 900, { width: 300 }) : [];    return { success: true, data: { previewUrls } };
   } catch (err) {
     return safeError(err);
   }

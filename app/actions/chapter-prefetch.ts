@@ -8,5 +8,5 @@ const PREFETCH_PAGE_COUNT = 3;
 export async function getChapterPrefetchUrls(chapterId: string): Promise<string[]> {
   const chapter = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { pages: true } });
   if (!chapter || chapter.pages.length === 0) return [];
-  return getSignedImageUrls(chapter.pages.slice(0, PREFETCH_PAGE_COUNT));
+  return getSignedImageUrls(chapter.pages.slice(0, PREFETCH_PAGE_COUNT), undefined, { width: 960 });
 }

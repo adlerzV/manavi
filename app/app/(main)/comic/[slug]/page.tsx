@@ -90,7 +90,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
     firstChapter && licenseActive
       ? prisma.chapter
           .findUnique({ where: { id: firstChapter.id }, select: { pages: true } })
-          .then((c) => (c ? getSignedImageUrls(c.pages.slice(0, 3)) : []))
+          .then((c) => (c ? getSignedImageUrls(c.pages.slice(0, 3), undefined, { width: 640 }) : []))
       : Promise.resolve([]),
     user
       ? prisma.readHistory.findUnique({ where: { userId_comicId: { userId: user.id, comicId: comic.id } } })
