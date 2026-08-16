@@ -1,40 +1,42 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { getActiveSubscriptionPlans } from "@/lib/subscription-plans";
 import { getActiveCoinPackages } from "@/lib/coin-packages";
 import { isTonConfigured } from "@/lib/ton";
-import { SubscriptionPlans } from "@/components/shop/subscription-plans";
+import { getChapterUnlockCoinCost, getCoinPriceTon } from "@/lib/platform-settings";
 import { CoinPackages } from "@/components/shop/coin-packages";
+import { CustomCoinPurchase } from "@/components/shop/custom-coin-purchase";
 
 interface PageProps {
-  searchParams: Promise<{ tab?: "subscriptions" | "coins"; redirect?: string }>;
+  searchParams: Promise<{ redirect?: string }>;
 }
 
 export default async function ShopPage({ searchParams }: PageProps) {
   const { redirect } = await searchParams;
-  const [user, plans, coinPackages] = await Promise.all([
+  const [user, coinPackages, coinCost, coinPriceTon] = await Promise.all([
     getSessionUser(),
-    getActiveSubscriptionPlans(),
     getActiveCoinPackages(),
+    getChapterUnlockCoinCost(),
+    getCoinPriceTon(),
   ]);
   const tonConfigured = isTonConfigured();
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-2xl space-y-10">
+      <div className="mx-auto max-w-2xl space-y-8">
         <div>
-          <h1 className="text-lg font-medium text-text-main">فروشگاه</h1>
+          <h1 className="text-lg font-medium text-text-main">فروشگاه سکه</h1>
           <p className="mt-1 text-sm text-text-muted">
             موجودی سکه شما: {(user?.coinsBalance ?? 0).toLocaleString("fa-IR")}
           </p>
-          {user?.subscriptionEnd && user.subscriptionEnd > new Date() && (
-            <p className="text-sm text-primary">
-              اشتراک ویژه تا {user.subscriptionEnd.toLocaleDateString("fa-IR")} فعال است
-            </p>
-          )}
           <Link href="/buy-with-ton" className="mt-2 inline-block text-xs text-primary underline">
             آموزش خرید با TON
           </Link>
+        </div>
+
+        <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm leading-7 text-text-muted">
+          سکه تنها ارز داخل مناویه؛ باهاش می‌تونی <span className="text-text-main">چپترهای سکه‌ای رو باز کنی</span> و{" "}
+          <span className="text-text-main">مستقیم از مترجم‌ها و طراح‌ها حمایت مالی (دونیت) کنی</span>. هر چپتر سکه‌ای دقیقاً{" "}
+          <span className="font-medium text-primary">{coinCost.toLocaleString("fa-IR")} سکه</span> هزینه داره — این قیمت روی همه‌ی چپترهای پولی مناوی یکسانه.
         </div>
 
         {!tonConfigured && (
@@ -43,32 +45,28 @@ export default async function ShopPage({ searchParams }: PageProps) {
           </div>
         )}
 
-        {plans.length > 0 ? (
-          <section>
-            <h2 className="mb-3 text-sm font-medium text-text-main">اشتراک ویژه</h2>
-            <SubscriptionPlans
-              plans={plans}
-              authenticated={Boolean(user)}
-              tonConfigured={tonConfigured}
-              redirectTo={redirect}
-            />
-          </section>
-        ) : (
-          <section className="rounded-md border border-border bg-surface p-6 text-center">
-            <p className="text-sm font-medium text-text-main">در حال حاضر همه محتوای مناوی رایگان است 🎉</p>
-            <p className="mt-1 text-xs text-text-muted">اشتراک ویژه هنوز فعال نشده — به‌زودی امکانات بیشتری اضافه می‌شود.</p>
-          </section>
-        )}
-
         <section>
-          <h2 className="mb-3 text-sm font-medium text-text-main">خرید سکه</h2>
+          <h2 className="mb-3 text-sm font-medium text-text-main">پکیج‌های سکه</h2>
           <CoinPackages
             packages={coinPackages}
             authenticated={Boolean(user)}
             tonConfigured={tonConfigured}
             redirectTo={redirect}
+            coinCost={coinCost}
           />
         </section>
+
+        {tonConfigured && (
+          <section>
+            <h2 className="mb-3 text-sm font-medium text-text-main">خرید سکه به مقدار دلخواه</h2>
+            <CustomCoinPurchase
+              authenticated={Boolean(user)}
+              coinCost={coinCost}
+              coinPriceTon={coinPriceTon}
+              redirectTo={redirect}
+            />
+          </section>
+        )}
       </div>
     </main>
   );

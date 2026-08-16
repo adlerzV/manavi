@@ -11,13 +11,14 @@ interface CoinPackagesProps {
   authenticated: boolean;
   tonConfigured: boolean;
   redirectTo?: string;
+  coinCost: number;
 }
 
 function rate(pack: CoinPackageView): number {
   return (pack.priceTon ?? 0) / pack.totalCoins;
 }
 
-export function CoinPackages({ packages, authenticated, tonConfigured, redirectTo }: CoinPackagesProps) {
+export function CoinPackages({ packages, authenticated, tonConfigured, redirectTo, coinCost }: CoinPackagesProps) {
   const router = useRouter();
   const payable = packages.filter((p) => p.priceTon != null);
   const bestValueId = payable.length > 0 ? [...payable].sort((a, b) => rate(a) - rate(b))[0].id : null;
@@ -41,6 +42,7 @@ export function CoinPackages({ packages, authenticated, tonConfigured, redirectT
             pack.originalPriceToman && pack.originalPriceToman > pack.priceToman
               ? Math.round((1 - pack.priceToman / pack.originalPriceToman) * 100)
               : 0;
+          const equivalentChapters = coinCost > 0 ? Math.floor(pack.totalCoins / coinCost) : 0;
           return (
             <div
               key={pack.id}
@@ -55,6 +57,9 @@ export function CoinPackages({ packages, authenticated, tonConfigured, redirectT
               )}
               <p className="text-sm font-medium text-text-main">🪙 {pack.coins.toLocaleString("fa-IR")}</p>
               {pack.bonusCoins > 0 && <p className="text-[11px] text-primary">+{pack.bonusCoins.toLocaleString("fa-IR")} هدیه</p>}
+              {equivalentChapters > 0 && (
+                <p className="mt-1 text-[10px] text-text-muted">≈ {equivalentChapters.toLocaleString("fa-IR")} چپتر</p>
+              )}
               {discountPercent > 0 && (
                 <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
                   {discountPercent.toLocaleString("fa-IR")}٪ تخفیف

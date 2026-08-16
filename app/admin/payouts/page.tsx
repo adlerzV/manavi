@@ -1,26 +1,36 @@
-import { prisma } from "@/lib/prisma";
-import { PayoutReviewPanel } from "@/components/admin/payout-review-panel";
+import { getPublisherSettlementLog, listPayoutLog } from "@/app/admin/actions/settlement";
+import { PublisherSettlementLog } from "@/components/admin/publisher-settlement-log";
+import { PayoutLogTable } from "@/components/admin/payout-log-table";
+
+function firstDayOfMonth(): string {
+  const d = new Date();
+  d.setDate(1);
+  return d.toISOString().slice(0, 10);
+}
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default async function AdminPayoutsPage() {
-  const payouts = await prisma.payoutRequest.findMany({
-    where: { status: "PENDING" },
-    orderBy: { requestedAt: "asc" },
-    include: { publisher: { select: { name: true } } },
-  });
+  const [settlementRows, payoutLog] = await Promise.all([
+    getPublisherSettlementLog(firstDayOfMonth(), today()),
+    listPayoutLog(),
+  ]);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-text-main">درخواست‌های تسویه‌حساب</h1>
-      <div className="divide-y divide-border rounded-md border border-border">
-        {payouts.map((p) => (
-          <PayoutReviewPanel
-            key={p.id}
-            payoutId={p.id}
-            publisherName={p.publisher.name}
-            amountTon={p.amountTon != null ? Number(p.amountTon) : null}
-          />
-        ))}
-        {payouts.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">درخواستی در انتظار نیست.</p>}
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-xl font-semibold text-text-main">تسویه‌حساب ناشران</h1>
+        <p className="mt-1 text-sm text-text-muted">
+          سهم هر ناشر از سکه‌های خرج‌شده روی چپترهاش رو بر اساس درصد لایسنس محاسبه می‌کنه و با نرخ فعلی سکه به TON تبدیل می‌کنه. پرداخت واقعی رو دستی از کیف پول خودتون انجام بدید، بعد اینجا ثبتش کنید. چون نرخ سکه به TON ممکنه تغییر کنه، عدد نمایش‌داده‌شده برای دوره‌های گذشته بر اساس نرخ فعلیه نه نرخ زمان تراکنش‌ها.
+        </p>
+      </div>
+
+      <PublisherSettlementLog initialRows={settlementRows} />
+
+      <div>
+        <h2 className="mb-3 text-lg font-medium text-text-main">تاریخچه پرداخت‌ها</h2>
+        <PayoutLogTable rows={payoutLog} />
       </div>
     </div>
   );

@@ -6,16 +6,11 @@ import Link from "next/link";
 
 interface CoinBalanceHeaderProps {
   coinsBalance: number;
-  subscriptionEnd: string | null;
   authenticated: boolean;
 }
 
-export function CoinBalanceHeader({ coinsBalance, subscriptionEnd, authenticated }: CoinBalanceHeaderProps) {
+export function CoinBalanceHeader({ coinsBalance, authenticated }: CoinBalanceHeaderProps) {
   const [open, setOpen] = useState(false);
-
-  const daysLeft = subscriptionEnd
-    ? Math.max(0, Math.ceil((new Date(subscriptionEnd).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
-    : null;
 
   return (
     <>
@@ -43,12 +38,8 @@ export function CoinBalanceHeader({ coinsBalance, subscriptionEnd, authenticated
                 <span className="text-sm text-text-muted">موجودی سکه</span>
                 <span className="text-lg font-semibold text-primary">🪙 {coinsBalance.toLocaleString("fa-IR")}</span>
               </div>
-              <div className="flex items-center justify-between rounded-md bg-background px-4 py-3">
-                <span className="text-sm text-text-muted">اشتراک ویژه</span>
-                <span className="text-sm text-text-main">{daysLeft !== null && daysLeft > 0 ? `${daysLeft.toLocaleString("fa-IR")} روز باقی‌مانده` : "فعال نیست"}</span>
-              </div>
               <Link href="/app/shop" onClick={() => setOpen(false)} className="block rounded-md bg-primary px-4 py-3 text-center text-sm font-medium text-primary-foreground">
-                شارژ سکه / تمدید اشتراک
+                شارژ سکه
               </Link>
             </div>
           </div>

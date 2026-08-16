@@ -3,7 +3,6 @@ import { prisma } from "./prisma";
 import type { Transaction } from "@prisma/client";
 import { REFERRAL_REWARD_COINS } from "./gamification";
 import { invalidateSessionUserCache } from "./auth";
-import { invalidateSubscriptionCache } from "./chapters";
 import {
   getPlatformTonAddress,
   tonToNanotons,
@@ -44,30 +43,22 @@ async function grantReferralRewardIfEligible(payerId: string): Promise<void> {
 }
 
 async function applySettlementSideEffects(transaction: Transaction): Promise<void> {
-  if (transaction.type === "SUBSCRIPTION" && transaction.subscriptionPlanId) {
-    const plan = await prisma.subscriptionPlan.findUnique({ where: { id: transaction.subscriptionPlanId } });
-    if (plan) {
-      const payer = await prisma.user.findUnique({ where: { id: transaction.payerId }, select: { subscriptionEnd: true } });
-      const base = payer?.subscriptionEnd && payer.subscriptionEnd > new Date() ? payer.subscriptionEnd : new Date();
-      const newEnd = new Date(base);
-      newEnd.setMonth(newEnd.getMonth() + plan.months);
-      await prisma.user.update({ where: { id: transaction.payerId }, data: { isSubscribed: true, subscriptionEnd: newEnd } });
-      await grantReferralRewardIfEligible(transaction.payerId);
-      await Promise.all([
-        invalidateSessionUserCache(transaction.payerId),
-        invalidateSubscriptionCache(transaction.payerId),
-      ]);
-    }
-    return;
+  if (transaction.type !== "COIN_PURCHASE") return;
+
+  let coinsToGrant = 0;
+
+  if (transaction.coinPackageId) {
+    const pack = await prisma.coinPackage.findUnique({ where: { id: transaction.coinPackageId } });
+    if (pack) coinsToGrant = pack.coins + pack.bonusCoins;
+  } else if (transaction.customCoins) {
+    coinsToGrant = transaction.customCoins;
   }
 
-  if (transaction.type === "COIN_PURCHASE" && transaction.coinPackageId) {
-    const pack = await prisma.coinPackage.findUnique({ where: { id: transaction.coinPackageId } });
-    if (pack) {
-      await prisma.user.update({ where: { id: transaction.payerId }, data: { coinsBalance: { increment: pack.coins + pack.bonusCoins } } });
-      await invalidateSessionUserCache(transaction.payerId);
-    }
-  }
+  if (coinsToGrant <= 0) return;
+
+  await prisma.user.update({ where: { id: transaction.payerId }, data: { coinsBalance: { increment: coinsToGrant } } });
+  await invalidateSessionUserCache(transaction.payerId);
+  await grantReferralRewardIfEligible(transaction.payerId);
 }
 
 async function claimAndSettle(transaction: Transaction, txHash: string): Promise<TonSettlementStatus> {

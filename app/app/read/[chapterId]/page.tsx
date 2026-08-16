@@ -6,7 +6,6 @@ import { isLicenseCurrentlyActive } from "@/lib/license";
 import { getChapterAccessList, userHasChapterAccess } from "@/lib/chapters";
 import { getSignedImageUrls } from "@/lib/s3";
 import { recordChapterVisit } from "@/lib/analytics";
-import { hasActiveSubscription } from "@/lib/billing";
 import { getChapterUnlockCoinCost } from "@/lib/platform-settings";
 import { ChapterReader } from "@/components/reader/chapter-reader";
 import { LockedChapterGate } from "@/components/reader/locked-chapter-gate";
@@ -87,7 +86,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
   return <AgeVerificationGate isAuthenticated={Boolean(user)} />;
   }
 
-  const showAd = !hasActiveSubscription(user?.subscriptionEnd);
+  const showAd = chapter.accessType === "FREE";
 
   const entry = accessList.find((c) => c.id === chapterId);
   const locked = entry?.locked ?? false;
@@ -101,7 +100,6 @@ export default async function ReadChapterPage({ params }: PageProps) {
           chapterId={chapterId}
           comicSlug={chapter.comic.slug}
           coinsBalance={user?.coinsBalance ?? 0}
-          accessType={chapter.accessType}
           coinCost={coinCost}
         />
       );

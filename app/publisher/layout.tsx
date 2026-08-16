@@ -21,8 +21,7 @@ export default async function PublisherLayout({ children }: { children: ReactNod
   if (!context || context.isOwner) {
     NAV.push(
       { href: "/publisher/profile", label: "پروفایل", icon: "UserCircle" },
-      { href: "/publisher/team", label: "تیم", icon: "Users" },
-      { href: "/publisher/payouts", label: "تسویه‌حساب", icon: "Wallet" }
+      { href: "/publisher/team", label: "تیم", icon: "Users" }
     );
   }
 

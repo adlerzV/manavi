@@ -13,11 +13,10 @@ const NAV: SidebarNavItem[] = [
   { href: "/admin/genres", label: "ژانرها", icon: "Tags" },
   { href: "/admin/comments", label: "نظرات", icon: "MessageSquare" },
   { href: "/admin/users", label: "کاربران", icon: "Users" },
-  { href: "/admin/subscriptions", label: "پلن‌های اشتراک", icon: "Gem" },
   { href: "/admin/coin-packages", label: "پکیج‌های سکه", icon: "Coins" },
   { href: "/admin/transactions", label: "تراکنش‌ها", icon: "Receipt" },
   { href: "/admin/analytics", label: "آمار", icon: "BarChart3" },
-  { href: "/admin/payouts", label: "تسویه‌حساب", icon: "Wallet" },
+  { href: "/admin/payouts", label: "تسویه‌حساب ناشران", icon: "Wallet" },
   { href: "/admin/broadcast", label: "پیام همگانی", icon: "Megaphone" },
   { href: "/admin/settings", label: "تنظیمات سراسری", icon: "LayoutDashboard" },
 ];

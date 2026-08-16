@@ -7,14 +7,13 @@ export function BroadcastForm() {
   const [message, setMessage] = useState("");
   const [buttonText, setButtonText] = useState("");
   const [buttonUrl, setButtonUrl] = useState("");
-  const [audience, setAudience] = useState<"ALL" | "ACTIVE_SUBSCRIBERS">("ALL");
   const [status, setStatus] = useState<"idle" | "sending" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!confirm("پیام برای همه کاربران هدف ارسال می‌شود. مطمئنید؟")) return;
+    if (!confirm("پیام برای همه کاربران فعال ارسال می‌شود. مطمئنید؟")) return;
 
     setStatus("sending");
     setError(null);
@@ -24,7 +23,6 @@ export function BroadcastForm() {
       message,
       buttonText: buttonText || undefined,
       buttonUrl: buttonUrl || undefined,
-      audience,
     });
 
     if (response.success && response.data) {
@@ -42,14 +40,6 @@ export function BroadcastForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-border bg-surface p-6">
       <h2 className="text-lg font-medium text-text-main">ارسال پیام همگانی به تلگرام</h2>
-
-      <div className="space-y-1">
-        <label className="text-sm text-text-muted" htmlFor="broadcast-audience">مخاطبان</label>
-        <select id="broadcast-audience" value={audience} onChange={(e) => setAudience(e.target.value as typeof audience)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary">
-          <option value="ALL">همه کاربران فعال (غیرمسدود)</option>
-          <option value="ACTIVE_SUBSCRIBERS">فقط مشترکین ویژه فعال</option>
-        </select>
-      </div>
 
       <div className="space-y-1">
         <label className="text-sm text-text-muted" htmlFor="broadcast-message">متن پیام</label>

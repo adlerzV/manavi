@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getRoyaltyDashboard } from "@/app/publisher/actions/royalty";
 import { getPublisherOverviewStats } from "@/app/publisher/actions/overview";
 
@@ -44,9 +43,9 @@ export async function RoyaltyDashboard() {
         {summaries.length === 0 && <p className="px-4 py-3 text-sm text-text-muted">داده‌ای موجود نیست.</p>}
       </div>
 
-      <Link href="/publisher/payouts" className="block rounded-md border border-border bg-surface px-4 py-3 text-center text-sm text-primary hover:border-primary">
-        درخواست تسویه‌حساب با TON
-      </Link>
+      <p className="rounded-md border border-border bg-surface px-4 py-3 text-center text-xs text-text-muted">
+        تسویه‌حساب TON به‌صورت ماهانه و دستی توسط مدیریت انجام می‌شه — نیازی به درخواست از طرف شما نیست.
+      </p>
     </div>
   );
 }

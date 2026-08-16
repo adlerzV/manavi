@@ -25,3 +25,7 @@ export async function getChapterUnlockCoinCost(): Promise<number> {
 export async function getNewReleaseThresholdHours(): Promise<number> {
   return (await getPlatformSettings()).newReleaseThresholdHours;
 }
+
+export async function getCoinPriceTon(): Promise<number> {
+  return Number((await getPlatformSettings()).coinPriceTon);
+}

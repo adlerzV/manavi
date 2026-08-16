@@ -12,7 +12,8 @@ import { GenrePill } from "@/components/catalog/genre-pill";
 import { ComicDetailTabs } from "@/components/catalog/comic-detail-tabs";
 import { ChapterOnePreview } from "@/components/catalog/chapter-one-preview";
 import { BackButton } from "@/components/navigation/back-button";
-import { getChapterAccessList, type ChapterAccessInfo } from "@/lib/chapters";
+import { ComicUnlockButton } from "@/components/reader/comic-unlock-button";
+import { getChapterAccessList, getComicUnlockPreview, type ChapterAccessInfo } from "@/lib/chapters";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
 
 export const revalidate = 300;
@@ -32,8 +33,7 @@ function accessBadgeLabel(chapter: ChapterAccessInfo): string | null {
   if (!chapter.locked) {
     return null;
   }
-  if (chapter.accessType === "SUBSCRIPTION") return "فقط اشتراک ویژه";
-  return "🪙 نیازمند سکه یا اشتراک";
+  return "🪙 سکه‌ای";
 }
 
 export default async function ComicDetailPage({ params }: PageProps) {
@@ -64,7 +64,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
   const licenseActive = comic.license.status === "ACTIVE";
   const firstChapter = sortedChapters[0];
 
-  const [bookmarked, similarComics, firstChapterPages, readHistoryEntry, readChapterIds, hasRead] = await Promise.all([
+  const [bookmarked, similarComics, firstChapterPages, readHistoryEntry, readChapterIds, hasRead, unlockPreview] = await Promise.all([
     user
       ? prisma.bookmark.findUnique({ where: { userId_comicId: { userId: user.id, comicId: comic.id } } }).then(Boolean)
       : Promise.resolve(false),
@@ -97,6 +97,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
       : Promise.resolve(null),
     user ? getReadChapterIds(user.id, comic.id) : Promise.resolve(new Set<string>()),
     user ? hasReadAnyChapter(user.id, comic.id) : Promise.resolve(false),
+    licenseActive ? getComicUnlockPreview(user?.id ?? null, comic.id) : Promise.resolve({ lockedCount: 0, totalCost: 0, coinCost: 0 }),
   ]);
 
   const resumeChapter = readHistoryEntry ? sortedChapters.find((c) => c.id === readHistoryEntry.lastChapterId) ?? null : null;
@@ -171,6 +172,18 @@ export default async function ComicDetailPage({ params }: PageProps) {
         <div className="mt-4 flex items-center gap-3">
           <BookmarkButton comicId={comic.id} comicSlug={comic.slug} authenticated={Boolean(user)} initialBookmarked={bookmarked} />
         </div>
+
+        {licenseActive && unlockPreview.lockedCount > 0 && (
+          <div className="mt-4">
+            <ComicUnlockButton
+              comicId={comic.id}
+              lockedCount={unlockPreview.lockedCount}
+              totalCost={unlockPreview.totalCost}
+              authenticated={Boolean(user)}
+              coinsBalance={user?.coinsBalance ?? 0}
+            />
+          </div>
+        )}
 
         {!licenseActive && (
           <p className="mt-4 rounded-md border border-border bg-surface px-4 py-3 text-sm text-text-muted">

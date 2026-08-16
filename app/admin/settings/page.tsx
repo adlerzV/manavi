@@ -9,6 +9,7 @@ export default async function AdminSettingsPage() {
       <PlatformSettingsForm
         initialCoinCost={settings.chapterUnlockCoinCost}
         initialThresholdHours={settings.newReleaseThresholdHours}
+        initialCoinPriceTon={Number(settings.coinPriceTon)}
       />
     </div>
   );

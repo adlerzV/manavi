@@ -6,14 +6,17 @@ import { updatePlatformSettings } from "@/app/admin/actions/platform-settings";
 interface PlatformSettingsFormProps {
   initialCoinCost: number;
   initialThresholdHours: number;
+  initialCoinPriceTon: number;
 }
 
 export function PlatformSettingsForm({
   initialCoinCost,
   initialThresholdHours,
+  initialCoinPriceTon,
 }: PlatformSettingsFormProps) {
   const [coinCost, setCoinCost] = useState(initialCoinCost);
   const [thresholdHours, setThresholdHours] = useState(initialThresholdHours);
+  const [coinPriceTon, setCoinPriceTon] = useState(initialCoinPriceTon);
   const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +28,7 @@ export function PlatformSettingsForm({
     const result = await updatePlatformSettings({
       chapterUnlockCoinCost: Number(coinCost),
       newReleaseThresholdHours: Number(thresholdHours),
+      coinPriceTon: Number(coinPriceTon),
     });
 
     if (result.success) {
@@ -53,7 +57,26 @@ export function PlatformSettingsForm({
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
           />
           <p className="text-xs text-text-muted">
-            پیش‌نمایش: آنلاک هر چپتر با پرداخت <span className="font-semibold text-accent">{coinCost.toLocaleString("fa-IR")} سکه</span> انجام خواهد شد.
+            پیش‌نمایش: آنلاک هر چپتر سکه‌ای با پرداخت <span className="font-semibold text-accent">{coinCost.toLocaleString("fa-IR")} سکه</span> انجام خواهد شد. این قیمت روی همه‌ی چپترهای سکه‌ای پلتفرم یکسانه.
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-text-main" htmlFor="coin-price-ton">
+            ارزش هر سکه به TON
+          </label>
+          <input
+            id="coin-price-ton"
+            type="number"
+            min="0"
+            step="any"
+            value={coinPriceTon}
+            onChange={(e) => setCoinPriceTon(Number(e.target.value))}
+            required
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
+          />
+          <p className="text-xs text-text-muted">
+            این نرخ برای «خرید سکه به مقدار دلخواه» در فروشگاه و همچنین تبدیل سهم ناشرها از سکه به TON در لاگ تسویه‌حساب استفاده می‌شه. قیمت پکیج‌های سکه مستقل از این نرخ و دستی تنظیم می‌شه.
           </p>
         </div>
 

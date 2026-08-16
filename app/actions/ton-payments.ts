@@ -11,8 +11,8 @@ import {
   generateTonComment,
 } from "@/lib/ton";
 import { findActiveCoinPackage } from "@/lib/coin-packages";
-import { findActiveSubscriptionPlan } from "@/lib/subscription-plans";
-import { MIN_DONATION_TON, MAX_DONATION_TON } from "@/lib/billing";
+import { getChapterUnlockCoinCost, getCoinPriceTon } from "@/lib/platform-settings";
+import { MIN_DONATION_TON, MAX_DONATION_TON, MAX_CUSTOM_COINS } from "@/lib/billing";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -28,13 +28,13 @@ export interface TonPaymentRequest {
 }
 
 async function createPendingTransaction(input: {
-  type: "SUBSCRIPTION" | "COIN_PURCHASE" | "DONATION";
+  type: "COIN_PURCHASE" | "DONATION";
   amountTon: number;
   payerId: string;
   receiverId?: string;
   message?: string;
-  subscriptionPlanId?: string;
   coinPackageId?: string;
+  customCoins?: number;
 }) {
   const transaction = await prisma.transaction.create({
     data: {
@@ -45,8 +45,8 @@ async function createPendingTransaction(input: {
       payerId: input.payerId,
       receiverId: input.receiverId,
       message: input.message,
-      subscriptionPlanId: input.subscriptionPlanId,
       coinPackageId: input.coinPackageId,
+      customCoins: input.customCoins,
     },
   });
 
@@ -54,38 +54,6 @@ async function createPendingTransaction(input: {
   await prisma.transaction.update({ where: { id: transaction.id }, data: { tonComment: comment } });
 
   return { transaction, comment };
-}
-
-export async function createTonSubscriptionPayment(planId: string): Promise<ActionResult<TonPaymentRequest>> {
-  const user = await getSessionUser();
-  if (!user) return { success: false, error: "برای خرید باید وارد شوید" };
-  if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
-  if (!isTonConfigured()) return { success: false, error: "پرداخت تون هنوز پیکربندی نشده است" };
-
-  const allowed = await checkRateLimit(`ton-subscribe:${user.id}`, 5);
-  if (!allowed) return { success: false, error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" };
-
-  const plan = await findActiveSubscriptionPlan(planId);
-  if (!plan || plan.priceTon == null) {
-    return { success: false, error: "این پلن برای پرداخت با تون در دسترس نیست" };
-  }
-
-  const { transaction, comment } = await createPendingTransaction({
-    type: "SUBSCRIPTION",
-    amountTon: Number(plan.priceTon),
-    payerId: user.id,
-    subscriptionPlanId: plan.id,
-  });
-
-  return {
-    success: true,
-    data: {
-      transactionId: transaction.id,
-      toAddress: getPlatformTonAddress(),
-      amountNanotons: tonToNanotons(Number(plan.priceTon)).toString(),
-      comment,
-    },
-  };
 }
 
 export async function createTonCoinPayment(packageId: string): Promise<ActionResult<TonPaymentRequest>> {
@@ -115,6 +83,44 @@ export async function createTonCoinPayment(packageId: string): Promise<ActionRes
       transactionId: transaction.id,
       toAddress: getPlatformTonAddress(),
       amountNanotons: tonToNanotons(Number(pack.priceTon)).toString(),
+      comment,
+    },
+  };
+}
+
+export async function createTonCustomCoinPayment(coins: number): Promise<ActionResult<TonPaymentRequest>> {
+  const user = await getSessionUser();
+  if (!user) return { success: false, error: "برای خرید باید وارد شوید" };
+  if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
+  if (!isTonConfigured()) return { success: false, error: "پرداخت تون هنوز پیکربندی نشده است" };
+
+  const coinCost = await getChapterUnlockCoinCost();
+  if (!Number.isInteger(coins) || coins < coinCost || coins > MAX_CUSTOM_COINS) {
+    return {
+      success: false,
+      error: `تعداد سکه باید حداقل ${coinCost.toLocaleString("fa-IR")} و حداکثر ${MAX_CUSTOM_COINS.toLocaleString("fa-IR")} باشد`,
+    };
+  }
+
+  const allowed = await checkRateLimit(`ton-coins-custom:${user.id}`, 5);
+  if (!allowed) return { success: false, error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" };
+
+  const coinPriceTon = await getCoinPriceTon();
+  const amountTon = Math.round(coins * coinPriceTon * 1e9) / 1e9;
+
+  const { transaction, comment } = await createPendingTransaction({
+    type: "COIN_PURCHASE",
+    amountTon,
+    payerId: user.id,
+    customCoins: coins,
+  });
+
+  return {
+    success: true,
+    data: {
+      transactionId: transaction.id,
+      toAddress: getPlatformTonAddress(),
+      amountNanotons: tonToNanotons(amountTon).toString(),
       comment,
     },
   };

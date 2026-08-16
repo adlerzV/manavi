@@ -55,11 +55,7 @@ export default async function AppHomePage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <CoinBalanceHeader
-        coinsBalance={user?.coinsBalance ?? 0}
-        subscriptionEnd={user?.subscriptionEnd?.toISOString() ?? null}
-        authenticated={Boolean(user)}
-      />
+      <CoinBalanceHeader coinsBalance={user?.coinsBalance ?? 0} authenticated={Boolean(user)} />
 
       <HeroCarousel comics={shuffledHeroComics} />
 

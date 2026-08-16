@@ -4,27 +4,12 @@ import { prisma } from "./prisma";
 import { ChapterAccessType } from "@prisma/client";
 import type { ChapterAccessInfo } from "./chapter-access";
 import { redis } from "./redis";
+import { getChapterUnlockCoinCost } from "./platform-settings";
 
 export type { ChapterAccessInfo };
 
-const SUBSCRIPTION_CACHE_TTL_SECONDS = 60;
 const COIN_UNLOCK_CACHE_TTL_SECONDS = 300;
-
-const subscriptionCacheKey = (userId: string) => `has-sub:${userId}`;
 const coinUnlockCacheKey = (userId: string, chapterId: string) => `chapter-unlock:${userId}:${chapterId}`;
-
-async function hasActiveSubscriptionCached(userId: string): Promise<boolean> {
-  const key = subscriptionCacheKey(userId);
-  try {
-    const cached = await redis.get<boolean>(key);
-    if (cached !== null) return cached;
-  } catch {}
-
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { subscriptionEnd: true } });
-  const active = Boolean(user?.subscriptionEnd && user.subscriptionEnd > new Date());
-  redis.set(key, active, { ex: SUBSCRIPTION_CACHE_TTL_SECONDS }).catch(() => {});
-  return active;
-}
 
 async function hasCoinUnlockCached(userId: string, chapterId: string): Promise<boolean> {
   const key = coinUnlockCacheKey(userId, chapterId);
@@ -37,10 +22,6 @@ async function hasCoinUnlockCached(userId: string, chapterId: string): Promise<b
   const hasUnlock = Boolean(unlock && (!unlock.expiresAt || unlock.expiresAt > new Date()));
   redis.set(key, hasUnlock, { ex: COIN_UNLOCK_CACHE_TTL_SECONDS }).catch(() => {});
   return hasUnlock;
-}
-
-export async function invalidateSubscriptionCache(userId: string): Promise<void> {
-  await redis.del(subscriptionCacheKey(userId)).catch(() => {});
 }
 
 export async function invalidateChapterUnlockCache(userId: string, chapterId: string): Promise<void> {
@@ -91,15 +72,38 @@ export async function userHasChapterAccess(
   if (!userId) return false;
   if (role === "ADMIN") return true;
 
-  if (chapter.accessType === ChapterAccessType.SUBSCRIPTION) {
-    return hasActiveSubscriptionCached(userId);
+  return hasCoinUnlockCached(userId, chapterId);
+}
+
+export interface ComicUnlockPreview {
+  lockedCount: number;
+  totalCost: number;
+  coinCost: number;
+}
+
+export async function getComicUnlockPreview(userId: string | null, comicId: string): Promise<ComicUnlockPreview> {
+  const cost = await getChapterUnlockCoinCost();
+
+  const chapters = await prisma.chapter.findMany({
+    where: { comicId, status: "PUBLISHED", accessType: ChapterAccessType.COIN },
+    select: { id: true },
+  });
+
+  if (chapters.length === 0) {
+    return { lockedCount: 0, totalCost: 0, coinCost: cost };
   }
 
-  if (chapter.accessType === ChapterAccessType.COIN) {
-    return hasCoinUnlockCached(userId, chapterId);
-  }
+  const unlockedIds = userId
+    ? new Set(
+        (
+          await prisma.chapterUnlock.findMany({
+            where: { userId, chapterId: { in: chapters.map((c) => c.id) }, expiresAt: null },
+            select: { chapterId: true },
+          })
+        ).map((u) => u.chapterId)
+      )
+    : new Set<string>();
 
-  const hasActiveSubscription = await hasActiveSubscriptionCached(userId);
-  const hasCoinUnlock = await hasCoinUnlockCached(userId, chapterId);
-  return hasActiveSubscription || hasCoinUnlock;
+  const lockedCount = chapters.filter((c) => !unlockedIds.has(c.id)).length;
+  return { lockedCount, totalCost: lockedCount * cost, coinCost: cost };
 }

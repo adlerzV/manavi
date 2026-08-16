@@ -10,6 +10,7 @@ interface ActionResult<T = undefined> { success: boolean; error?: string; data?:
 export async function updatePlatformSettings(input: {
   chapterUnlockCoinCost: number;
   newReleaseThresholdHours: number;
+  coinPriceTon: number;
 }): Promise<ActionResult> {
   try {
     await requireAdmin();
@@ -19,13 +20,26 @@ export async function updatePlatformSettings(input: {
     if (!Number.isFinite(input.newReleaseThresholdHours) || input.newReleaseThresholdHours <= 0) {
       return { success: false, error: "بازه زمانی «جدید» باید عددی مثبت باشد" };
     }
+    if (!Number.isFinite(input.coinPriceTon) || input.coinPriceTon <= 0) {
+      return { success: false, error: "ارزش سکه به TON باید عددی مثبت باشد" };
+    }
     await prisma.platformSettings.upsert({
       where: { id: "singleton" },
-      update: { chapterUnlockCoinCost: input.chapterUnlockCoinCost, newReleaseThresholdHours: input.newReleaseThresholdHours },
-      create: { id: "singleton", chapterUnlockCoinCost: input.chapterUnlockCoinCost, newReleaseThresholdHours: input.newReleaseThresholdHours },
+      update: {
+        chapterUnlockCoinCost: input.chapterUnlockCoinCost,
+        newReleaseThresholdHours: input.newReleaseThresholdHours,
+        coinPriceTon: input.coinPriceTon,
+      },
+      create: {
+        id: "singleton",
+        chapterUnlockCoinCost: input.chapterUnlockCoinCost,
+        newReleaseThresholdHours: input.newReleaseThresholdHours,
+        coinPriceTon: input.coinPriceTon,
+      },
     });
     revalidateTag(PLATFORM_SETTINGS_TAG);
     revalidatePath("/admin/settings");
+    revalidatePath("/app/shop");
     return { success: true };
   } catch (err) {
     return safeError(err);

@@ -15,9 +15,7 @@ interface EditChapterFormProps {
 
 const DEFAULT_ACCESS_TYPE_OPTIONS: { value: ChapterAccessType; label: string }[] = [
   { value: "FREE", label: "رایگان" },
-  { value: "COIN_OR_SUBSCRIPTION", label: "سکه یا اشتراک (پیش‌فرض)" },
-  { value: "COIN", label: "فقط سکه" },
-  { value: "SUBSCRIPTION", label: "فقط اشتراک ویژه" },
+  { value: "COIN", label: "سکه‌ای (پیش‌فرض)" },
 ];
 
 export function EditChapterForm({

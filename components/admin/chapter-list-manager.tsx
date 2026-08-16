@@ -40,8 +40,6 @@ export function ChapterListManager({ chapters, restrictAccessTypes, pageSize = D
       ALL: chapters.length,
       FREE: 0,
       COIN: 0,
-      SUBSCRIPTION: 0,
-      COIN_OR_SUBSCRIPTION: 0,
     };
     for (const chapter of chapters) {
       base[chapter.accessType] += 1;

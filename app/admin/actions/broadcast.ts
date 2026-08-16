@@ -18,7 +18,6 @@ export async function sendBroadcast(input: {
   message: string;
   buttonText?: string;
   buttonUrl?: string;
-  audience: "ALL" | "ACTIVE_SUBSCRIBERS";
 }): Promise<ActionResult<{ sent: number; failed: number }>> {
   try {
     await requireAdmin();
@@ -30,10 +29,7 @@ export async function sendBroadcast(input: {
     }
 
     const users = await prisma.user.findMany({
-      where: {
-        isBanned: false,
-        ...(input.audience === "ACTIVE_SUBSCRIBERS" ? { subscriptionEnd: { gt: new Date() } } : {}),
-      },
+      where: { isBanned: false },
       select: { telegramId: true },
     });
 

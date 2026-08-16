@@ -14,8 +14,6 @@ const FILTERS: { value: ChapterAccessFilterValue; label: string }[] = [
   { value: "ALL", label: "همه" },
   { value: "FREE", label: "رایگان" },
   { value: "COIN", label: "سکه‌ای" },
-  { value: "SUBSCRIPTION", label: "اشتراکی" },
-  { value: "COIN_OR_SUBSCRIPTION", label: "سکه یا اشتراک" },
 ];
 
 export function ChapterAccessFilterTabs({ value, onChange, counts }: ChapterAccessFilterTabsProps) {
