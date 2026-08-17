@@ -160,6 +160,46 @@ export async function uploadComicBanner(
   return `${PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
 }
 
+export async function uploadUserAvatar(
+  userId: string,
+  file: Buffer,
+  contentType: string
+): Promise<string> {
+  if (!PUBLIC_BASE_URL) throw new BannerPublicUrlNotConfiguredError();
+  const extension = contentType.split("/")[1] || "bin";
+  const key = `users/${userId}/avatar-${randomUUID()}.${extension}`;
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: getS3Bucket(),
+      Key: key,
+      Body: file,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    })
+  );
+  return `${PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
+}
+
+export async function uploadPublisherAvatar(
+  publisherId: string,
+  file: Buffer,
+  contentType: string
+): Promise<string> {
+  if (!PUBLIC_BASE_URL) throw new BannerPublicUrlNotConfiguredError();
+  const extension = contentType.split("/")[1] || "bin";
+  const key = `publishers/${publisherId}/avatar-${randomUUID()}.${extension}`;
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: getS3Bucket(),
+      Key: key,
+      Body: file,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    })
+  );
+  return `${PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
+}
+
 export async function getSignedImageUrl(
   key: string,
   expiresInSec: number = DEFAULT_READ_URL_TTL_SECONDS,

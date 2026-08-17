@@ -11,7 +11,6 @@ interface PublisherProfileFormProps {
     telegramUrl: string | null;
     instagramUrl: string | null;
     websiteUrl: string | null;
-    donationCardNumber: string | null;
     donationLink: string | null;
     cryptoWalletLabel: string | null;
     cryptoWalletAddress: string | null;
@@ -25,7 +24,6 @@ export function PublisherProfileForm({ initial }: PublisherProfileFormProps) {
   const [telegramUrl, setTelegramUrl] = useState(initial.telegramUrl ?? "");
   const [instagramUrl, setInstagramUrl] = useState(initial.instagramUrl ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(initial.websiteUrl ?? "");
-  const [donationCardNumber, setDonationCardNumber] = useState(initial.donationCardNumber ?? "");
   const [donationLink, setDonationLink] = useState(initial.donationLink ?? "");
   const [cryptoWalletLabel, setCryptoWalletLabel] = useState(initial.cryptoWalletLabel ?? "");
   const [cryptoWalletAddress, setCryptoWalletAddress] = useState(initial.cryptoWalletAddress ?? "");
@@ -50,7 +48,7 @@ export function PublisherProfileForm({ initial }: PublisherProfileFormProps) {
     setError(null);
 
     const result = await updatePublisherProfile({
-      bio, avatarUrl, telegramUrl, instagramUrl, websiteUrl, donationCardNumber, donationLink,
+      bio, avatarUrl, telegramUrl, instagramUrl, websiteUrl, donationLink,
       cryptoWalletLabel, cryptoWalletAddress,
       customLinks: customLinks.filter((l) => l.label.trim() && l.url.trim()),
     });
@@ -92,15 +90,9 @@ export function PublisherProfileForm({ initial }: PublisherProfileFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="pub-card">شماره کارت دونیت</label>
-          <input id="pub-card" value={donationCardNumber} onChange={(e) => setDonationCardNumber(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="pub-donate-link">لینک دونیت خارجی</label>
-          <input id="pub-donate-link" value={donationLink} onChange={(e) => setDonationLink(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
-        </div>
+      <div className="space-y-1">
+        <label className="text-sm text-text-muted" htmlFor="pub-donate-link">لینک دونیت خارجی</label>
+        <input id="pub-donate-link" value={donationLink} onChange={(e) => setDonationLink(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
       </div>
 
       <div className="space-y-2 rounded-md border border-border bg-background p-3">

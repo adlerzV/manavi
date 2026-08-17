@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { StaffRole } from "@prisma/client";
 import { DonateButton } from "@/components/team/donate-button";
+import { STAFF_ROLE_LABELS } from "@/lib/staff-roles";
 
 export interface StaffCreditItem {
   userId: string;
@@ -11,13 +12,6 @@ export interface StaffCreditItem {
   roleTitle: StaffRole;
   hasWallet: boolean;
 }
-
-const ROLE_LABELS: Record<StaffRole, string> = {
-  LOCALIZATION_SPECIALIST: "مترجم",
-  EDITOR: "ادیتور",
-  CLEANER: "کلینر",
-  TYPIST: "تایپیست",
-};
 
 export function ChapterStaffCredits({ staff, isAuthenticated }: { staff: StaffCreditItem[]; isAuthenticated: boolean }) {
   if (staff.length === 0) return null;
@@ -30,7 +24,7 @@ export function ChapterStaffCredits({ staff, isAuthenticated }: { staff: StaffCr
           <div key={`${member.userId}-${member.roleTitle}`} className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2">
             <Link href={`/app/team/${member.userId}`} className="min-w-0">
               <p className="truncate text-sm text-white">{member.username ? `@${member.username}` : member.firstName}</p>
-              <p className="text-xs text-white/50">{ROLE_LABELS[member.roleTitle]}</p>
+              <p className="text-xs text-white/50">{STAFF_ROLE_LABELS[member.roleTitle]}</p>
             </Link>
             {member.hasWallet && <DonateButton receiverId={member.userId} authenticated={isAuthenticated} />}
           </div>

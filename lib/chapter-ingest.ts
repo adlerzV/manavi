@@ -63,5 +63,21 @@ export async function ingestChapter(input: IngestChapterInput): Promise<IngestCh
     },
   });
 
+  const comicStaff = await prisma.comicStaff.findMany({
+    where: { comicId: input.comicId },
+    select: { userId: true, roleTitle: true },
+  });
+
+  if (comicStaff.length > 0) {
+    await prisma.chapterStaff.createMany({
+      data: comicStaff.map((s) => ({
+        chapterId: chapter.id,
+        userId: s.userId,
+        roleTitle: s.roleTitle,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
   return { success: true, chapterId: chapter.id };
 }

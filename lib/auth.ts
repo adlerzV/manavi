@@ -10,6 +10,7 @@ export type SessionUser = User & { publisherProfile: Publisher | null };
 export interface PublisherContext {
   publisherId: string;
   isOwner: boolean;
+  canManageComics: boolean;
 }
 
 const SESSION_CACHE_TTL_SECONDS = 45;
@@ -112,20 +113,43 @@ export async function requireUploadAccess(comicId: string): Promise<SessionUser>
   throw new Error("Not authorized to upload for this comic");
 }
 
+export async function requireComicManageAccess(publisherId: string): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user) throw new Error("Not authenticated");
+  if (user.role === "ADMIN") return user;
+  if (user.publisherProfile?.id === publisherId) return user;
+
+  const staffLink = await prisma.publisherStaff.findFirst({
+    where: { userId: user.id, publisherId, canManageComics: true },
+  });
+  if (staffLink) return user;
+
+  throw new Error("Not authorized to manage comics for this publisher");
+}
+
+export async function requireComicManageAccessByComicId(comicId: string): Promise<SessionUser> {
+  const comic = await prisma.comic.findUnique({
+    where: { id: comicId },
+    select: { license: { select: { publisherId: true } } },
+  });
+  if (!comic) throw new Error("Comic not found");
+  return requireComicManageAccess(comic.license.publisherId);
+}
+
 export async function getPublisherContext(user: SessionUser | null): Promise<PublisherContext | null> {
   if (!user) return null;
 
   if (user.publisherProfile) {
-    return { publisherId: user.publisherProfile.id, isOwner: true };
+    return { publisherId: user.publisherProfile.id, isOwner: true, canManageComics: true };
   }
 
   const staffLink = await prisma.publisherStaff.findFirst({
     where: { userId: user.id },
     orderBy: { createdAt: "asc" },
-    select: { publisherId: true },
+    select: { publisherId: true, canManageComics: true },
   });
   if (staffLink) {
-    return { publisherId: staffLink.publisherId, isOwner: false };
+    return { publisherId: staffLink.publisherId, isOwner: false, canManageComics: staffLink.canManageComics };
   }
 
   return null;

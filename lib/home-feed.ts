@@ -18,7 +18,7 @@ export interface HeroComic {
 
 async function fetchHeroComics(allowedRatings: AgeRating[]): Promise<HeroComic[]> {
   const featured = await prisma.comic.findMany({
-    where: { ageRating: { in: allowedRatings }, isFeaturedOnHome: true },
+    where: { ageRating: { in: allowedRatings }, isFeaturedOnHome: true, approvalStatus: "APPROVED" },
     orderBy: { createdAt: "desc" },
     take: 6,
     select: { id: true, title: true, slug: true, description: true, coverImage: true, dominantColor: true, featuredBadge: true },
@@ -29,7 +29,7 @@ async function fetchHeroComics(allowedRatings: AgeRating[]): Promise<HeroComic[]
   }
 
   const fallback = await prisma.comic.findFirst({
-    where: { ageRating: { in: allowedRatings } },
+    where: { ageRating: { in: allowedRatings }, approvalStatus: "APPROVED" },
     orderBy: { bookmarks: { _count: "desc" } },
     select: { id: true, title: true, slug: true, description: true, coverImage: true, dominantColor: true, featuredBadge: true },
   });
@@ -76,6 +76,7 @@ export async function getGenreBasedRecommendations(userId: string, allowedRating
     where: {
       id: { notIn: [...viewedComicIds] },
       ageRating: { in: allowedRatings },
+      approvalStatus: "APPROVED",
       genres: { some: { genreId: topGenreId } },
     },
     orderBy: { viewCount: "desc" },
@@ -111,7 +112,7 @@ export interface LatestCommentItem {
 
 async function fetchLatestComments(allowedRatings: AgeRating[], limit = 8): Promise<LatestCommentItem[]> {
   const rows = await prisma.comment.findMany({
-    where: { isSpoiler: false, status: "APPROVED", chapter: { comic: { ageRating: { in: allowedRatings } } } },
+    where: { isSpoiler: false, status: "APPROVED", chapter: { comic: { ageRating: { in: allowedRatings }, approvalStatus: "APPROVED" } } },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {
@@ -156,7 +157,7 @@ export interface CompletedSeriesComic {
 
 async function fetchCompletedSeries(allowedRatings: AgeRating[], limit = 12): Promise<CompletedSeriesComic[]> {
   const comics = await prisma.comic.findMany({
-    where: { ageRating: { in: allowedRatings }, status: "COMPLETED" },
+    where: { ageRating: { in: allowedRatings }, status: "COMPLETED", approvalStatus: "APPROVED" },
     orderBy: { viewCount: "desc" },
     take: limit,
     select: {
@@ -195,7 +196,7 @@ export interface MostBookmarkedComic {
 
 async function fetchMostBookmarkedComics(allowedRatings: AgeRating[], limit = 12): Promise<MostBookmarkedComic[]> {
   const comics = await prisma.comic.findMany({
-    where: { ageRating: { in: allowedRatings } },
+    where: { ageRating: { in: allowedRatings }, approvalStatus: "APPROVED" },
     orderBy: { bookmarks: { _count: "desc" } },
     take: limit,
     select: {
@@ -239,7 +240,7 @@ export interface CategoryPreview {
 
 async function fetchCategoryPreview(categoryId: string, allowedRatings: AgeRating[]): Promise<HomeFeedComic[]> {
   const comics = await prisma.comic.findMany({
-    where: { categoryId, ageRating: { in: allowedRatings } },
+    where: { categoryId, ageRating: { in: allowedRatings }, approvalStatus: "APPROVED" },
     orderBy: { createdAt: "desc" },
     take: 10,
     select: {

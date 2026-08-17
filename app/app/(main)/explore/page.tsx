@@ -55,6 +55,7 @@ export default async function ExplorePage({ searchParams }: PageProps) {
             slug: true,
             coverImage: true,
             dominantColor: true,
+            status: true,
             chapters: {
               where: { publishedAt: { not: null } },
               orderBy: { chapterNumber: "desc" },
@@ -124,6 +125,7 @@ export default async function ExplorePage({ searchParams }: PageProps) {
                   coverImage={comic.coverImage}
                   dominantColor={comic.dominantColor}
                   latestChapter={comic.chapters[0]?.chapterNumber ?? null}
+                  completed={comic.status === "COMPLETED"}
                   priority={index < 4}
                 />
               ))}

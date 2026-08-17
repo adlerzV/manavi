@@ -7,17 +7,11 @@ import { DonateButton } from "@/components/team/donate-button";
 import { BackButton } from "@/components/navigation/back-button";
 import { WalletAndLinks } from "@/components/support/wallet-and-links";
 import { parseCustomLinks } from "@/lib/profile-links";
+import { STAFF_ROLE_LABELS } from "@/lib/staff-roles";
 
 interface PageProps {
   params: Promise<{ userId: string }>;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  LOCALIZATION_SPECIALIST: "مترجم",
-  EDITOR: "ادیتور",
-  CLEANER: "کلینر",
-  TYPIST: "تایپیست",
-};
 
 export default async function TeamProfilePage({ params }: PageProps) {
   const { userId } = await params;
@@ -54,7 +48,6 @@ export default async function TeamProfilePage({ params }: PageProps) {
     _count: { _all: true },
   });
 
-  // 👈 اصلاح علامت < قبل از string
   const comicsByTitle = new Map<
     string,
     { id: string; title: string; slug: string; coverImage: string; roles: Set<string> }
@@ -123,7 +116,7 @@ export default async function TeamProfilePage({ params }: PageProps) {
           {chapterCounts.map((c) => (
             <div key={c.roleTitle} className="rounded-md border border-border bg-surface p-4 text-center">
               <p className="text-2xl font-semibold text-primary">{c._count._all}</p>
-              <p className="mt-1 text-xs text-text-muted">{ROLE_LABELS[c.roleTitle] ?? c.roleTitle}</p>
+              <p className="mt-1 text-xs text-text-muted">{STAFF_ROLE_LABELS[c.roleTitle] ?? c.roleTitle}</p>
             </div>
           ))}
           {chapterCounts.length === 0 && (
@@ -141,7 +134,7 @@ export default async function TeamProfilePage({ params }: PageProps) {
               <p className="mt-2 truncate text-sm text-text-main">{comic.title}</p>
               <p className="text-xs text-text-muted">
                 {Array.from(comic.roles)
-                  .map((r) => ROLE_LABELS[r] ?? r)
+                  .map((r) => STAFF_ROLE_LABELS[r as keyof typeof STAFF_ROLE_LABELS] ?? r)
                   .join("، ")}
               </p>
             </Link>

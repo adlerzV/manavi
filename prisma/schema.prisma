@@ -49,6 +49,7 @@ model User {
   publisherProfile    Publisher?
   publisherStaffRoles PublisherStaff[]
   uploadedChapters    Chapter[]         @relation("ChapterUploader")
+  createdComics       Comic[]           @relation("ComicCreator")
 
   @@index([role])
   @@index([referredById])
@@ -77,7 +78,6 @@ model Publisher {
   telegramUrl         String?
   instagramUrl        String?
   websiteUrl          String?
-  donationCardNumber  String?
   donationLink        String?
   cryptoWalletLabel   String?
   cryptoWalletAddress String?
@@ -93,13 +93,14 @@ model Publisher {
 }
 
 model PublisherStaff {
-  id          String    @id @default(uuid())
-  publisherId String
-  userId      String
-  role        StaffRole
-  canUpload   Boolean   @default(true)
-  isVerified  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(uuid())
+  publisherId    String
+  userId         String
+  role           StaffRole
+  canUpload      Boolean   @default(true)
+  canManageComics Boolean   @default(false)
+  isVerified     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
 
   publisher Publisher @relation(fields: [publisherId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
@@ -166,20 +167,24 @@ enum ReadingMode {
 }
 
 model Comic {
-  id            String      @id @default(uuid())
+  id            String              @id @default(uuid())
   title         String
-  slug          String      @unique
+  slug          String              @unique
   description   String
   coverImage    String
   bannerImage   String?
   dominantColor String?
-  ageRating     AgeRating   @default(NORMAL)
-  status        ComicStatus @default(ONGOING)
+  ageRating     AgeRating           @default(NORMAL)
+  status        ComicStatus         @default(ONGOING)
+  approvalStatus ComicApprovalStatus @default(APPROVED)
   categoryId    String
-  category      Category    @relation(fields: [categoryId], references: [id])
-  readingMode   ReadingMode @default(VERTICAL)
-  viewCount     Int         @default(0)
-  createdAt     DateTime    @default(now())
+  category      Category            @relation(fields: [categoryId], references: [id])
+  readingMode   ReadingMode         @default(VERTICAL)
+  viewCount     Int                 @default(0)
+  createdById   String?
+  createdBy     User?               @relation("ComicCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  rejectionNote String?
+  createdAt     DateTime            @default(now())
 
   isFeaturedOnHome Boolean @default(false)
   featuredBadge    String?
@@ -200,6 +205,8 @@ model Comic {
   @@index([viewCount])
   @@index([createdAt])
   @@index([status])
+  @@index([approvalStatus])
+  @@index([createdById])
 }
 
 enum AgeRating {
@@ -212,6 +219,12 @@ enum ComicStatus {
   ONGOING
   COMPLETED
   HIATUS
+}
+
+enum ComicApprovalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  NEEDS_CHANGES
 }
 
 model Genre {
@@ -596,4 +609,19 @@ model PlatformSettings {
   newReleaseThresholdHours Int      @default(72)
   coinPriceTon             Decimal  @db.Decimal(20, 9) @default(0.01)
   updatedAt                DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String
+  actorRole  String
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
 }

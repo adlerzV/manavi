@@ -16,6 +16,7 @@ export async function resolveExploreWhere(filters: ExploreFilters): Promise<Pris
   const trimmedQuery = filters.q?.trim();
 
   return {
+    approvalStatus: "APPROVED",
     ageRating: { in: allowedRatings },
     ...(trimmedQuery ? { title: { contains: trimmedQuery, mode: "insensitive" as const } } : {}),
     ...(category ? { categoryId: category.id } : {}),

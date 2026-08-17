@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, getSessionUser, getPublisherContext } from "@/lib/auth";
 import { safeError } from "@/lib/errors";
 import { GENRE_IMAGE_OPTIONS } from "@/lib/genre-images";
 
@@ -22,7 +22,11 @@ function slugify(value: string): string {
 
 export async function createGenre(input: { name: string; imageUrl?: string }): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    const user = await getSessionUser();
+    if (user?.role !== "ADMIN") {
+      const context = await getPublisherContext(user);
+      if (!context?.canManageComics) return { success: false, error: "دسترسی غیرمجاز" };
+    }
 
     const name = input.name.trim();
     if (!name) {

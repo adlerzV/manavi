@@ -23,6 +23,7 @@ const fetchHomeFeedComics = unstable_cache(
           publishedAt: { not: null },
           comic: {
             ageRating: { in: allowedRatings },
+            approvalStatus: "APPROVED",
             genres: genreId ? { some: { genreId } } : undefined,
           },
         },
@@ -37,6 +38,7 @@ const fetchHomeFeedComics = unstable_cache(
     const comics = await prisma.comic.findMany({
       where: {
         ageRating: { in: allowedRatings },
+        approvalStatus: "APPROVED",
         genres: genreId ? { some: { genreId } } : undefined,
       },
       orderBy: { viewCount: "desc" },

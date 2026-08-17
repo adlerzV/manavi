@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit-log";
 import { notifyNewChapter } from "@/lib/telegram-bot";
 import { safeError } from "@/lib/errors";
 
@@ -50,7 +51,7 @@ export async function listPendingChapters(): Promise<PendingChapterRow[]> {
 
 export async function approveChapter(chapterId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const chapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
@@ -73,6 +74,16 @@ export async function approveChapter(chapterId: string): Promise<ActionResult> {
     if (updated.count === 0) {
       return { success: false, error: "این چپتر در انتظار تایید نیست" };
     }
+
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "chapter.approve",
+        targetType: "Chapter",
+        targetId: chapterId,
+      })
+    );
 
     revalidateTag("home-feed");
     revalidatePath(`/app/comic/${chapter.comic.slug}`);
@@ -108,7 +119,7 @@ export async function approveChapter(chapterId: string): Promise<ActionResult> {
 
 export async function rejectChapter(chapterId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const chapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
@@ -123,6 +134,16 @@ export async function rejectChapter(chapterId: string): Promise<ActionResult> {
       where: { id: chapterId, status: "PENDING_APPROVAL" },
       data: { status: "DRAFT" },
     });
+
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "chapter.reject",
+        targetType: "Chapter",
+        targetId: chapterId,
+      })
+    );
 
     revalidatePath(`/admin/comics/${chapter.comicId}`);
     revalidatePath("/admin/chapter-approvals");

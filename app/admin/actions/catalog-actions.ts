@@ -129,7 +129,7 @@ export async function createComic(input: {
   genreIds?: string[];
 }): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     if (!input.title.trim() || !input.slug.trim() || !input.licenseId || !input.categoryId) {
       return { success: false, error: "Title, slug, license, and category are required" };
@@ -163,6 +163,8 @@ export async function createComic(input: {
         ageRating: input.ageRating,
         categoryId: input.categoryId,
         readingMode: input.readingMode,
+        approvalStatus: "APPROVED",
+        createdById: admin.id,
         genres: input.genreIds?.length
           ? { create: input.genreIds.map((genreId) => ({ genreId })) }
           : undefined,

@@ -18,7 +18,6 @@ export async function updatePublisherProfile(input: {
   telegramUrl?: string;
   instagramUrl?: string;
   websiteUrl?: string;
-  donationCardNumber?: string;
   donationLink?: string;
   cryptoWalletLabel?: string;
   cryptoWalletAddress?: string;
@@ -38,7 +37,6 @@ export async function updatePublisherProfile(input: {
         telegramUrl: input.telegramUrl?.trim() || null,
         instagramUrl: input.instagramUrl?.trim() || null,
         websiteUrl: input.websiteUrl?.trim() || null,
-        donationCardNumber: input.donationCardNumber?.trim() || null,
         donationLink: input.donationLink?.trim() || null,
         cryptoWalletLabel: input.cryptoWalletLabel?.trim().slice(0, 60) || null,
         cryptoWalletAddress: input.cryptoWalletAddress?.trim().slice(0, 200) || null,

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPublisherContext } from "@/lib/auth";
 import { getSignedImageUrls } from "@/lib/s3";
 import { getReadChapterIds, hasReadAnyChapter } from "@/lib/read-marks";
 import { AgeGate } from "@/components/catalog/age-gate";
@@ -15,19 +15,13 @@ import { BackButton } from "@/components/navigation/back-button";
 import { ComicUnlockButton } from "@/components/reader/comic-unlock-button";
 import { getChapterAccessList, getComicUnlockPreview, type ChapterAccessInfo } from "@/lib/chapters";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
+import { STAFF_ROLE_LABELS } from "@/lib/staff-roles";
 
 export const revalidate = 300;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
-
-const STAFF_ROLE_LABELS: Record<string, string> = {
-  LOCALIZATION_SPECIALIST: "مترجم",
-  EDITOR: "ادیتور",
-  CLEANER: "کلینر",
-  TYPIST: "تایپیست",
-};
 
 function accessBadgeLabel(chapter: ChapterAccessInfo): string | null {
   if (!chapter.locked) {
@@ -41,9 +35,21 @@ export default async function ComicDetailPage({ params }: PageProps) {
 
   const comic = await prisma.comic.findUnique({
     where: { slug },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      description: true,
+      coverImage: true,
+      bannerImage: true,
+      dominantColor: true,
+      ageRating: true,
+      status: true,
+      approvalStatus: true,
+      createdById: true,
+      rejectionNote: true,
       category: { select: { name: true } },
-      license: { select: { status: true, publisher: { select: { id: true, name: true, avatarUrl: true } } } },
+      license: { select: { status: true, publisherId: true, publisher: { select: { id: true, name: true, avatarUrl: true } } } },
       genres: { include: { genre: true } },
       staff: { include: { user: { select: { id: true, firstName: true, username: true } } } },
     },
@@ -53,9 +59,21 @@ export default async function ComicDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const [chapterAccess, user, allowedRatings] = await Promise.all([
+  const user = await getSessionUser();
+
+  const isPrivileged = user?.role === "ADMIN" || user?.id === comic.createdById;
+  let isTeamMember = false;
+  if (!isPrivileged && user) {
+    const ownContext = await getPublisherContext(user);
+    isTeamMember = ownContext?.publisherId === comic.license.publisherId;
+  }
+
+  if (comic.approvalStatus !== "APPROVED" && !isPrivileged && !isTeamMember) {
+    notFound();
+  }
+
+  const [chapterAccess, allowedRatings] = await Promise.all([
     getChapterAccessList(comic.id),
-    getSessionUser(),
     getAllowedAgeRatings(),
   ]);
 
@@ -73,6 +91,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
           where: {
             id: { not: comic.id },
             ageRating: { in: allowedRatings },
+            approvalStatus: "APPROVED",
             genres: { some: { genreId: { in: comic.genres.map((g) => g.genreId) } } },
           },
           orderBy: { viewCount: "desc" },

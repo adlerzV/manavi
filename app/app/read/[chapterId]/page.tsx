@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPublisherContext } from "@/lib/auth";
 import { isLicenseCurrentlyActive } from "@/lib/license";
 import { getChapterAccessList, userHasChapterAccess } from "@/lib/chapters";
 import { getSignedImageUrls } from "@/lib/s3";
@@ -38,6 +38,8 @@ export default async function ReadChapterPage({ params }: PageProps) {
           slug: true,
           readingMode: true,
           ageRating: true,
+          approvalStatus: true,
+          createdById: true,
           category: { select: { readingDirection: true } },
           license: {
             select: {
@@ -70,6 +72,18 @@ export default async function ReadChapterPage({ params }: PageProps) {
     getChapterAccessList(chapter.comic.id),
   ]);
 
+  if (chapter.comic.approvalStatus !== "APPROVED") {
+    const isPrivileged = user?.role === "ADMIN" || user?.id === chapter.comic.createdById;
+    let isTeamMember = false;
+    if (!isPrivileged && user) {
+      const ownContext = await getPublisherContext(user);
+      isTeamMember = ownContext?.publisherId === chapter.comic.license.publisherId;
+    }
+    if (!isPrivileged && !isTeamMember) {
+      notFound();
+    }
+  }
+
   if (user?.isBanned) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-6 text-center">
@@ -83,7 +97,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
 
   const isAdultContent = chapter.comic.ageRating !== "NORMAL";
   if (isAdultContent && !user?.isAgeVerified) {
-  return <AgeVerificationGate isAuthenticated={Boolean(user)} />;
+    return <AgeVerificationGate isAuthenticated={Boolean(user)} />;
   }
 
   const showAd = chapter.accessType === "FREE";
@@ -94,7 +108,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
   if (locked) {
     const hasAccess = await userHasChapterAccess(user?.id ?? null, chapterId, user?.role);
     if (!hasAccess) {
-       const coinCost = await getChapterUnlockCoinCost();
+      const coinCost = await getChapterUnlockCoinCost();
       return (
         <LockedChapterGate
           chapterId={chapterId}

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CreateComicForm } from "@/components/admin/create-comic-form";
 import { getAllGenres } from "@/lib/genres";
-
+import { getAllCategories } from "@/lib/categories"; 
 interface PageProps {
   searchParams: Promise<{ q?: string }>;
 }
@@ -11,7 +11,7 @@ interface PageProps {
 export default async function AdminComicsPage({ searchParams }: PageProps) {
   const { q } = await searchParams;
 
-  const [comics, licenses, genres] = await Promise.all([
+  const [comics, licenses, genres, categories] = await Promise.all([
     prisma.comic.findMany({
       where: q
         ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }] }
@@ -39,6 +39,7 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
       include: { publisher: { select: { name: true } } },
     }),
     getAllGenres(),
+    getAllCategories(),
   ]);
 
   const licenseOptions = licenses.map((l) => ({
@@ -54,6 +55,11 @@ export default async function AdminComicsPage({ searchParams }: PageProps) {
         <CreateComicForm
           licenses={licenseOptions}
           genres={genres.map((g) => ({ id: g.id, name: g.name }))}
+          categories={categories.map((c) => ({
+            id: c.id,
+            name: c.name,
+            defaultReadingMode: c.defaultReadingMode,
+          }))}
         />
       </CollapsibleSection>
 

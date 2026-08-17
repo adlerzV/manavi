@@ -25,7 +25,6 @@ export default async function PublisherPublicProfilePage({ params }: PageProps) 
       telegramUrl: true,
       instagramUrl: true,
       websiteUrl: true,
-      donationCardNumber: true,
       donationLink: true,
       cryptoWalletLabel: true,
       cryptoWalletAddress: true,
@@ -105,12 +104,7 @@ export default async function PublisherPublicProfilePage({ params }: PageProps) 
                 لینک دونیت خارجی
               </a>
             )}
-            {publisher.donationCardNumber && (
-              <span className="rounded-md bg-background px-3 py-1.5 text-xs text-text-muted">
-                شماره کارت: {publisher.donationCardNumber}
-              </span>
-            )}
-            {!publisher.contractUserId && !publisher.donationLink && !publisher.donationCardNumber && (
+            {!publisher.contractUserId && !publisher.donationLink && (
               <p className="text-xs text-text-muted">راه حمایت مالی هنوز ثبت نشده است.</p>
             )}
           </div>
