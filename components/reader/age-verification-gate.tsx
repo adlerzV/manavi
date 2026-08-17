@@ -18,7 +18,7 @@ export function AgeVerificationGate({ isAuthenticated }: { isAuthenticated: bool
           رفتن به تنظیمات پروفایل
         </Link>
       ) : (
-        <p className="text-xs text-text-muted">این صفحه را از داخل مینی‌اپ مناوی در تلگرام باز کنید.</p>
+        <p className="text-xs text-text-muted">این صفحه را از داخل مینی‌اپ ماناوی در تلگرام باز کنید.</p>
       )}
     </div>
   );

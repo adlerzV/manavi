@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, requireAdmin } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/moderation";
 import {
   isTonConfigured,
@@ -13,6 +13,7 @@ import {
 import { findActiveCoinPackage } from "@/lib/coin-packages";
 import { getChapterUnlockCoinCost, getCoinPriceTon } from "@/lib/platform-settings";
 import { MIN_DONATION_TON, MAX_DONATION_TON, MAX_CUSTOM_COINS } from "@/lib/billing";
+import { safeError } from "@/lib/errors";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -28,13 +29,14 @@ export interface TonPaymentRequest {
 }
 
 async function createPendingTransaction(input: {
-  type: "COIN_PURCHASE" | "DONATION";
+  type: "COIN_PURCHASE" | "DONATION" | "PUBLISHER_PAYOUT";
   amountTon: number;
   payerId: string;
   receiverId?: string;
   message?: string;
   coinPackageId?: string;
   customCoins?: number;
+  payoutPublisherId?: string;
 }) {
   const transaction = await prisma.transaction.create({
     data: {
@@ -47,6 +49,7 @@ async function createPendingTransaction(input: {
       message: input.message,
       coinPackageId: input.coinPackageId,
       customCoins: input.customCoins,
+      payoutPublisherId: input.payoutPublisherId,
     },
   });
 
@@ -176,6 +179,62 @@ export async function createTonDonationPayment(input: {
   };
 }
 
+export async function createTonPublisherPayoutPayment(input: {
+  publisherId: string;
+  amountTon: number;
+  periodStart: string;
+  periodEnd: string;
+}): Promise<ActionResult<TonPaymentRequest>> {
+  try {
+    const admin = await requireAdmin();
+
+    if (!Number.isFinite(input.amountTon) || input.amountTon <= 0) {
+      return { success: false, error: "مبلغ باید مثبت باشد" };
+    }
+
+    const publisher = await prisma.publisher.findUnique({
+      where: { id: input.publisherId },
+      select: { id: true, cryptoWalletAddress: true },
+    });
+    if (!publisher) return { success: false, error: "ناشر یافت نشد" };
+    if (!publisher.cryptoWalletAddress) {
+      return { success: false, error: "این ناشر آدرس کیف پول تون ثبت نکرده است" };
+    }
+
+    const { transaction, comment } = await createPendingTransaction({
+      type: "PUBLISHER_PAYOUT",
+      amountTon: input.amountTon,
+      payerId: admin.id,
+      payoutPublisherId: publisher.id,
+    });
+
+    await prisma.payoutRequest.create({
+      data: {
+        publisherId: publisher.id,
+        amountTon: input.amountTon,
+        periodStart: new Date(input.periodStart),
+        periodEnd: new Date(input.periodEnd),
+        status: "PENDING",
+        reviewedById: admin.id,
+        reviewedAt: new Date(),
+        tonTransactionId: transaction.id,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        transactionId: transaction.id,
+        toAddress: publisher.cryptoWalletAddress,
+        amountNanotons: tonToNanotons(input.amountTon).toString(),
+        comment,
+      },
+    };
+  } catch (err) {
+    return safeError(err);
+  }
+}
+
 export interface TonVerifyResult {
   status: "PAID" | "PENDING" | "FAILED";
 }
@@ -195,6 +254,7 @@ export async function verifyTonPayment(transactionId: string): Promise<ActionRes
   if (transaction.status === "PAID") {
     revalidatePath("/app/shop");
     revalidatePath("/app/profile");
+    revalidatePath("/admin/payouts");
     return { success: true, data: { status: "PAID" } };
   }
   if (transaction.status === "FAILED") return { success: true, data: { status: "FAILED" } };

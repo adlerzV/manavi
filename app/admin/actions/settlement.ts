@@ -145,3 +145,25 @@ export async function listPayoutLog(): Promise<PayoutLogRow[]> {
     reviewNote: r.reviewNote,
   }));
 }
+
+export interface PendingOnChainPayoutRow {
+  id: string;
+  publisherName: string;
+  amountTon: number | null;
+  requestedAt: string;
+}
+
+export async function listPendingOnChainPayouts(): Promise<PendingOnChainPayoutRow[]> {
+  await requireAdmin();
+  const rows = await prisma.payoutRequest.findMany({
+    where: { status: "PENDING", tonTransactionId: { not: null } },
+    orderBy: { requestedAt: "desc" },
+    include: { publisher: { select: { name: true } } },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    publisherName: r.publisher.name,
+    amountTon: r.amountTon != null ? Number(r.amountTon) : null,
+    requestedAt: r.requestedAt.toISOString(),
+  }));
+}

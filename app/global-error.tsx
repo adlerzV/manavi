@@ -24,7 +24,7 @@ export default function GlobalError({
           padding: "24px",
         }}
       >
-        <p style={{ fontSize: "28px", fontWeight: 700, color: "#00DC64" }}>مناوی</p>
+        <p style={{ fontSize: "28px", fontWeight: 700, color: "#00DC64" }}>ماناوی</p>
         <p style={{ fontSize: "14px", color: "#AAAAAA", maxWidth: "320px" }}>
           مشکلی در بارگذاری اپلیکیشن پیش آمد. لطفاً دوباره تلاش کنید.
         </p>

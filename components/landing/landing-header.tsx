@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const NAV_LINKS = [
   { href: "/#features", label: "ویژگی‌ها" },
   { href: "/#reader", label: "تجربه خواندن" },
-  { href: "/#stats", label: "آمار مناوی" },
+  { href: "/#stats", label: "آمار ماناوی" },
   { href: "/buy-with-ton", label: "خرید با تون" },
   { href: "/#join", label: "همکاری با ما" },
 ];
@@ -38,8 +38,8 @@ export function LandingHeader() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 dir-rtl">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <Image src="/favicon.svg" alt="مناوی" width={28} height={28} sizes="28px" className="rounded-md" />
-            <span className="text-base font-bold text-text-main">مناوی</span>
+            <Image src="/favicon.svg" alt="ماناوی" width={28} height={28} sizes="28px" className="rounded-md" />
+            <span className="text-base font-bold text-text-main">ماناوی</span>
           </Link>
 
           <div className="hidden items-center gap-6 md:flex">

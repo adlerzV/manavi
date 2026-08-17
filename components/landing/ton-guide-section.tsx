@@ -10,7 +10,7 @@ const STEPS = [
   {
     icon: <ArrowLeftRight size={18} />,
     title: "اتصال کیف پول",
-    description: "از صفحه فروشگاه مناوی، کیف پولت رو با یک ضربه به اپ وصل کن.",
+    description: "از صفحه فروشگاه ماناوی، کیف پولت رو با یک ضربه به اپ وصل کن.",
   },
   {
     icon: <CreditCard size={18} />,

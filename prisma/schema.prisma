@@ -84,9 +84,10 @@ model Publisher {
   customLinks         Json?
   createdAt           DateTime @default(now())
 
-  licenses       License[]
-  staff          PublisherStaff[]
-  payoutRequests PayoutRequest[]
+  licenses           License[]
+  staff              PublisherStaff[]
+  payoutRequests     PayoutRequest[]
+  payoutTransactions Transaction[]    @relation("PublisherPayoutTransactions")
 
   @@index([isVerified])
 }
@@ -429,6 +430,10 @@ model Transaction {
   coinPackage   CoinPackage? @relation(fields: [coinPackageId], references: [id], onDelete: SetNull)
   customCoins   Int?
 
+  payoutPublisherId String?
+  payoutPublisher   Publisher? @relation("PublisherPayoutTransactions", fields: [payoutPublisherId], references: [id])
+  payoutRequest     PayoutRequest? @relation("PayoutTransaction")
+
   tonComment String? @unique
   tonTxHash  String?
 
@@ -443,6 +448,7 @@ model Transaction {
   @@index([status])
   @@index([receiverId])
   @@index([coinPackageId])
+  @@index([payoutPublisherId])
   @@index([createdAt])
 }
 
@@ -453,6 +459,7 @@ enum TransactionType {
   CHAPTER_UNLOCK
   ADMIN_GRANT
   ADMIN_REVOKE
+  PUBLISHER_PAYOUT
 }
 
 enum TransactionStatus {
@@ -527,6 +534,9 @@ model PayoutRequest {
   paidAt        DateTime?
 
   publisher Publisher @relation(fields: [publisherId], references: [id])
+
+  tonTransactionId String?      @unique
+  tonTransaction   Transaction? @relation("PayoutTransaction", fields: [tonTransactionId], references: [id])
 
   @@index([publisherId])
   @@index([status])

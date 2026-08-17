@@ -4,16 +4,17 @@ import { useState, useTransition } from "react";
 import { searchTransactions, type TransactionRow } from "@/app/admin/actions/transactions";
 import type { TransactionType, TransactionStatus } from "@prisma/client";
 
-const TYPES: TransactionType[] = ["SUBSCRIPTION", "DONATION", "COIN_PURCHASE", "CHAPTER_UNLOCK", "ADMIN_GRANT", "ADMIN_REVOKE"];
+const TYPES: TransactionType[] = ["DONATION", "COIN_PURCHASE", "CHAPTER_UNLOCK", "ADMIN_GRANT", "ADMIN_REVOKE", "PUBLISHER_PAYOUT"];
 const STATUSES: TransactionStatus[] = ["PENDING", "PAID", "FAILED"];
 
 const TYPE_LABELS: Record<TransactionType, string> = {
-  SUBSCRIPTION: "اشتراک",
+  SUBSCRIPTION: "اشتراک (قدیمی)",
   DONATION: "دونیت",
   COIN_PURCHASE: "خرید سکه",
   CHAPTER_UNLOCK: "باز کردن چپتر",
   ADMIN_GRANT: "اعطای دستی",
   ADMIN_REVOKE: "کسر دستی",
+  PUBLISHER_PAYOUT: "تسویه‌حساب ناشر",
 };
 
 export function TransactionTable({ initial, initialTotal }: { initial: TransactionRow[]; initialTotal: number }) {

@@ -1,6 +1,7 @@
-import { getPublisherSettlementLog, listPayoutLog } from "@/app/admin/actions/settlement";
+import { getPublisherSettlementLog, listPayoutLog, listPendingOnChainPayouts } from "@/app/admin/actions/settlement";
 import { PublisherSettlementLog } from "@/components/admin/publisher-settlement-log";
 import { PayoutLogTable } from "@/components/admin/payout-log-table";
+import { PendingOnChainPayouts } from "@/components/admin/pending-onchain-payouts";
 
 function firstDayOfMonth(): string {
   const d = new Date();
@@ -12,9 +13,10 @@ function today(): string {
 }
 
 export default async function AdminPayoutsPage() {
-  const [settlementRows, payoutLog] = await Promise.all([
+  const [settlementRows, payoutLog, pendingOnChain] = await Promise.all([
     getPublisherSettlementLog(firstDayOfMonth(), today()),
     listPayoutLog(),
+    listPendingOnChainPayouts(),
   ]);
 
   return (
@@ -22,11 +24,13 @@ export default async function AdminPayoutsPage() {
       <div>
         <h1 className="text-xl font-semibold text-text-main">تسویه‌حساب ناشران</h1>
         <p className="mt-1 text-sm text-text-muted">
-          سهم هر ناشر از سکه‌های خرج‌شده روی چپترهاش رو بر اساس درصد لایسنس محاسبه می‌کنه و با نرخ فعلی سکه به TON تبدیل می‌کنه. پرداخت واقعی رو دستی از کیف پول خودتون انجام بدید، بعد اینجا ثبتش کنید. چون نرخ سکه به TON ممکنه تغییر کنه، عدد نمایش‌داده‌شده برای دوره‌های گذشته بر اساس نرخ فعلیه نه نرخ زمان تراکنش‌ها.
+          سهم هر ناشر از سکه‌های خرج‌شده روی چپترهاش رو بر اساس درصد لایسنس محاسبه می‌کنه و با نرخ فعلی سکه به TON تبدیل می‌کنه. با «پرداخت خودکار با کیف پول من» مبلغ و مقصد از قبل پر می‌شن و شما فقط توی اپ کیف پولتون تایید می‌زنید — بدون نگهداری کلید خصوصی روی سرور. چون نرخ سکه به TON ممکنه تغییر کنه، عدد نمایش‌داده‌شده برای دوره‌های گذشته بر اساس نرخ فعلیه نه نرخ زمان تراکنش‌ها.
         </p>
       </div>
 
       <PublisherSettlementLog initialRows={settlementRows} />
+
+      <PendingOnChainPayouts rows={pendingOnChain} />
 
       <div>
         <h2 className="mb-3 text-lg font-medium text-text-main">تاریخچه پرداخت‌ها</h2>

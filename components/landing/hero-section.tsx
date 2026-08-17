@@ -25,7 +25,7 @@ export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
           <div className="relative mb-8 h-16 w-16">
             <HeroIconGlow />
             <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-surface/60 backdrop-blur-sm">
-              <Image src="/favicon.svg" alt="مناوی" width={40} height={40} sizes="40px" className="rounded-lg" priority />
+              <Image src="/favicon.svg" alt="ماناوی" width={40} height={40} sizes="40px" className="rounded-lg" priority />
             </div>
           </div>
 
@@ -40,7 +40,7 @@ export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
           />
 
           <p className="mt-6 max-w-md text-sm leading-8 text-text-muted sm:text-base">
-            مناوی صدها مانهوا، مانگا و وبتون فارسی‌شده رو مستقیم داخل تلگرام در اختیارت می‌ذاره؛
+            ماناوی صدها مانهوا، مانگا و وبتون فارسی‌شده رو مستقیم داخل تلگرام در اختیارت می‌ذاره؛
             با ریدر اختصاصی برای اسکرول بی‌وقفه، بدون تبلیغ مزاحم و با حمایت مستقیم از مترجم‌ها و طراح‌ها.
           </p>
 
@@ -60,7 +60,7 @@ export function HeroSection({ links, qrCodeSvg }: HeroSectionProps) {
               href="#features"
               className="w-full rounded-md border border-border bg-surface/60 px-6 py-3 text-center text-sm font-medium text-text-main backdrop-blur-sm transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto"
             >
-              کاوش در دنیای مناوی
+              کاوش در دنیای ماناوی
             </Link>
           </div>
         </div>

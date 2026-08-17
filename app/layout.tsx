@@ -11,7 +11,7 @@ const vazirFont = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "مناوی — پلتفرم خوانش مانهوا و مانگا",
+  title: "ماناوی — پلتفرم خوانش مانهوا و مانگا",
   description: "پلتفرم خوانش آنلاین مانهوا، مانگا و وبتون در تلگرام",
   icons: {
     icon: [

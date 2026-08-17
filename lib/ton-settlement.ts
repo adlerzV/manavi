@@ -20,6 +20,14 @@ async function resolveTonToAddress(transaction: Transaction): Promise<string | n
       : null;
     return receiver?.cryptoWalletAddress ?? null;
   }
+
+  if (transaction.type === "PUBLISHER_PAYOUT") {
+    const publisher = transaction.payoutPublisherId
+      ? await prisma.publisher.findUnique({ where: { id: transaction.payoutPublisherId }, select: { cryptoWalletAddress: true } })
+      : null;
+    return publisher?.cryptoWalletAddress ?? null;
+  }
+
   return getPlatformTonAddress();
 }
 
@@ -43,22 +51,31 @@ async function grantReferralRewardIfEligible(payerId: string): Promise<void> {
 }
 
 async function applySettlementSideEffects(transaction: Transaction): Promise<void> {
-  if (transaction.type !== "COIN_PURCHASE") return;
+  if (transaction.type === "COIN_PURCHASE") {
+    let coinsToGrant = 0;
 
-  let coinsToGrant = 0;
+    if (transaction.coinPackageId) {
+      const pack = await prisma.coinPackage.findUnique({ where: { id: transaction.coinPackageId } });
+      if (pack) coinsToGrant = pack.coins + pack.bonusCoins;
+    } else if (transaction.customCoins) {
+      coinsToGrant = transaction.customCoins;
+    }
 
-  if (transaction.coinPackageId) {
-    const pack = await prisma.coinPackage.findUnique({ where: { id: transaction.coinPackageId } });
-    if (pack) coinsToGrant = pack.coins + pack.bonusCoins;
-  } else if (transaction.customCoins) {
-    coinsToGrant = transaction.customCoins;
+    if (coinsToGrant > 0) {
+      await prisma.user.update({ where: { id: transaction.payerId }, data: { coinsBalance: { increment: coinsToGrant } } });
+      await invalidateSessionUserCache(transaction.payerId);
+      await grantReferralRewardIfEligible(transaction.payerId);
+    }
+    return;
   }
 
-  if (coinsToGrant <= 0) return;
-
-  await prisma.user.update({ where: { id: transaction.payerId }, data: { coinsBalance: { increment: coinsToGrant } } });
-  await invalidateSessionUserCache(transaction.payerId);
-  await grantReferralRewardIfEligible(transaction.payerId);
+  if (transaction.type === "PUBLISHER_PAYOUT") {
+    await prisma.payoutRequest.updateMany({
+      where: { tonTransactionId: transaction.id },
+      data: { status: "PAID", paidAmountTon: transaction.amount, paidAt: new Date() },
+    });
+    return;
+  }
 }
 
 async function claimAndSettle(transaction: Transaction, txHash: string): Promise<TonSettlementStatus> {
