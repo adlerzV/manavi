@@ -1,11 +1,18 @@
 "use server";
+
 import { revalidatePath, revalidateTag } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { safeError } from "@/lib/errors";
+import { logAuditEvent } from "@/lib/audit-log";
 import { PLATFORM_SETTINGS_TAG } from "@/lib/platform-settings";
 
-interface ActionResult<T = undefined> { success: boolean; error?: string; data?: T }
+interface ActionResult<T = undefined> {
+  success: boolean;
+  error?: string;
+  data?: T;
+}
 
 export async function updatePlatformSettings(input: {
   chapterUnlockCoinCost: number;
@@ -13,7 +20,8 @@ export async function updatePlatformSettings(input: {
   coinPriceTon: number;
 }): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
+
     if (!Number.isFinite(input.chapterUnlockCoinCost) || input.chapterUnlockCoinCost <= 0) {
       return { success: false, error: "قیمت سکه باید عددی مثبت باشد" };
     }
@@ -23,6 +31,7 @@ export async function updatePlatformSettings(input: {
     if (!Number.isFinite(input.coinPriceTon) || input.coinPriceTon <= 0) {
       return { success: false, error: "ارزش سکه به TON باید عددی مثبت باشد" };
     }
+
     await prisma.platformSettings.upsert({
       where: { id: "singleton" },
       update: {
@@ -37,9 +46,22 @@ export async function updatePlatformSettings(input: {
         coinPriceTon: input.coinPriceTon,
       },
     });
-    revalidateTag(PLATFORM_SETTINGS_TAG);
+
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "platformSettings.update",
+        targetType: "PlatformSettings",
+        targetId: "singleton",
+        metadata: input,
+      })
+    );
+
+    revalidateTag(PLATFORM_SETTINGS_TAG, "max");
     revalidatePath("/admin/settings");
     revalidatePath("/app/shop");
+
     return { success: true };
   } catch (err) {
     return safeError(err);

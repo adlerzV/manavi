@@ -147,6 +147,20 @@ export default async function ComicDetailPage({ params }: PageProps) {
       </div>
 
       <div className="mx-auto -mt-16 max-w-4xl px-4 pb-4">
+        {(isPrivileged || isTeamMember) && comic.approvalStatus !== "APPROVED" && (
+          <div
+            className={`mb-4 rounded-md border px-4 py-3 text-sm ${
+              comic.approvalStatus === "NEEDS_CHANGES"
+                ? "border-red-400 bg-red-500/10 text-red-400"
+                : "border-accent bg-accent/10 text-accent"
+            }`}
+          >
+            {comic.approvalStatus === "NEEDS_CHANGES"
+              ? `این عنوان نیاز به اصلاح دارد و برای بازدیدکنندگان عادی نمایش داده نمی‌شود. یادداشت ادمین: ${comic.rejectionNote ?? "—"}`
+              : "این عنوان در انتظار تایید ادمین است و فعلاً فقط برای شما و تیم شما قابل مشاهده است."}
+          </div>
+        )}
+
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="relative h-56 w-40 flex-shrink-0 overflow-hidden rounded-md bg-surface shadow-lg">
             <Image src={comic.coverImage} alt={comic.title} fill priority sizes="160px" className="object-cover" />

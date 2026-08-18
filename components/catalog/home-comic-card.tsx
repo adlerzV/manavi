@@ -7,9 +7,17 @@ interface HomeComicCardProps {
   coverImage: string;
   latestChapter: number | null;
   priority?: boolean;
+  completed?: boolean;
 }
 
-export function HomeComicCard({ slug, title, coverImage, latestChapter, priority = false }: HomeComicCardProps) {
+export function HomeComicCard({
+  slug,
+  title,
+  coverImage,
+  latestChapter,
+  priority = false,
+  completed = false,
+}: HomeComicCardProps) {
   return (
     <Link href={`/app/comic/${slug}`} className="block">
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface transition-transform active:scale-[0.97]">
@@ -23,7 +31,14 @@ export function HomeComicCard({ slug, title, coverImage, latestChapter, priority
           className="object-cover"
         />
         {latestChapter !== null && (
-          <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">چپتر {latestChapter}</span>
+          <span className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
+            چپتر {latestChapter}
+          </span>
+        )}
+        {completed && (
+          <span className="absolute left-1.5 top-1.5 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] text-primary-foreground">
+            پایان‌یافته
+          </span>
         )}
       </div>
       <p className="mt-1.5 truncate text-xs text-text-main">{title}</p>

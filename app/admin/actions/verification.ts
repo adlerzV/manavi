@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { safeError } from "@/lib/errors";
+import { logAuditEvent } from "@/lib/audit-log";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -13,8 +15,18 @@ interface ActionResult<T = undefined> {
 
 export async function setPublisherVerified(publisherId: string, isVerified: boolean): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     await prisma.publisher.update({ where: { id: publisherId }, data: { isVerified } });
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "publisher.verify",
+        targetType: "Publisher",
+        targetId: publisherId,
+        metadata: { isVerified },
+      })
+    );
     revalidatePath("/admin/publishers");
     return { success: true };
   } catch (err) {
@@ -64,8 +76,18 @@ export async function setPublisherStaffMemberVerified(
   isVerified: boolean
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     await prisma.publisherStaff.updateMany({ where: { publisherId, userId }, data: { isVerified } });
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "staff.verify",
+        targetType: "User",
+        targetId: userId,
+        metadata: { publisherId, isVerified },
+      })
+    );
     revalidatePath("/admin/publishers");
     return { success: true };
   } catch (err) {

@@ -15,8 +15,16 @@ export function MostBookmarkedSection({ comics }: { comics: MostBookmarkedComic[
             <span className="absolute -right-1 -top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground">
               {(index + 1).toLocaleString("fa-IR")}
             </span>
-            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface" style={{ backgroundColor: comic.dominantColor ?? "#1E1E1E" }}>
+            <div
+              className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface"
+              style={{ backgroundColor: comic.dominantColor ?? "#1E1E1E" }}
+            >
               <Image src={comic.coverImage} alt={comic.title} fill sizes="128px" className="object-cover" />
+              {comic.completed && (
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] text-primary-foreground">
+                  پایان‌یافته
+                </span>
+              )}
             </div>
             <p className="mt-1.5 truncate text-xs text-text-main">{comic.title}</p>
             <p className="flex items-center gap-1 text-[10px] text-text-muted">

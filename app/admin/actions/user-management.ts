@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, invalidateSessionUserCache } from "@/lib/auth";
 import { safeError } from "@/lib/errors";
+import { logAuditEvent } from "@/lib/audit-log";
 import type { Role } from "@prisma/client";
 
 interface ActionResult<T = undefined> {
@@ -84,6 +86,16 @@ export async function setUserRole(userId: string, role: Role): Promise<ActionRes
     }
     await prisma.user.update({ where: { id: userId }, data: { role } });
     await invalidateSessionUserCache(userId);
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "user.roleChange",
+        targetType: "User",
+        targetId: userId,
+        metadata: { role },
+      })
+    );
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -102,6 +114,16 @@ export async function banUser(userId: string, reason: string): Promise<ActionRes
       data: { isBanned: true, bannedAt: new Date(), banReason: reason.trim() || null },
     });
     await invalidateSessionUserCache(userId);
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "user.ban",
+        targetType: "User",
+        targetId: userId,
+        metadata: { reason: reason.trim() || null },
+      })
+    );
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -111,9 +133,18 @@ export async function banUser(userId: string, reason: string): Promise<ActionRes
 
 export async function unbanUser(userId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     await prisma.user.update({ where: { id: userId }, data: { isBanned: false, bannedAt: null, banReason: null } });
     await invalidateSessionUserCache(userId);
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "user.unban",
+        targetType: "User",
+        targetId: userId,
+      })
+    );
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -123,7 +154,7 @@ export async function unbanUser(userId: string): Promise<ActionResult> {
 
 export async function grantCoins(userId: string, amount: number, note: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     if (amount <= 0) return { success: false, error: "مقدار باید مثبت باشد" };
 
     await prisma.$transaction([
@@ -134,6 +165,16 @@ export async function grantCoins(userId: string, amount: number, note: string): 
     ]);
 
     await invalidateSessionUserCache(userId);
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "user.coinGrant",
+        targetType: "User",
+        targetId: userId,
+        metadata: { amount, note: note.trim() || null },
+      })
+    );
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {
@@ -143,7 +184,7 @@ export async function grantCoins(userId: string, amount: number, note: string): 
 
 export async function revokeCoins(userId: string, amount: number, note: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     if (amount <= 0) return { success: false, error: "مقدار باید مثبت باشد" };
 
     const result = await prisma.user.updateMany({
@@ -159,6 +200,16 @@ export async function revokeCoins(userId: string, amount: number, note: string):
     });
 
     await invalidateSessionUserCache(userId);
+    after(() =>
+      logAuditEvent({
+        actorId: admin.id,
+        actorRole: admin.role,
+        action: "user.coinRevoke",
+        targetType: "User",
+        targetId: userId,
+        metadata: { amount, note: note.trim() || null },
+      })
+    );
     revalidatePath("/admin/users");
     return { success: true };
   } catch (err) {

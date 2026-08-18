@@ -8,9 +8,10 @@ interface BannerUploaderProps {
   comicId: string;
   currentUrl: string;
   onUploaded: (url: string) => void;
+  uploadAction?: (formData: FormData) => Promise<{ success: boolean; error?: string; data?: { url: string } }>;
 }
 
-export function BannerUploader({ comicId, currentUrl, onUploaded }: BannerUploaderProps) {
+export function BannerUploader({ comicId, currentUrl, onUploaded, uploadAction }: BannerUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +24,9 @@ export function BannerUploader({ comicId, currentUrl, onUploaded }: BannerUpload
     formData.set("comicId", comicId);
     formData.set("banner", file);
 
-    const result = await uploadComicBannerAction(formData);
+    const action = uploadAction ?? uploadComicBannerAction;
+    const result = await action(formData);
+
     if (result.success && result.data) {
       onUploaded(result.data.url);
       setStatus("idle");

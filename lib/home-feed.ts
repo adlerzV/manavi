@@ -49,6 +49,7 @@ export interface RecommendedComic {
   coverImage: string;
   latestChapter: number | null;
   latestChapterPublishedAt: Date | null;
+  completed: boolean;
 }
 
 export async function getGenreBasedRecommendations(userId: string, allowedRatings: AgeRating[]): Promise<RecommendedComic[]> {
@@ -86,6 +87,7 @@ export async function getGenreBasedRecommendations(userId: string, allowedRating
       title: true,
       slug: true,
       coverImage: true,
+      status: true,
       chapters: { where: { publishedAt: { not: null } }, orderBy: { chapterNumber: "desc" }, take: 1, select: { chapterNumber: true, publishedAt: true } },
     },
   });
@@ -97,6 +99,7 @@ export async function getGenreBasedRecommendations(userId: string, allowedRating
     coverImage: c.coverImage,
     latestChapter: c.chapters[0]?.chapterNumber ?? null,
     latestChapterPublishedAt: c.chapters[0]?.publishedAt ?? null,
+    completed: c.status === "COMPLETED",
   }));
 }
 
@@ -192,6 +195,7 @@ export interface MostBookmarkedComic {
   coverImage: string;
   dominantColor: string | null;
   bookmarkCount: number;
+  completed: boolean;
 }
 
 async function fetchMostBookmarkedComics(allowedRatings: AgeRating[], limit = 12): Promise<MostBookmarkedComic[]> {
@@ -205,6 +209,7 @@ async function fetchMostBookmarkedComics(allowedRatings: AgeRating[], limit = 12
       slug: true,
       coverImage: true,
       dominantColor: true,
+      status: true,
       _count: { select: { bookmarks: true } },
     },
   });
@@ -216,6 +221,7 @@ async function fetchMostBookmarkedComics(allowedRatings: AgeRating[], limit = 12
     coverImage: c.coverImage,
     dominantColor: c.dominantColor,
     bookmarkCount: c._count.bookmarks,
+    completed: c.status === "COMPLETED",
   }));
 }
 
@@ -231,6 +237,7 @@ export interface HomeFeedComic {
   coverImage: string;
   latestChapter: number | null;
   latestChapterPublishedAt: Date | null;
+  completed: boolean;
 }
 
 export interface CategoryPreview {
@@ -248,6 +255,7 @@ async function fetchCategoryPreview(categoryId: string, allowedRatings: AgeRatin
       title: true,
       slug: true,
       coverImage: true,
+      status: true,
       chapters: {
         where: { publishedAt: { not: null } },
         orderBy: { chapterNumber: "desc" },
@@ -264,6 +272,7 @@ async function fetchCategoryPreview(categoryId: string, allowedRatings: AgeRatin
     coverImage: c.coverImage,
     latestChapter: c.chapters[0]?.chapterNumber ?? null,
     latestChapterPublishedAt: c.chapters[0]?.publishedAt ?? null,
+    completed: c.status === "COMPLETED",
   }));
 }
 

@@ -11,6 +11,7 @@ export interface HomeFeedComic {
   slug: string;
   coverImage: string;
   latestChapter: number | null;
+  completed: boolean;
 }
 
 const HOME_FEED_LIST_REVALIDATE_SECONDS = 120;
@@ -30,9 +31,16 @@ const fetchHomeFeedComics = unstable_cache(
         orderBy: { publishedAt: "desc" },
         distinct: ["comicId"],
         take: 18,
-        select: { chapterNumber: true, comic: { select: { id: true, title: true, slug: true, coverImage: true } } },
+        select: {
+          chapterNumber: true,
+          comic: { select: { id: true, title: true, slug: true, coverImage: true, status: true } },
+        },
       });
-      return rows.map((r) => ({ ...r.comic, latestChapter: r.chapterNumber }));
+      return rows.map((r) => ({
+        ...r.comic,
+        latestChapter: r.chapterNumber,
+        completed: r.comic.status === "COMPLETED",
+      }));
     }
 
     const comics = await prisma.comic.findMany({
@@ -48,10 +56,24 @@ const fetchHomeFeedComics = unstable_cache(
         title: true,
         slug: true,
         coverImage: true,
-        chapters: { where: { publishedAt: { not: null } }, orderBy: { chapterNumber: "desc" }, take: 1, select: { chapterNumber: true } },
+        status: true,
+        chapters: {
+          where: { publishedAt: { not: null } },
+          orderBy: { chapterNumber: "desc" },
+          take: 1,
+          select: { chapterNumber: true },
+        },
       },
     });
-    return comics.map((c) => ({ id: c.id, title: c.title, slug: c.slug, coverImage: c.coverImage, latestChapter: c.chapters[0]?.chapterNumber ?? null }));
+
+    return comics.map((c) => ({
+      id: c.id,
+      title: c.title,
+      slug: c.slug,
+      coverImage: c.coverImage,
+      latestChapter: c.chapters[0]?.chapterNumber ?? null,
+      completed: c.status === "COMPLETED",
+    }));
   },
   ["home-feed:list"],
   { revalidate: HOME_FEED_LIST_REVALIDATE_SECONDS, tags: ["home-feed"] }

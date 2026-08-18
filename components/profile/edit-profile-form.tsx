@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { updateProfileDetails } from "@/app/actions/profile";
+import { uploadOwnAvatarAction } from "@/app/actions/avatar";
+import { AvatarUploadCropper } from "@/components/profile/avatar-upload-cropper";
 import type { ProfileLink } from "@/lib/profile-links";
 
 interface EditProfileFormProps {
@@ -71,6 +73,11 @@ export function EditProfileForm({
       <div className="space-y-1">
         <label className="text-sm text-text-muted" htmlFor="profile-avatar">لینک آواتار</label>
         <input id="profile-avatar" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
+      </div>
+
+      <div className="space-y-1">
+        <span className="text-sm text-text-muted">یا آپلود مستقیم تصویر</span>
+        <AvatarUploadCropper uploadAction={uploadOwnAvatarAction} onUploaded={setAvatarUrl} />
       </div>
 
       <div className="space-y-1">

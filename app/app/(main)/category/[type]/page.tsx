@@ -169,7 +169,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             >
               قبلی
             </Link>
-            <span>صفحه {page.toLocaleString("fa-IR")} از {totalPages.toLocaleString("fa-IR")}</span>
+            <span>
+              صفحه {page.toLocaleString("fa-IR")} از {totalPages.toLocaleString("fa-IR")}
+            </span>
             <Link
               href={buildHref({ page: page + 1 })}
               className={`rounded-md border border-border px-3 py-1.5 ${page >= totalPages ? "pointer-events-none opacity-30" : "hover:border-primary"}`}
