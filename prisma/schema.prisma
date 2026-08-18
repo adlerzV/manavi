@@ -482,18 +482,17 @@ enum TransactionStatus {
 }
 
 model CoinPackage {
-  id                 String   @id @default(uuid())
-  coins              Int
-  bonusCoins         Int      @default(0)
-  priceToman         Decimal  @db.Decimal(12, 2)
-  priceTon           Decimal? @db.Decimal(20, 9)
-  originalPriceToman Decimal? @db.Decimal(12, 2)
-  badge              String?
-  isFeatured         Boolean  @default(false)
-  isActive           Boolean  @default(true)
-  sortOrder          Int      @default(0)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                String   @id @default(uuid())
+  coins             Int
+  bonusCoins        Int      @default(0)
+  priceUsdt         Decimal  @db.Decimal(12, 2)
+  originalPriceUsdt Decimal? @db.Decimal(12, 2)
+  badge             String?
+  isFeatured        Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   transactions Transaction[]
 
@@ -607,7 +606,8 @@ model PlatformSettings {
   id                       String   @id @default("singleton")
   chapterUnlockCoinCost    Int      @default(15)
   newReleaseThresholdHours Int      @default(72)
-  coinPriceTon             Decimal  @db.Decimal(20, 9) @default(0.01)
+  coinPriceUsdt            Decimal  @db.Decimal(20, 6) @default(0.002)
+  tomanPerUsdt             Int      @default(0)
   updatedAt                DateTime @updatedAt
 }
 

@@ -7,12 +7,16 @@ import { checkRateLimit } from "@/lib/moderation";
 import {
   isTonConfigured,
   getPlatformTonAddress,
-  tonToNanotons,
+  getJettonWalletAddress,
+  usdtToJettonUnits,
+  buildJettonTransferPayload,
   generateTonComment,
+  JETTON_TRANSFER_GAS_NANOTON,
+  TonVerificationError,
 } from "@/lib/ton";
 import { findActiveCoinPackage } from "@/lib/coin-packages";
-import { getChapterUnlockCoinCost, getCoinPriceTon } from "@/lib/platform-settings";
-import { MIN_DONATION_TON, MAX_DONATION_TON, MAX_CUSTOM_COINS } from "@/lib/billing";
+import { getChapterUnlockCoinCost, getCoinPriceUsdt } from "@/lib/platform-settings";
+import { MIN_DONATION_USDT, MAX_DONATION_USDT, MAX_CUSTOM_COINS } from "@/lib/billing";
 import { safeError } from "@/lib/errors";
 
 interface ActionResult<T = undefined> {
@@ -23,14 +27,14 @@ interface ActionResult<T = undefined> {
 
 export interface TonPaymentRequest {
   transactionId: string;
-  toAddress: string;
+  jettonWalletAddress: string;
   amountNanotons: string;
-  comment: string;
+  payloadBase64: string;
 }
 
 async function createPendingTransaction(input: {
   type: "COIN_PURCHASE" | "DONATION" | "PUBLISHER_PAYOUT";
-  amountTon: number;
+  amountUsdt: number;
   payerId: string;
   receiverId?: string;
   message?: string;
@@ -42,8 +46,8 @@ async function createPendingTransaction(input: {
     data: {
       type: input.type,
       status: "PENDING",
-      amount: input.amountTon,
-      currency: "TON",
+      amount: input.amountUsdt,
+      currency: "USDT",
       payerId: input.payerId,
       receiverId: input.receiverId,
       message: input.message,
@@ -52,98 +56,123 @@ async function createPendingTransaction(input: {
       payoutPublisherId: input.payoutPublisherId,
     },
   });
-
   const comment = generateTonComment(transaction.id);
   await prisma.transaction.update({ where: { id: transaction.id }, data: { tonComment: comment } });
-
   return { transaction, comment };
 }
 
-export async function createTonCoinPayment(packageId: string): Promise<ActionResult<TonPaymentRequest>> {
-  const user = await getSessionUser();
-  if (!user) return { success: false, error: "برای خرید باید وارد شوید" };
-  if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
-  if (!isTonConfigured()) return { success: false, error: "پرداخت تون هنوز پیکربندی نشده است" };
-
-  const allowed = await checkRateLimit(`ton-coins:${user.id}`, 5);
-  if (!allowed) return { success: false, error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" };
-
-  const pack = await findActiveCoinPackage(packageId);
-  if (!pack || pack.priceTon == null) {
-    return { success: false, error: "این پکیج برای پرداخت با تون در دسترس نیست" };
-  }
-
-  const { transaction, comment } = await createPendingTransaction({
-    type: "COIN_PURCHASE",
-    amountTon: Number(pack.priceTon),
-    payerId: user.id,
-    coinPackageId: pack.id,
+async function buildPaymentRequest(input: {
+  payerWalletAddress: string;
+  destinationOwnerAddress: string;
+  amountUsdt: number;
+  comment: string;
+  transactionId: string;
+}): Promise<TonPaymentRequest> {
+  const jettonWalletAddress = await getJettonWalletAddress(input.payerWalletAddress);
+  const payloadBase64 = buildJettonTransferPayload({
+    jettonAmountUnits: usdtToJettonUnits(input.amountUsdt),
+    toOwnerAddress: input.destinationOwnerAddress,
+    responseAddress: input.payerWalletAddress,
+    comment: input.comment,
   });
-
   return {
-    success: true,
-    data: {
-      transactionId: transaction.id,
-      toAddress: getPlatformTonAddress(),
-      amountNanotons: tonToNanotons(Number(pack.priceTon)).toString(),
-      comment,
-    },
+    transactionId: input.transactionId,
+    jettonWalletAddress,
+    amountNanotons: JETTON_TRANSFER_GAS_NANOTON.toString(),
+    payloadBase64,
   };
 }
 
-export async function createTonCustomCoinPayment(coins: number): Promise<ActionResult<TonPaymentRequest>> {
+function handlePaymentError<T>(err: unknown): ActionResult<T> {
+  if (err instanceof TonVerificationError) return { success: false, error: err.message };
+  return safeError(err);
+}
+
+export async function createTonCoinPayment(packageId: string, payerWalletAddress: string): Promise<ActionResult<TonPaymentRequest>> {
   const user = await getSessionUser();
   if (!user) return { success: false, error: "برای خرید باید وارد شوید" };
   if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
-  if (!isTonConfigured()) return { success: false, error: "پرداخت تون هنوز پیکربندی نشده است" };
+  if (!isTonConfigured()) return { success: false, error: "پرداخت هنوز پیکربندی نشده است" };
+
+  const allowed = await checkRateLimit(`usdt-coins:${user.id}`, 5);
+  if (!allowed) return { success: false, error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" };
+
+  const pack = await findActiveCoinPackage(packageId);
+  if (!pack) return { success: false, error: "این پکیج در دسترس نیست" };
+
+  try {
+    const { transaction, comment } = await createPendingTransaction({
+      type: "COIN_PURCHASE",
+      amountUsdt: Number(pack.priceUsdt),
+      payerId: user.id,
+      coinPackageId: pack.id,
+    });
+    const data = await buildPaymentRequest({
+      payerWalletAddress,
+      destinationOwnerAddress: getPlatformTonAddress(),
+      amountUsdt: Number(pack.priceUsdt),
+      comment,
+      transactionId: transaction.id,
+    });
+    return { success: true, data };
+  } catch (err) {
+    return handlePaymentError(err);
+  }
+}
+
+export async function createTonCustomCoinPayment(coins: number, payerWalletAddress: string): Promise<ActionResult<TonPaymentRequest>> {
+  const user = await getSessionUser();
+  if (!user) return { success: false, error: "برای خرید باید وارد شوید" };
+  if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
+  if (!isTonConfigured()) return { success: false, error: "پرداخت هنوز پیکربندی نشده است" };
 
   const coinCost = await getChapterUnlockCoinCost();
   if (!Number.isInteger(coins) || coins < coinCost || coins > MAX_CUSTOM_COINS) {
-    return {
-      success: false,
-      error: `تعداد سکه باید حداقل ${coinCost.toLocaleString("fa-IR")} و حداکثر ${MAX_CUSTOM_COINS.toLocaleString("fa-IR")} باشد`,
-    };
+    return { success: false, error: `تعداد سکه باید حداقل ${coinCost.toLocaleString("fa-IR")} و حداکثر ${MAX_CUSTOM_COINS.toLocaleString("fa-IR")} باشد` };
   }
 
-  const allowed = await checkRateLimit(`ton-coins-custom:${user.id}`, 5);
+  const allowed = await checkRateLimit(`usdt-coins-custom:${user.id}`, 5);
   if (!allowed) return { success: false, error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" };
 
-  const coinPriceTon = await getCoinPriceTon();
-  const amountTon = Math.round(coins * coinPriceTon * 1e9) / 1e9;
+  const coinPriceUsdt = await getCoinPriceUsdt();
+  const amountUsdt = Math.round(coins * coinPriceUsdt * 1e6) / 1e6;
 
-  const { transaction, comment } = await createPendingTransaction({
-    type: "COIN_PURCHASE",
-    amountTon,
-    payerId: user.id,
-    customCoins: coins,
-  });
-
-  return {
-    success: true,
-    data: {
-      transactionId: transaction.id,
-      toAddress: getPlatformTonAddress(),
-      amountNanotons: tonToNanotons(amountTon).toString(),
+  try {
+    const { transaction, comment } = await createPendingTransaction({
+      type: "COIN_PURCHASE",
+      amountUsdt,
+      payerId: user.id,
+      customCoins: coins,
+    });
+    const data = await buildPaymentRequest({
+      payerWalletAddress,
+      destinationOwnerAddress: getPlatformTonAddress(),
+      amountUsdt,
       comment,
-    },
-  };
+      transactionId: transaction.id,
+    });
+    return { success: true, data };
+  } catch (err) {
+    return handlePaymentError(err);
+  }
 }
 
 export async function createTonDonationPayment(input: {
   receiverId: string;
-  amountTon: number;
+  amountUsdt: number;
   message?: string;
+  payerWalletAddress: string;
 }): Promise<ActionResult<TonPaymentRequest>> {
   const user = await getSessionUser();
   if (!user) return { success: false, error: "برای حمایت مالی باید وارد شوید" };
   if (user.isBanned) return { success: false, error: "حساب شما مسدود شده است" };
-  if (!isTonConfigured()) return { success: false, error: "پرداخت تون هنوز پیکربندی نشده است" };
+  if (!isTonConfigured()) return { success: false, error: "پرداخت هنوز پیکربندی نشده است" };
   if (input.receiverId === user.id) return { success: false, error: "نمی‌توانید به خودتان حمایت مالی کنید" };
-  if (!Number.isFinite(input.amountTon) || input.amountTon < MIN_DONATION_TON || input.amountTon > MAX_DONATION_TON) {
-    return { success: false, error: `مبلغ حمایت باید بین ${MIN_DONATION_TON} تا ${MAX_DONATION_TON} TON باشد` };
+  if (!Number.isFinite(input.amountUsdt) || input.amountUsdt < MIN_DONATION_USDT || input.amountUsdt > MAX_DONATION_USDT) {
+    return { success: false, error: `مبلغ حمایت باید بین ${MIN_DONATION_USDT} تا ${MAX_DONATION_USDT} USDT باشد` };
   }
 
-  const allowed = await checkRateLimit(`ton-donate:${user.id}`, 5);
+  const allowed = await checkRateLimit(`usdt-donate:${user.id}`, 5);
   if (!allowed) return { success: false, error: "تعداد درخواست‌ها بیش از حد مجاز است، کمی صبر کنید" };
 
   const receiver = await prisma.user.findFirst({
@@ -153,42 +182,40 @@ export async function createTonDonationPayment(input: {
     },
     select: { cryptoWalletAddress: true },
   });
-  if (!receiver) {
-    return { success: false, error: "این کاربر واجد شرایط دریافت حمایت مالی نیست" };
-  }
-  if (!receiver.cryptoWalletAddress) {
-    return { success: false, error: "این کاربر آدرس کیف پول تون ثبت نکرده است" };
-  }
+  if (!receiver) return { success: false, error: "این کاربر واجد شرایط دریافت حمایت مالی نیست" };
+  if (!receiver.cryptoWalletAddress) return { success: false, error: "این کاربر آدرس کیف پول تون ثبت نکرده است" };
 
-  const { transaction, comment } = await createPendingTransaction({
-    type: "DONATION",
-    amountTon: input.amountTon,
-    payerId: user.id,
-    receiverId: input.receiverId,
-    message: input.message?.trim().slice(0, 300),
-  });
-
-  return {
-    success: true,
-    data: {
-      transactionId: transaction.id,
-      toAddress: receiver.cryptoWalletAddress,
-      amountNanotons: tonToNanotons(input.amountTon).toString(),
+  try {
+    const { transaction, comment } = await createPendingTransaction({
+      type: "DONATION",
+      amountUsdt: input.amountUsdt,
+      payerId: user.id,
+      receiverId: input.receiverId,
+      message: input.message?.trim().slice(0, 300),
+    });
+    const data = await buildPaymentRequest({
+      payerWalletAddress: input.payerWalletAddress,
+      destinationOwnerAddress: receiver.cryptoWalletAddress,
+      amountUsdt: input.amountUsdt,
       comment,
-    },
-  };
+      transactionId: transaction.id,
+    });
+    return { success: true, data };
+  } catch (err) {
+    return handlePaymentError(err);
+  }
 }
 
 export async function createTonPublisherPayoutPayment(input: {
   publisherId: string;
-  amountTon: number;
+  amountUsdt: number;
   periodStart: string;
   periodEnd: string;
+  payerWalletAddress: string;
 }): Promise<ActionResult<TonPaymentRequest>> {
   try {
     const admin = await requireAdmin();
-
-    if (!Number.isFinite(input.amountTon) || input.amountTon <= 0) {
+    if (!Number.isFinite(input.amountUsdt) || input.amountUsdt <= 0) {
       return { success: false, error: "مبلغ باید مثبت باشد" };
     }
 
@@ -197,13 +224,11 @@ export async function createTonPublisherPayoutPayment(input: {
       select: { id: true, cryptoWalletAddress: true },
     });
     if (!publisher) return { success: false, error: "ناشر یافت نشد" };
-    if (!publisher.cryptoWalletAddress) {
-      return { success: false, error: "این ناشر آدرس کیف پول تون ثبت نکرده است" };
-    }
+    if (!publisher.cryptoWalletAddress) return { success: false, error: "این ناشر آدرس کیف پول تون ثبت نکرده است" };
 
     const { transaction, comment } = await createPendingTransaction({
       type: "PUBLISHER_PAYOUT",
-      amountTon: input.amountTon,
+      amountUsdt: input.amountUsdt,
       payerId: admin.id,
       payoutPublisherId: publisher.id,
     });
@@ -211,7 +236,7 @@ export async function createTonPublisherPayoutPayment(input: {
     await prisma.payoutRequest.create({
       data: {
         publisherId: publisher.id,
-        amountTon: input.amountTon,
+        amountTon: input.amountUsdt, // 🔶 فیلد amountTon همچنان استفاده می‌شود، فقط الان مقدار USDT در آن ذخیره می‌شود — پایین توضیح دادم
         periodStart: new Date(input.periodStart),
         periodEnd: new Date(input.periodEnd),
         status: "PENDING",
@@ -221,17 +246,16 @@ export async function createTonPublisherPayoutPayment(input: {
       },
     });
 
-    return {
-      success: true,
-      data: {
-        transactionId: transaction.id,
-        toAddress: publisher.cryptoWalletAddress,
-        amountNanotons: tonToNanotons(input.amountTon).toString(),
-        comment,
-      },
-    };
+    const data = await buildPaymentRequest({
+      payerWalletAddress: input.payerWalletAddress,
+      destinationOwnerAddress: publisher.cryptoWalletAddress,
+      amountUsdt: input.amountUsdt,
+      comment,
+      transactionId: transaction.id,
+    });
+    return { success: true, data };
   } catch (err) {
-    return safeError(err);
+    return handlePaymentError(err);
   }
 }
 

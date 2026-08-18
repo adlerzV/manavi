@@ -5,12 +5,11 @@ import { prisma } from "./prisma";
 export const PLATFORM_SETTINGS_TAG = "platform-settings";
 
 async function fetchPlatformSettings() {
-  const settings = await prisma.platformSettings.upsert({
+  return prisma.platformSettings.upsert({
     where: { id: "singleton" },
     update: {},
     create: { id: "singleton" },
   });
-  return settings;
 }
 
 export const getPlatformSettings = unstable_cache(fetchPlatformSettings, ["platform-settings:singleton"], {
@@ -21,11 +20,17 @@ export const getPlatformSettings = unstable_cache(fetchPlatformSettings, ["platf
 export async function getChapterUnlockCoinCost(): Promise<number> {
   return (await getPlatformSettings()).chapterUnlockCoinCost;
 }
-
 export async function getNewReleaseThresholdHours(): Promise<number> {
   return (await getPlatformSettings()).newReleaseThresholdHours;
 }
+export async function getCoinPriceUsdt(): Promise<number> {
+  return Number((await getPlatformSettings()).coinPriceUsdt);
+}
+export async function getTomanPerUsdt(): Promise<number> {
+  return (await getPlatformSettings()).tomanPerUsdt;
+}
 
-export async function getCoinPriceTon(): Promise<number> {
-  return Number((await getPlatformSettings()).coinPriceTon);
+export function usdtToToman(amountUsdt: number, tomanPerUsdt: number): number {
+  if (!tomanPerUsdt) return 0;
+  return Math.round(amountUsdt * tomanPerUsdt);
 }

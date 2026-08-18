@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTonConnectUI, useTonAddress } from "@tonconnect/ui-react";
-import { buildTonCommentPayload, TON_TRANSACTION_VALID_SECONDS } from "@/lib/ton-client";
 import { verifyTonPayment, type TonPaymentRequest } from "@/app/actions/ton-payments";
 
 const VERIFY_POLL_INTERVAL_MS = 3000;
@@ -12,7 +11,7 @@ interface TonPayButtonProps {
   label: string;
   disabled?: boolean;
   className?: string;
-  createPayment: () => Promise<{ success: boolean; error?: string; data?: TonPaymentRequest }>;
+  createPayment: (walletAddress: string) => Promise<{ success: boolean; error?: string; data?: TonPaymentRequest }>;
   onPaid?: () => void;
 }
 
@@ -23,11 +22,23 @@ export function TonPayButton({ label, disabled, className, createPayment, onPaid
   const walletAddress = useTonAddress();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
+  const paidCalledRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
 
   async function pollVerification(transactionId: string) {
     for (let attempt = 0; attempt < VERIFY_MAX_ATTEMPTS; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, VERIFY_POLL_INTERVAL_MS));
+      if (cancelledRef.current) return;
+
       const result = await verifyTonPayment(transactionId);
+      if (cancelledRef.current) return;
+
       if (!result.success) {
         setStatus("error");
         setError(result.error ?? "خطا در تایید تراکنش");
@@ -35,7 +46,10 @@ export function TonPayButton({ label, disabled, className, createPayment, onPaid
       }
       if (result.data?.status === "PAID") {
         setStatus("done");
-        onPaid?.();
+        if (!paidCalledRef.current) {
+          paidCalledRef.current = true;
+          onPaid?.();
+        }
         return;
       }
       if (result.data?.status === "FAILED") {
@@ -44,13 +58,14 @@ export function TonPayButton({ label, disabled, className, createPayment, onPaid
         return;
       }
     }
-    setStatus("error");
-    setError("تایید تراکنش زمان زیادی طول کشید — اگر مبلغ کسر شده، چند دقیقه دیگر صفحه را رفرش کنید");
+    if (!cancelledRef.current) {
+      setStatus("error");
+      setError("تایید تراکنش زمان زیادی طول کشید — اگر مبلغ کسر شده، چند دقیقه دیگر صفحه را رفرش کنید");
+    }
   }
 
   async function handleClick() {
     setError(null);
-
     if (!walletAddress) {
       try {
         await tonConnectUI.openModal();
@@ -59,7 +74,7 @@ export function TonPayButton({ label, disabled, className, createPayment, onPaid
     }
 
     setStatus("creating");
-    const result = await createPayment();
+    const result = await createPayment(walletAddress);
     if (!result.success || !result.data) {
       setStatus("error");
       setError(result.error ?? "خطا در ایجاد تراکنش");
@@ -69,12 +84,12 @@ export function TonPayButton({ label, disabled, className, createPayment, onPaid
     setStatus("awaiting-wallet");
     try {
       await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + TON_TRANSACTION_VALID_SECONDS,
+        validUntil: Math.floor(Date.now() / 1000) + 300,
         messages: [
           {
-            address: result.data.toAddress,
+            address: result.data.jettonWalletAddress,
             amount: result.data.amountNanotons,
-            payload: buildTonCommentPayload(result.data.comment),
+            payload: result.data.payloadBase64,
           },
         ],
       });
