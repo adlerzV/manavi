@@ -196,7 +196,6 @@ model Comic {
   bookmarks    Bookmark[]
   transactions Transaction[]
   genres       ComicGenre[]
-  tags         ComicTag[]
   readHistory  ReadHistory[]
   readMarks    ChapterReadMark[]
 
@@ -242,22 +241,6 @@ model ComicGenre {
   genre   Genre @relation(fields: [genreId], references: [id])
 
   @@id([comicId, genreId])
-}
-
-model Tag {
-  id     String     @id @default(uuid())
-  name   String     @unique
-  slug   String     @unique
-  comics ComicTag[]
-}
-
-model ComicTag {
-  comicId String
-  tagId   String
-  comic   Comic @relation(fields: [comicId], references: [id])
-  tag     Tag   @relation(fields: [tagId], references: [id])
-
-  @@id([comicId, tagId])
 }
 
 model ComicStaff {
@@ -552,12 +535,6 @@ model PayoutRequest {
 
   @@index([publisherId])
   @@index([status])
-}
-
-model RateLimitBucket {
-  key         String   @id
-  count       Int      @default(0)
-  windowStart DateTime @default(now())
 }
 
 model DevToolsStrike {
