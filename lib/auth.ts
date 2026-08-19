@@ -27,7 +27,6 @@ function fromStorable(raw: SerializedSessionUser): SessionUser {
   return {
     ...raw,
     telegramId: BigInt(raw.telegramId),
-    subscriptionEnd: raw.subscriptionEnd ? new Date(raw.subscriptionEnd) : null,
     bannedAt: raw.bannedAt ? new Date(raw.bannedAt) : null,
     deletedAt: raw.deletedAt ? new Date(raw.deletedAt) : null,
     createdAt: new Date(raw.createdAt),

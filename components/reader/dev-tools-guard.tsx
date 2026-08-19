@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { reportDevToolsOpen } from "@/app/actions/anti-piracy";
 
-const SIZE_CHECK_INTERVAL_MS = 1500;
-const TIMING_CHECK_INTERVAL_MS = 3000;
+const SIZE_CHECK_INTERVAL_MS = 5000;
+const TIMING_CHECK_INTERVAL_MS = 10000;
 const SIZE_THRESHOLD_PX = 160;
 const TIMING_THRESHOLD_MS = 100;
 
 export function DevToolsGuard() {
-  const router = useRouter();
   const triggeredRef = useRef(false);
 
   useEffect(() => {
@@ -20,7 +18,6 @@ export function DevToolsGuard() {
       if (triggeredRef.current || cancelled) return;
       triggeredRef.current = true;
       reportDevToolsOpen()
-        .then(() => router.refresh())
         .catch(() => {})
         .finally(() => {
           setTimeout(() => {
@@ -53,7 +50,7 @@ export function DevToolsGuard() {
       clearInterval(sizeInterval);
       clearInterval(timingInterval);
     };
-  }, [router]);
+  }, []);
 
   return null;
 }

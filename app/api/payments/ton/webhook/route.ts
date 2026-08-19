@@ -5,6 +5,9 @@ import { settlePendingTonTransactions } from "@/lib/ton-settlement";
 const WEBHOOK_SECRET = process.env.TONAPI_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production" && !WEBHOOK_SECRET) {
+  return NextResponse.json({ error: "webhook secret not configured" }, { status: 500 });
+ }
   if (WEBHOOK_SECRET) {
     const provided =
       req.headers.get("x-tonapi-webhook-secret") ??

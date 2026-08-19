@@ -72,15 +72,19 @@ export async function POST(req: NextRequest) {
   const { user, startParam } = validated;
 
   const existing = await prisma.user.findUnique({ where: { telegramId: BigInt(user.id) } });
+  const bootstrapAdmins = getBootstrapAdminTelegramIds();
 
   let dbUser;
   if (existing) {
+    const shouldPromote = existing.role !== "ADMIN" && bootstrapAdmins.has(String(user.id));
+
     dbUser = await prisma.user.update({
       where: { id: existing.id },
       data: {
         firstName: user.first_name,
         lastName: user.last_name ?? null,
         username: user.username ?? null,
+        ...(shouldPromote ? { role: "ADMIN" as Role } : {}),
       },
     });
   } else {
@@ -88,7 +92,6 @@ export async function POST(req: NextRequest) {
       ? await prisma.user.findUnique({ where: { referralCode: startParam } })
       : null;
 
-    const bootstrapAdmins = getBootstrapAdminTelegramIds();
     const role: Role = bootstrapAdmins.has(String(user.id)) ? "ADMIN" : "USER";
 
     dbUser = await createUserWithReferral({

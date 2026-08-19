@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { prisma } from "./prisma";
 import { ChapterAccessType } from "@prisma/client";
 import type { ChapterAccessInfo } from "./chapter-access";
@@ -9,6 +10,8 @@ import { getChapterUnlockCoinCost } from "./platform-settings";
 export type { ChapterAccessInfo };
 
 const COIN_UNLOCK_CACHE_TTL_SECONDS = 300;
+const CHAPTER_ACCESS_LIST_REVALIDATE_SECONDS = 45;
+
 const coinUnlockCacheKey = (userId: string, chapterId: string) => `chapter-unlock:${userId}:${chapterId}`;
 
 async function hasCoinUnlockCached(userId: string, chapterId: string): Promise<boolean> {
@@ -28,7 +31,7 @@ export async function invalidateChapterUnlockCache(userId: string, chapterId: st
   await redis.del(coinUnlockCacheKey(userId, chapterId)).catch(() => {});
 }
 
-export async function getChapterAccessList(comicId: string): Promise<ChapterAccessInfo[]> {
+async function fetchChapterAccessList(comicId: string): Promise<ChapterAccessInfo[]> {
   const chapters = await prisma.chapter.findMany({
     where: { comicId, publishedAt: { not: null } },
     orderBy: { chapterNumber: "desc" },
@@ -56,6 +59,13 @@ export async function getChapterAccessList(comicId: string): Promise<ChapterAcce
     };
   });
 }
+
+export const getChapterAccessList = (comicId: string) =>
+  unstable_cache(
+    () => fetchChapterAccessList(comicId),
+    [`chapters-access-list:${comicId}`],
+    { revalidate: CHAPTER_ACCESS_LIST_REVALIDATE_SECONDS }
+  )();
 
 export async function userHasChapterAccess(
   userId: string | null,
