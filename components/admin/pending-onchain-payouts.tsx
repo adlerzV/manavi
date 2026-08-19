@@ -11,7 +11,7 @@ export function PendingOnChainPayouts({ rows }: { rows: PendingOnChainPayoutRow[
           <div key={row.id} className="flex items-center justify-between px-4 py-3">
             <p className="text-sm text-text-main">{row.publisherName}</p>
             <div className="text-left">
-              <p className="text-sm text-accent">{row.amountTon != null ? `${row.amountTon} TON` : "—"}</p>
+              <p className="text-sm text-accent">{row.amountUsdt != null ? `${row.amountUsdt} USDT` : "—"}</p>
               <p className="text-xs text-text-muted">{new Date(row.requestedAt).toLocaleString("fa-IR")}</p>
             </div>
           </div>

@@ -6,17 +6,20 @@ import { updatePlatformSettings } from "@/app/admin/actions/platform-settings";
 interface PlatformSettingsFormProps {
   initialCoinCost: number;
   initialThresholdHours: number;
-  initialCoinPriceTon: number;
+  initialCoinPriceUsdt: number;
+  initialTomanPerUsdt: number;
 }
 
 export function PlatformSettingsForm({
   initialCoinCost,
   initialThresholdHours,
-  initialCoinPriceTon,
+  initialCoinPriceUsdt,
+  initialTomanPerUsdt,
 }: PlatformSettingsFormProps) {
   const [coinCost, setCoinCost] = useState(initialCoinCost);
   const [thresholdHours, setThresholdHours] = useState(initialThresholdHours);
-  const [coinPriceTon, setCoinPriceTon] = useState(initialCoinPriceTon);
+  const [coinPriceUsdt, setCoinPriceUsdt] = useState(initialCoinPriceUsdt);
+  const [tomanPerUsdt, setTomanPerUsdt] = useState(initialTomanPerUsdt);
   const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +31,8 @@ export function PlatformSettingsForm({
     const result = await updatePlatformSettings({
       chapterUnlockCoinCost: Number(coinCost),
       newReleaseThresholdHours: Number(thresholdHours),
-      coinPriceTon: Number(coinPriceTon),
+      coinPriceUsdt: Number(coinPriceUsdt),
+      tomanPerUsdt: Number(tomanPerUsdt),
     });
 
     if (result.success) {
@@ -39,6 +43,8 @@ export function PlatformSettingsForm({
       setError(result.error ?? "مشکلی در ثبت تنظیمات پیش آمد");
     }
   }
+
+  const chapterPriceToman = tomanPerUsdt > 0 ? Math.round(coinCost * coinPriceUsdt * tomanPerUsdt) : null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 rounded-md border border-border bg-surface p-6">
@@ -62,21 +68,43 @@ export function PlatformSettingsForm({
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium text-text-main" htmlFor="coin-price-ton">
-            ارزش هر سکه به TON
+          <label className="text-sm font-medium text-text-main" htmlFor="coin-price-usdt">
+            ارزش هر سکه به تتر (USDT)
           </label>
           <input
-            id="coin-price-ton"
+            id="coin-price-usdt"
             type="number"
             min="0"
             step="any"
-            value={coinPriceTon}
-            onChange={(e) => setCoinPriceTon(Number(e.target.value))}
+            value={coinPriceUsdt}
+            onChange={(e) => setCoinPriceUsdt(Number(e.target.value))}
             required
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
           />
           <p className="text-xs text-text-muted">
-            این نرخ برای «خرید سکه به مقدار دلخواه» در فروشگاه و همچنین تبدیل سهم ناشرها از سکه به TON در لاگ تسویه‌حساب استفاده می‌شه. قیمت پکیج‌های سکه مستقل از این نرخ و دستی تنظیم می‌شه.
+            این نرخ برای «خرید سکه به مقدار دلخواه» در فروشگاه و همچنین تبدیل سهم ناشرها از سکه به USDT در لاگ تسویه‌حساب استفاده می‌شه. قیمت پکیج‌های سکه مستقل از این نرخ و دستی تنظیم می‌شه.
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-text-main" htmlFor="toman-per-usdt">
+            نرخ نمایشی: هر ۱ تتر چند تومان
+          </label>
+          <input
+            id="toman-per-usdt"
+            type="number"
+            min="0"
+            step="1"
+            value={tomanPerUsdt}
+            onChange={(e) => setTomanPerUsdt(Number(e.target.value))}
+            required
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
+          />
+          <p className="text-xs text-text-muted">
+            فقط برای نمایش معادل تومانی قیمت‌ها به کاربر استفاده می‌شه — پرداخت واقعی همیشه با USDT انجام می‌شه.
+            {chapterPriceToman !== null && (
+              <> معادل فعلی هر چپتر سکه‌ای: <span className="text-text-main">≈ {chapterPriceToman.toLocaleString("fa-IR")} تومان</span>.</>
+            )}
           </p>
         </div>
 

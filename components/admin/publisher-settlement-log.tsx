@@ -43,7 +43,7 @@ export function PublisherSettlementLog({ initialRows }: { initialRows: Publisher
 
   function openManual(row: PublisherSettlementRow) {
     setManualFor(row.publisherId);
-    setAmountInput(String(row.owedTon));
+    setAmountInput(String(row.owedUsdt));
     setNoteInput("");
     setError(null);
   }
@@ -56,7 +56,7 @@ export function PublisherSettlementLog({ initialRows }: { initialRows: Publisher
     }
     setError(null);
     startTransition(async () => {
-      const result = await recordManualPayout({ publisherId, amountTon: amount, note: noteInput });
+      const result = await recordManualPayout({ publisherId, amountUsdt: amount, note: noteInput });
       if (result.success) {
         setManualFor(null);
         handlePaid();
@@ -90,7 +90,7 @@ export function PublisherSettlementLog({ initialRows }: { initialRows: Publisher
                 <p className="text-sm text-text-main">{row.publisherName}</p>
                 <p className="text-xs text-text-muted">
                   {row.grossCoinsRedeemed.toLocaleString("fa-IR")} سکه بازشده · سهم {row.weightedRoyaltyPercentage}% ·{" "}
-                  <span className="text-primary">{row.owedCoins.toLocaleString("fa-IR")} سکه ≈ {row.owedTon} TON</span>
+                  <span className="text-primary">{row.owedCoins.toLocaleString("fa-IR")} سکه ≈ {row.owedUsdt} USDT</span>
                 </p>
                 {row.cryptoWalletAddress ? (
                   <p className="mt-1 text-[11px] text-text-muted">کیف پول: {row.cryptoWalletAddress}</p>
@@ -102,7 +102,7 @@ export function PublisherSettlementLog({ initialRows }: { initialRows: Publisher
                 <PublisherPayoutButton
                   publisherId={row.publisherId}
                   publisherName={row.publisherName}
-                  suggestedAmountTon={row.owedTon}
+                  suggestedAmountUsdt={row.owedUsdt}
                   hasWallet={Boolean(row.cryptoWalletAddress)}
                   periodStart={periodStart}
                   periodEnd={periodEnd}
@@ -121,7 +121,7 @@ export function PublisherSettlementLog({ initialRows }: { initialRows: Publisher
                   step="any"
                   value={amountInput}
                   onChange={(e) => setAmountInput(e.target.value)}
-                  placeholder="مبلغ TON واقعی ارسالی"
+                  placeholder="مبلغ USDT واقعی ارسالی"
                   className="w-40 rounded-md border border-border bg-surface px-2 py-1 text-xs text-text-main"
                 />
                 <input

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { getCoinPriceTon } from "@/lib/platform-settings";
+import { getCoinPriceUsdt } from "@/lib/platform-settings";
 import { safeError } from "@/lib/errors";
 
 interface ActionResult<T = undefined> {
@@ -18,7 +18,7 @@ export interface PublisherSettlementRow {
   grossCoinsRedeemed: number;
   weightedRoyaltyPercentage: number;
   owedCoins: number;
-  owedTon: number;
+  owedUsdt: number;
 }
 
 export async function getPublisherSettlementLog(periodStart: string, periodEnd: string): Promise<PublisherSettlementRow[]> {
@@ -26,7 +26,7 @@ export async function getPublisherSettlementLog(periodStart: string, periodEnd: 
 
   const start = new Date(periodStart);
   const end = new Date(periodEnd);
-  const coinPriceTon = await getCoinPriceTon();
+  const coinPriceUsdt = await getCoinPriceUsdt();
 
   const licenses = await prisma.license.findMany({
     select: {
@@ -73,7 +73,7 @@ export async function getPublisherSettlementLog(periodStart: string, periodEnd: 
         grossCoinsRedeemed,
         weightedRoyaltyPercentage: Number(license.royaltyPercentage),
         owedCoins,
-        owedTon: 0,
+        owedUsdt: 0,
       });
     }
   }
@@ -82,20 +82,20 @@ export async function getPublisherSettlementLog(periodStart: string, periodEnd: 
     ...row,
     weightedRoyaltyPercentage:
       row.grossCoinsRedeemed > 0 ? Math.round((row.owedCoins / row.grossCoinsRedeemed) * 10000) / 100 : row.weightedRoyaltyPercentage,
-    owedTon: Math.round(row.owedCoins * coinPriceTon * 1e9) / 1e9,
+    owedUsdt: Math.round(row.owedCoins * coinPriceUsdt * 1e6) / 1e6,
   }));
 
-  return rows.sort((a, b) => b.owedTon - a.owedTon);
+  return rows.sort((a, b) => b.owedUsdt - a.owedUsdt);
 }
 
 export async function recordManualPayout(input: {
   publisherId: string;
-  amountTon: number;
+  amountUsdt: number;
   note?: string;
 }): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
-    if (!Number.isFinite(input.amountTon) || input.amountTon <= 0) {
+    if (!Number.isFinite(input.amountUsdt) || input.amountUsdt <= 0) {
       return { success: false, error: "مبلغ باید مثبت باشد" };
     }
 
@@ -103,8 +103,8 @@ export async function recordManualPayout(input: {
     await prisma.payoutRequest.create({
       data: {
         publisherId: input.publisherId,
-        amountTon: input.amountTon,
-        paidAmountTon: input.amountTon,
+        amountTon: input.amountUsdt,
+        paidAmountTon: input.amountUsdt,
         periodStart: now,
         periodEnd: now,
         status: "PAID",
@@ -124,7 +124,7 @@ export async function recordManualPayout(input: {
 export interface PayoutLogRow {
   id: string;
   publisherName: string;
-  paidAmountTon: number | null;
+  paidAmountUsdt: number | null;
   paidAt: string | null;
   reviewNote: string | null;
 }
@@ -140,7 +140,7 @@ export async function listPayoutLog(): Promise<PayoutLogRow[]> {
   return rows.map((r) => ({
     id: r.id,
     publisherName: r.publisher.name,
-    paidAmountTon: r.paidAmountTon != null ? Number(r.paidAmountTon) : null,
+    paidAmountUsdt: r.paidAmountTon != null ? Number(r.paidAmountTon) : null,
     paidAt: r.paidAt ? r.paidAt.toISOString() : null,
     reviewNote: r.reviewNote,
   }));
@@ -149,7 +149,7 @@ export async function listPayoutLog(): Promise<PayoutLogRow[]> {
 export interface PendingOnChainPayoutRow {
   id: string;
   publisherName: string;
-  amountTon: number | null;
+  amountUsdt: number | null;
   requestedAt: string;
 }
 
@@ -163,7 +163,7 @@ export async function listPendingOnChainPayouts(): Promise<PendingOnChainPayoutR
   return rows.map((r) => ({
     id: r.id,
     publisherName: r.publisher.name,
-    amountTon: r.amountTon != null ? Number(r.amountTon) : null,
+    amountUsdt: r.amountTon != null ? Number(r.amountTon) : null,
     requestedAt: r.requestedAt.toISOString(),
   }));
 }

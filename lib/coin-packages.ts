@@ -6,9 +6,8 @@ export interface CoinPackageView {
   coins: number;
   bonusCoins: number;
   totalCoins: number;
-  priceToman: number;
-  priceTon: number | null;
-  originalPriceToman: number | null;
+  priceUsdt: number;
+  originalPriceUsdt: number | null;
   badge: string | null;
   isFeatured: boolean;
 }
@@ -24,9 +23,8 @@ export async function getActiveCoinPackages(): Promise<CoinPackageView[]> {
     coins: p.coins,
     bonusCoins: p.bonusCoins,
     totalCoins: p.coins + p.bonusCoins,
-    priceToman: Number(p.priceToman),
-    priceTon: p.priceTon != null ? Number(p.priceTon) : null,
-    originalPriceToman: p.originalPriceToman ? Number(p.originalPriceToman) : null,
+    priceUsdt: Number(p.priceUsdt),
+    originalPriceUsdt: p.originalPriceUsdt ? Number(p.originalPriceUsdt) : null,
     badge: p.badge,
     isFeatured: p.isFeatured,
   }));

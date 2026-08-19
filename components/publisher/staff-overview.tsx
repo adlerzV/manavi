@@ -24,7 +24,7 @@ export async function StaffOverview({ firstName }: { firstName: string }) {
             <p className="mt-1 text-xs text-text-muted">در انتظار تایید</p>
           </div>
           <div className="rounded-md border border-border bg-surface p-4 text-center">
-            <p className="text-2xl font-semibold text-primary">{stats.totalDonationsTon} TON</p>
+            <p className="text-2xl font-semibold text-primary">{stats.totalDonationsUsdt} USDT</p>
             <p className="mt-1 text-xs text-text-muted">دونیت دریافتی</p>
           </div>
         </div>

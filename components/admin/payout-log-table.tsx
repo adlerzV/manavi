@@ -10,7 +10,7 @@ export function PayoutLogTable({ rows }: { rows: PayoutLogRow[] }) {
             {row.reviewNote && <p className="text-xs text-text-muted">{row.reviewNote}</p>}
           </div>
           <div className="text-left">
-            <p className="text-sm text-primary">{row.paidAmountTon != null ? `${row.paidAmountTon} TON` : "—"}</p>
+            <p className="text-sm text-primary">{row.paidAmountUsdt != null ? `${row.paidAmountUsdt} USDT` : "—"}</p>
             <p className="text-xs text-text-muted">{row.paidAt ? new Date(row.paidAt).toLocaleDateString("fa-IR") : ""}</p>
           </div>
         </div>

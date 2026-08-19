@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { getActiveCoinPackages } from "@/lib/coin-packages";
 import { isTonConfigured } from "@/lib/ton";
-import { getChapterUnlockCoinCost, getCoinPriceTon } from "@/lib/platform-settings";
+import { getChapterUnlockCoinCost, getCoinPriceUsdt, getTomanPerUsdt } from "@/lib/platform-settings";
 import { CoinPackages } from "@/components/shop/coin-packages";
 import { CustomCoinPurchase } from "@/components/shop/custom-coin-purchase";
 
@@ -12,11 +12,12 @@ interface PageProps {
 
 export default async function ShopPage({ searchParams }: PageProps) {
   const { redirect } = await searchParams;
-  const [user, coinPackages, coinCost, coinPriceTon] = await Promise.all([
+  const [user, coinPackages, coinCost, coinPriceUsdt, tomanPerUsdt] = await Promise.all([
     getSessionUser(),
     getActiveCoinPackages(),
     getChapterUnlockCoinCost(),
-    getCoinPriceTon(),
+    getCoinPriceUsdt(),
+    getTomanPerUsdt(),
   ]);
   const tonConfigured = isTonConfigured();
 
@@ -29,7 +30,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
             موجودی سکه شما: {(user?.coinsBalance ?? 0).toLocaleString("fa-IR")}
           </p>
           <Link href="/buy-with-ton" className="mt-2 inline-block text-xs text-primary underline">
-            آموزش خرید با TON
+            آموزش خرید
           </Link>
         </div>
 
@@ -53,6 +54,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
             tonConfigured={tonConfigured}
             redirectTo={redirect}
             coinCost={coinCost}
+            tomanPerUsdt={tomanPerUsdt}
           />
         </section>
 
@@ -62,7 +64,8 @@ export default async function ShopPage({ searchParams }: PageProps) {
             <CustomCoinPurchase
               authenticated={Boolean(user)}
               coinCost={coinCost}
-              coinPriceTon={coinPriceTon}
+              coinPriceUsdt={coinPriceUsdt}
+              tomanPerUsdt={tomanPerUsdt}
               redirectTo={redirect}
             />
           </section>

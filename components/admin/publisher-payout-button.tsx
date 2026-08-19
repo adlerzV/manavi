@@ -8,7 +8,7 @@ import { createTonPublisherPayoutPayment } from "@/app/actions/ton-payments";
 interface PublisherPayoutButtonProps {
   publisherId: string;
   publisherName: string;
-  suggestedAmountTon: number;
+  suggestedAmountUsdt: number;
   hasWallet: boolean;
   periodStart: string;
   periodEnd: string;
@@ -18,14 +18,14 @@ interface PublisherPayoutButtonProps {
 export function PublisherPayoutButton({
   publisherId,
   publisherName,
-  suggestedAmountTon,
+  suggestedAmountUsdt,
   hasWallet,
   periodStart,
   periodEnd,
   onPaid,
 }: PublisherPayoutButtonProps) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState(String(suggestedAmountTon));
+  const [amount, setAmount] = useState(String(suggestedAmountUsdt));
 
   const parsedAmount = Number(amount);
   const valid = Number.isFinite(parsedAmount) && parsedAmount > 0;
@@ -53,7 +53,7 @@ export function PublisherPayoutButton({
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-text-muted" htmlFor={`payout-amount-${publisherId}`}>مبلغ (TON)</label>
+        <label className="text-xs text-text-muted" htmlFor={`payout-amount-${publisherId}`}>مبلغ (USDT)</label>
         <input
           id={`payout-amount-${publisherId}`}
           type="number"
@@ -68,9 +68,11 @@ export function PublisherPayoutButton({
       {!valid && <p className="text-xs text-red-400">مبلغ باید عددی مثبت باشد</p>}
 
       <TonPayButton
-        label={`پرداخت ${amount || 0} TON`}
+        label={`پرداخت ${amount || 0} USDT`}
         disabled={!valid}
-        createPayment={() => createTonPublisherPayoutPayment({ publisherId, amountTon: parsedAmount, periodStart, periodEnd })}
+        createPayment={(walletAddress) =>
+          createTonPublisherPayoutPayment({ publisherId, amountUsdt: parsedAmount, periodStart, periodEnd, payerWalletAddress: walletAddress })
+        }
         onPaid={() => {
           setOpen(false);
           onPaid?.();

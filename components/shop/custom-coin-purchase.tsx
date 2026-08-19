@@ -9,16 +9,18 @@ import { MAX_CUSTOM_COINS } from "@/lib/billing";
 interface CustomCoinPurchaseProps {
   authenticated: boolean;
   coinCost: number;
-  coinPriceTon: number;
+  coinPriceUsdt: number;
+  tomanPerUsdt: number;
   redirectTo?: string;
 }
 
-export function CustomCoinPurchase({ authenticated, coinCost, coinPriceTon, redirectTo }: CustomCoinPurchaseProps) {
+export function CustomCoinPurchase({ authenticated, coinCost, coinPriceUsdt, tomanPerUsdt, redirectTo }: CustomCoinPurchaseProps) {
   const router = useRouter();
   const [coins, setCoins] = useState(coinCost);
 
   const chapters = coins > 0 && coinCost > 0 ? Math.floor(coins / coinCost) : 0;
-  const amountTon = useMemo(() => Math.round(coins * coinPriceTon * 1e9) / 1e9, [coins, coinPriceTon]);
+  const amountUsdt = useMemo(() => Math.round(coins * coinPriceUsdt * 1e6) / 1e6, [coins, coinPriceUsdt]);
+  const amountToman = tomanPerUsdt > 0 ? Math.round(amountUsdt * tomanPerUsdt) : null;
 
   const valid = Number.isFinite(coins) && coins >= coinCost && coins <= MAX_CUSTOM_COINS;
 
@@ -40,7 +42,10 @@ export function CustomCoinPurchase({ authenticated, coinCost, coinPriceTon, redi
 
       <div className="rounded-md bg-background px-3 py-2 text-xs text-text-muted">
         <p>≈ {chapters.toLocaleString("fa-IR")} چپتر سکه‌ای</p>
-        <p className="mt-1 text-text-main">مبلغ قابل پرداخت: {amountTon} TON</p>
+        <p className="mt-1 text-text-main">
+          مبلغ قابل پرداخت: {amountUsdt} USDT
+          {amountToman !== null && ` (≈ ${amountToman.toLocaleString("fa-IR")} تومان)`}
+        </p>
       </div>
 
       {!valid && (
@@ -52,7 +57,7 @@ export function CustomCoinPurchase({ authenticated, coinCost, coinPriceTon, redi
       <TonPayButton
         label={`خرید ${coins.toLocaleString("fa-IR")} سکه`}
         disabled={!authenticated || !valid}
-        createPayment={() => createTonCustomCoinPayment(coins)}
+        createPayment={(walletAddress) => createTonCustomCoinPayment(coins, walletAddress)}
         onPaid={() => (redirectTo ? router.push(redirectTo) : router.refresh())}
       />
       {!authenticated && <p className="text-center text-xs text-text-muted">برای خرید باید از داخل تلگرام وارد شوید.</p>}

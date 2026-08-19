@@ -20,7 +20,7 @@ export async function RoyaltyDashboard() {
             <p className="mt-1 text-xs text-text-muted">در انتظار تایید</p>
           </div>
           <div className="rounded-md border border-border bg-surface p-4 text-center">
-            <p className="text-2xl font-semibold text-primary">{stats.totalDonationsTon} TON</p>
+            <p className="text-2xl font-semibold text-primary">{stats.totalDonationsUsdt} USDT</p>
             <p className="mt-1 text-xs text-text-muted">دونیت دریافتی</p>
           </div>
         </div>
@@ -44,7 +44,7 @@ export async function RoyaltyDashboard() {
       </div>
 
       <p className="rounded-md border border-border bg-surface px-4 py-3 text-center text-xs text-text-muted">
-        تسویه‌حساب TON به‌صورت ماهانه و دستی توسط مدیریت انجام می‌شه — نیازی به درخواست از طرف شما نیست.
+        تسویه‌حساب به‌صورت ماهانه و دستی توسط مدیریت انجام می‌شه — نیازی به درخواست از طرف شما نیست.
       </p>
     </div>
   );

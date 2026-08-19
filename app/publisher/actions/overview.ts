@@ -6,7 +6,7 @@ import { getSessionUser, getPublisherContext } from "@/lib/auth";
 export interface PublisherOverviewStats {
   publishedChapters: number;
   pendingChapters: number;
-  totalDonationsTon: number;
+  totalDonationsUsdt: number;
 }
 
 export async function getPublisherOverviewStats(): Promise<PublisherOverviewStats | null> {
@@ -22,7 +22,7 @@ export async function getPublisherOverviewStats(): Promise<PublisherOverviewStat
       where: { status: "PENDING_APPROVAL", comic: { license: { publisherId: context.publisherId } } },
     }),
     prisma.transaction.aggregate({
-      where: { type: "DONATION", status: "PAID", currency: "TON", receiverId: user.id },
+      where: { type: "DONATION", status: "PAID", currency: "USDT", receiverId: user.id },
       _sum: { amount: true },
     }),
   ]);
@@ -30,14 +30,14 @@ export async function getPublisherOverviewStats(): Promise<PublisherOverviewStat
   return {
     publishedChapters,
     pendingChapters,
-    totalDonationsTon: Number(donations._sum.amount ?? 0),
+    totalDonationsUsdt: Number(donations._sum.amount ?? 0),
   };
 }
 
 export interface StaffOverviewStats {
   uploadedChapters: number;
   pendingChapters: number;
-  totalDonationsTon: number;
+  totalDonationsUsdt: number;
 }
 
 export async function getStaffOverviewStats(): Promise<StaffOverviewStats | null> {
@@ -48,7 +48,7 @@ export async function getStaffOverviewStats(): Promise<StaffOverviewStats | null
     prisma.chapter.count({ where: { uploadedById: user.id, status: "PUBLISHED" } }),
     prisma.chapter.count({ where: { uploadedById: user.id, status: "PENDING_APPROVAL" } }),
     prisma.transaction.aggregate({
-      where: { type: "DONATION", status: "PAID", currency: "TON", receiverId: user.id },
+      where: { type: "DONATION", status: "PAID", currency: "USDT", receiverId: user.id },
       _sum: { amount: true },
     }),
   ]);
@@ -56,6 +56,6 @@ export async function getStaffOverviewStats(): Promise<StaffOverviewStats | null
   return {
     uploadedChapters,
     pendingChapters,
-    totalDonationsTon: Number(donations._sum.amount ?? 0),
+    totalDonationsUsdt: Number(donations._sum.amount ?? 0),
   };
 }

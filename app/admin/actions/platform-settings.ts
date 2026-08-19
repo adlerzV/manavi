@@ -17,7 +17,8 @@ interface ActionResult<T = undefined> {
 export async function updatePlatformSettings(input: {
   chapterUnlockCoinCost: number;
   newReleaseThresholdHours: number;
-  coinPriceTon: number;
+  coinPriceUsdt: number;
+  tomanPerUsdt: number;
 }): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
@@ -28,8 +29,11 @@ export async function updatePlatformSettings(input: {
     if (!Number.isFinite(input.newReleaseThresholdHours) || input.newReleaseThresholdHours <= 0) {
       return { success: false, error: "بازه زمانی «جدید» باید عددی مثبت باشد" };
     }
-    if (!Number.isFinite(input.coinPriceTon) || input.coinPriceTon <= 0) {
-      return { success: false, error: "ارزش سکه به TON باید عددی مثبت باشد" };
+    if (!Number.isFinite(input.coinPriceUsdt) || input.coinPriceUsdt <= 0) {
+      return { success: false, error: "ارزش سکه به USDT باید عددی مثبت باشد" };
+    }
+    if (!Number.isFinite(input.tomanPerUsdt) || input.tomanPerUsdt < 0) {
+      return { success: false, error: "نرخ تومان به ازای هر USDT نامعتبر است" };
     }
 
     await prisma.platformSettings.upsert({
@@ -37,13 +41,15 @@ export async function updatePlatformSettings(input: {
       update: {
         chapterUnlockCoinCost: input.chapterUnlockCoinCost,
         newReleaseThresholdHours: input.newReleaseThresholdHours,
-        coinPriceTon: input.coinPriceTon,
+        coinPriceUsdt: input.coinPriceUsdt,
+        tomanPerUsdt: input.tomanPerUsdt,
       },
       create: {
         id: "singleton",
         chapterUnlockCoinCost: input.chapterUnlockCoinCost,
         newReleaseThresholdHours: input.newReleaseThresholdHours,
-        coinPriceTon: input.coinPriceTon,
+        coinPriceUsdt: input.coinPriceUsdt,
+        tomanPerUsdt: input.tomanPerUsdt,
       },
     });
 
