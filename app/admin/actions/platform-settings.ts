@@ -19,6 +19,7 @@ export async function updatePlatformSettings(input: {
   newReleaseThresholdHours: number;
   coinPriceUsdt: number;
   tomanPerUsdt: number;
+  referralRewardCoins: number;
 }): Promise<ActionResult> {
   try {
     const admin = await requireAdmin();
@@ -35,6 +36,9 @@ export async function updatePlatformSettings(input: {
     if (!Number.isFinite(input.tomanPerUsdt) || input.tomanPerUsdt < 0) {
       return { success: false, error: "نرخ تومان به ازای هر USDT نامعتبر است" };
     }
+    if (!Number.isFinite(input.referralRewardCoins) || input.referralRewardCoins < 0) {
+      return { success: false, error: "سکه هدیه دعوت نمی‌تواند منفی باشد" };
+    }
 
     await prisma.platformSettings.upsert({
       where: { id: "singleton" },
@@ -43,6 +47,7 @@ export async function updatePlatformSettings(input: {
         newReleaseThresholdHours: input.newReleaseThresholdHours,
         coinPriceUsdt: input.coinPriceUsdt,
         tomanPerUsdt: input.tomanPerUsdt,
+        referralRewardCoins: input.referralRewardCoins,
       },
       create: {
         id: "singleton",
@@ -50,6 +55,7 @@ export async function updatePlatformSettings(input: {
         newReleaseThresholdHours: input.newReleaseThresholdHours,
         coinPriceUsdt: input.coinPriceUsdt,
         tomanPerUsdt: input.tomanPerUsdt,
+        referralRewardCoins: input.referralRewardCoins,
       },
     });
 

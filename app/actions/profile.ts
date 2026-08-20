@@ -5,6 +5,7 @@ import type { AgeRating } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { sanitizeCustomLinks, type ProfileLink } from "@/lib/profile-links";
+import { isAllowedImageUrl } from "@/lib/image-url";
 
 export async function updateContentPreference(preference: AgeRating): Promise<{ success: boolean; error?: string }> {
   const user = await getSessionUser();
@@ -37,11 +38,16 @@ export async function updateProfileDetails(input: {
     return { success: false, error: "برای ویرایش پروفایل باید وارد شوید" };
   }
 
+  const avatarUrl = input.avatarUrl?.trim();
+  if (avatarUrl && !isAllowedImageUrl(avatarUrl)) {
+    return { success: false, error: "آدرس تصویر معتبر نیست — از گزینه آپلود مستقیم استفاده کنید" };
+  }
+
   await prisma.user.update({
     where: { id: user.id },
     data: {
       bio: input.bio?.trim().slice(0, 500) || null,
-      avatarUrl: input.avatarUrl?.trim() || null,
+      avatarUrl: avatarUrl || null,
       donationLink: input.donationLink?.trim() || null,
       cryptoWalletLabel: input.cryptoWalletLabel?.trim().slice(0, 60) || null,
       cryptoWalletAddress: input.cryptoWalletAddress?.trim().slice(0, 200) || null,

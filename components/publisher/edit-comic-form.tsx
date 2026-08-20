@@ -4,10 +4,13 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { ReadingMode } from "@prisma/client";
 import { updateComicAsPublisher } from "@/app/publisher/actions/comic-update";
-import { uploadComicBannerAsPublisherAction } from "@/app/publisher/actions/comic-banner";
+import {
+  uploadComicBannerAsPublisherAction,
+  uploadComicCoverAsPublisherAction,
+} from "@/app/publisher/actions/comic-banner";
 import { READING_MODE_LABELS } from "@/lib/reading";
 import { useCollapsibleClose } from "@/components/ui/collapsible-section";
-import { BannerUploader } from "@/components/admin/banner-uploader";
+import { CoverUploader, BannerUploader } from "@/components/admin/banner-uploader";
 
 interface GenreOption {
   id: string;
@@ -102,10 +105,12 @@ export function PublisherEditComicForm({ comic, genres, initialGenreIds }: Publi
         <textarea id="pec-description" value={description} onChange={(e) => setDescription(e.target.value)} required rows={3} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm text-text-muted" htmlFor="pec-cover">آدرس تصویر کاور</label>
-        <input id="pec-cover" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
-      </div>
+      <CoverUploader
+        comicId={comic.id}
+        currentUrl={coverImage}
+        onUploaded={setCoverImage}
+        uploadAction={uploadComicCoverAsPublisherAction}
+      />
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
@@ -143,7 +148,12 @@ export function PublisherEditComicForm({ comic, genres, initialGenreIds }: Publi
 
       <div className="space-y-2 rounded-md border border-border bg-background p-3">
         <p className="text-xs text-text-muted">تصویر بنر (اختیاری — فقط وقتی ادمین این عنوان را در صفحه اصلی معرفی کند استفاده می‌شود)</p>
-        <BannerUploader comicId={comic.id} currentUrl={bannerImage} onUploaded={setBannerImage} uploadAction={uploadComicBannerAsPublisherAction} />
+        <BannerUploader
+          comicId={comic.id}
+          currentUrl={bannerImage}
+          onUploaded={setBannerImage}
+          uploadAction={uploadComicBannerAsPublisherAction}
+        />
       </div>
 
       {status === "error" && <p className="text-sm text-red-400">{error}</p>}

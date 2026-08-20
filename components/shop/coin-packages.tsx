@@ -38,10 +38,6 @@ export function CoinPackages({ packages, authenticated, tonConfigured, redirectT
 
       <div className="grid grid-cols-3 gap-3">
         {packages.map((pack) => {
-          const discountPercent =
-            pack.originalPriceUsdt && pack.originalPriceUsdt > pack.priceUsdt
-              ? Math.round((1 - pack.priceUsdt / pack.originalPriceUsdt) * 100)
-              : 0;
           const equivalentChapters = coinCost > 0 ? Math.floor(pack.totalCoins / coinCost) : 0;
           const tomanEquivalent = tomanPerUsdt > 0 ? Math.round(pack.priceUsdt * tomanPerUsdt) : null;
           return (
@@ -60,11 +56,6 @@ export function CoinPackages({ packages, authenticated, tonConfigured, redirectT
               {pack.bonusCoins > 0 && <p className="text-[11px] text-primary">+{pack.bonusCoins.toLocaleString("fa-IR")} هدیه</p>}
               {equivalentChapters > 0 && (
                 <p className="mt-1 text-[10px] text-text-muted">≈ {equivalentChapters.toLocaleString("fa-IR")} چپتر</p>
-              )}
-              {discountPercent > 0 && (
-                <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
-                  {discountPercent.toLocaleString("fa-IR")}٪ تخفیف
-                </span>
               )}
               <div className="mt-3">
                 <TonPayButton

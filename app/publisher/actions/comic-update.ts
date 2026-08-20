@@ -5,9 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { requireComicManageAccessByComicId } from "@/lib/auth";
 import { extractDominantColor } from "@/lib/color";
 import { safeError } from "@/lib/errors";
+import { isAllowedImageUrl } from "@/lib/image-url";
 import type { ReadingMode } from "@prisma/client";
 
-interface ActionResult<T = undefined> { success: boolean; error?: string; data?: T }
+interface ActionResult<T = undefined> {
+  success: boolean;
+  error?: string;
+  data?: T;
+}
 
 export async function updateComicAsPublisher(
   comicId: string,
@@ -28,7 +33,17 @@ export async function updateComicAsPublisher(
       return { success: false, error: "عنوان و توضیحات الزامی است" };
     }
 
-    const existing = await prisma.comic.findUnique({ where: { id: comicId }, select: { coverImage: true, approvalStatus: true } });
+    if (!input.coverImage || !isAllowedImageUrl(input.coverImage)) {
+      return { success: false, error: "تصویر کاور معتبر نیست — از آپلودگر تصویر استفاده کنید" };
+    }
+    if (input.bannerImage && !isAllowedImageUrl(input.bannerImage)) {
+      return { success: false, error: "تصویر بنر معتبر نیست" };
+    }
+
+    const existing = await prisma.comic.findUnique({
+      where: { id: comicId },
+      select: { coverImage: true, approvalStatus: true },
+    });
     if (!existing) return { success: false, error: "عنوان یافت نشد" };
 
     const coverChanged = existing.coverImage !== input.coverImage;
@@ -39,7 +54,9 @@ export async function updateComicAsPublisher(
       if (input.genreIds) {
         await tx.comicGenre.deleteMany({ where: { comicId } });
         if (input.genreIds.length > 0) {
-          await tx.comicGenre.createMany({ data: input.genreIds.map((genreId) => ({ comicId, genreId })) });
+          await tx.comicGenre.createMany({
+            data: input.genreIds.map((genreId) => ({ comicId, genreId })),
+          });
         }
       }
       return tx.comic.update({
@@ -52,13 +69,15 @@ export async function updateComicAsPublisher(
           ...(dominantColor !== undefined ? { dominantColor } : {}),
           ageRating: input.ageRating,
           readingMode: input.readingMode,
-          ...(nextApprovalStatus ? { approvalStatus: nextApprovalStatus, rejectionNote: null } : {}),
+          ...(nextApprovalStatus
+            ? { approvalStatus: nextApprovalStatus, rejectionNote: null }
+            : {}),
         },
       });
     });
 
     if (comic.approvalStatus === "APPROVED") {
-      revalidateTag("home-feed");
+      revalidateTag("home-feed", "max");
       revalidatePath("/app");
       revalidatePath("/app/explore");
     }

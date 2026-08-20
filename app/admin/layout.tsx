@@ -18,8 +18,7 @@ const NAV: SidebarNavItem[] = [
   { href: "/admin/transactions", label: "تراکنش‌ها", icon: "Receipt" },
   { href: "/admin/analytics", label: "آمار", icon: "BarChart3" },
   { href: "/admin/payouts", label: "تسویه‌حساب ناشران", icon: "Wallet" },
-  { href: "/admin/broadcast", label: "پیام همگانی", icon: "Megaphone" },
-  { href: "/admin/logs", label: "لاگ سیستم", icon: "ScrollText" },
+  { href: "/admin/notices", label: "اعلان‌ها", icon: "Megaphone" },  { href: "/admin/logs", label: "لاگ سیستم", icon: "ScrollText" },
   { href: "/admin/settings", label: "تنظیمات سراسری", icon: "LayoutDashboard" },
 ];
 

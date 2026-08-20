@@ -9,10 +9,10 @@ import { ReferralCard } from "@/components/gamification/referral-card";
 import { ComicCard } from "@/components/catalog/comic-card";
 import { getReferralLink } from "@/lib/site-config";
 import { parseCustomLinks } from "@/lib/profile-links";
+import { getReferralRewardCoins } from "@/lib/platform-settings";
 
 export default async function ProfilePage() {
   const user = await getSessionUser();
-
   if (!user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-6 text-center">
@@ -21,7 +21,7 @@ export default async function ProfilePage() {
     );
   }
 
-  const [bookmarks, readHistory] = await Promise.all([
+  const [bookmarks, readHistory, referralRewardCoins] = await Promise.all([
     prisma.bookmark.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -33,6 +33,7 @@ export default async function ProfilePage() {
       take: 10,
       include: { comic: { select: { slug: true, title: true, coverImage: true } } },
     }),
+    getReferralRewardCoins(),
   ]);
 
   const seedComicIds = Array.from(
@@ -91,16 +92,16 @@ export default async function ProfilePage() {
         </div>
 
         <section>
-            <CollapsibleSection triggerLabel="ویرایش پروفایل">
-              <EditProfileForm
-                initialBio={user.bio}
-                initialAvatarUrl={user.avatarUrl}
-                initialDonationLink={user.donationLink}
-                initialCryptoWalletLabel={user.cryptoWalletLabel}
-                initialCryptoWalletAddress={user.cryptoWalletAddress}
-                initialCustomLinks={parseCustomLinks(user.customLinks)}
-              />
-            </CollapsibleSection>
+          <CollapsibleSection triggerLabel="ویرایش پروفایل">
+            <EditProfileForm
+              initialBio={user.bio}
+              initialAvatarUrl={user.avatarUrl}
+              initialDonationLink={user.donationLink}
+              initialCryptoWalletLabel={user.cryptoWalletLabel}
+              initialCryptoWalletAddress={user.cryptoWalletAddress}
+              initialCustomLinks={parseCustomLinks(user.customLinks)}
+            />
+          </CollapsibleSection>
         </section>
 
         <section>
@@ -108,6 +109,7 @@ export default async function ProfilePage() {
             referralLink={referralLink}
             referralCode={user.referralCode}
             referralCount={user.referralCount}
+            rewardCoins={referralRewardCoins}
           />
         </section>
 
@@ -138,8 +140,8 @@ export default async function ProfilePage() {
         {recommendations.length > 0 && (
           <section>
             <h2 className="mb-3 text-sm font-medium text-text-main">پیشنهاد برای شما</h2>
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-                {recommendations.map((comic) => (
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+              {recommendations.map((comic) => (
                 <ComicCard
                   key={comic.id}
                   slug={comic.slug}
@@ -155,8 +157,8 @@ export default async function ProfilePage() {
 
         <section>
           <h2 className="mb-3 text-sm font-medium text-text-main">بوکمارک‌ها</h2>
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-              {bookmarks.map((b) => (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+            {bookmarks.map((b) => (
               <Link key={b.comicId} href={`/app/comic/${b.comic.slug}`} className="block">
                 <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
                   <Image src={b.comic.coverImage} alt={b.comic.title} fill className="object-cover" />

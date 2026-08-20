@@ -6,6 +6,7 @@ import { requireAdmin, requireUploadAccess } from "@/lib/auth";
 import { deleteObject, deleteObjects } from "@/lib/s3";
 import { extractDominantColor } from "@/lib/color";
 import { safeError } from "@/lib/errors";
+import { isAllowedImageUrl } from "@/lib/image-url";
 import { LicenseStatus, ChapterAccessType } from "@prisma/client";
 import type { ReadingMode } from "@prisma/client";
 
@@ -135,6 +136,13 @@ export async function createComic(input: {
       return { success: false, error: "Title, slug, license, and category are required" };
     }
 
+    if (!input.coverImage || !isAllowedImageUrl(input.coverImage)) {
+      return { success: false, error: "تصویر کاور معتبر نیست — از آپلودگر تصویر استفاده کنید" };
+    }
+    if (input.bannerImage && !isAllowedImageUrl(input.bannerImage)) {
+      return { success: false, error: "تصویر بنر معتبر نیست" };
+    }
+
     const [license, category] = await Promise.all([
       prisma.license.findUnique({ where: { id: input.licenseId } }),
       prisma.category.findUnique({ where: { id: input.categoryId } }),
@@ -171,7 +179,7 @@ export async function createComic(input: {
       },
     });
 
-    revalidateTag("home-feed", "default");
+    revalidateTag("home-feed", "max");
     revalidatePath("/admin/comics");
     revalidatePath("/app/explore");
     revalidatePath("/app");
@@ -208,6 +216,13 @@ export async function updateComic(
       return { success: false, error: "عنوان، اسلاگ، لایسنس و دسته‌بندی الزامی است" };
     }
 
+    if (!input.coverImage || !isAllowedImageUrl(input.coverImage)) {
+      return { success: false, error: "تصویر کاور معتبر نیست — از آپلودگر تصویر استفاده کنید" };
+    }
+    if (input.bannerImage && !isAllowedImageUrl(input.bannerImage)) {
+      return { success: false, error: "تصویر بنر معتبر نیست" };
+    }
+
     const existing = await prisma.comic.findUnique({ where: { id: comicId }, select: { coverImage: true } });
     if (!existing) return { success: false, error: "عنوان یافت نشد" };
 
@@ -241,7 +256,7 @@ export async function updateComic(
       });
     });
 
-    revalidateTag("home-feed", "default");
+    revalidateTag("home-feed", "max");
     revalidatePath("/admin/comics");
     revalidatePath(`/admin/comics/${comicId}`);
     revalidatePath(`/app/comic/${comic.slug}`);
@@ -354,7 +369,7 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
       .filter((key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://"));
     await deleteObjects(keysToDelete).catch(() => {});
 
-    revalidateTag("home-feed", "default");
+    revalidateTag("home-feed", "max");
     revalidatePath("/admin/comics");
     revalidatePath("/app");
     revalidatePath("/app/explore");

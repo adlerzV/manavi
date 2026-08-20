@@ -280,7 +280,6 @@ model Chapter {
   chapterNumber  Float
   title          String?
   pages          String[]
-  thumbnailImage String?
   isLocked       Boolean           @default(false)
   accessType     ChapterAccessType @default(FREE)
   status         ChapterStatus     @default(DRAFT)
@@ -465,17 +464,15 @@ enum TransactionStatus {
 }
 
 model CoinPackage {
-  id                String   @id @default(uuid())
-  coins             Int
-  bonusCoins        Int      @default(0)
-  priceUsdt         Decimal  @db.Decimal(12, 2)
-  originalPriceUsdt Decimal? @db.Decimal(12, 2)
-  badge             String?
-  isFeatured        Boolean  @default(false)
-  isActive          Boolean  @default(true)
-  sortOrder         Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id           String   @id @default(uuid())
+  coins        Int
+  bonusCoins   Int      @default(0)
+  badge        String?
+  isFeatured   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   transactions Transaction[]
 
@@ -585,6 +582,7 @@ model PlatformSettings {
   newReleaseThresholdHours Int      @default(72)
   coinPriceUsdt            Decimal  @db.Decimal(20, 6) @default(0.002)
   tomanPerUsdt             Int      @default(0)
+  referralRewardCoins      Int      @default(10)
   updatedAt                DateTime @updatedAt
 }
 
@@ -601,4 +599,14 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([targetType, targetId])
+}
+
+model AdminNotice {
+  id          String   @id @default(uuid())
+  message     String
+  createdById String?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([expiresAt])
 }

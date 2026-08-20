@@ -8,6 +8,7 @@ interface PlatformSettingsFormProps {
   initialThresholdHours: number;
   initialCoinPriceUsdt: number;
   initialTomanPerUsdt: number;
+  initialReferralRewardCoins: number;
 }
 
 export function PlatformSettingsForm({
@@ -15,11 +16,13 @@ export function PlatformSettingsForm({
   initialThresholdHours,
   initialCoinPriceUsdt,
   initialTomanPerUsdt,
+  initialReferralRewardCoins,
 }: PlatformSettingsFormProps) {
   const [coinCost, setCoinCost] = useState(initialCoinCost);
   const [thresholdHours, setThresholdHours] = useState(initialThresholdHours);
   const [coinPriceUsdt, setCoinPriceUsdt] = useState(initialCoinPriceUsdt);
   const [tomanPerUsdt, setTomanPerUsdt] = useState(initialTomanPerUsdt);
+  const [referralRewardCoins, setReferralRewardCoins] = useState(initialReferralRewardCoins);
   const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +36,7 @@ export function PlatformSettingsForm({
       newReleaseThresholdHours: Number(thresholdHours),
       coinPriceUsdt: Number(coinPriceUsdt),
       tomanPerUsdt: Number(tomanPerUsdt),
+      referralRewardCoins: Number(referralRewardCoins),
     });
 
     if (result.success) {
@@ -63,7 +67,7 @@ export function PlatformSettingsForm({
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
           />
           <p className="text-xs text-text-muted">
-            پیش‌نمایش: آنلاک هر چپتر سکه‌ای با پرداخت <span className="font-semibold text-accent">{coinCost.toLocaleString("fa-IR")} سکه</span> انجام خواهد شد. این قیمت روی همه‌ی چپترهای سکه‌ای پلتفرم یکسانه.
+            پیش‌نمایش: آنلاک هر چپتر سکه‌ای با پرداخت <span className="font-semibold text-accent">{coinCost.toLocaleString("fa-IR")} سکه</span> انجام خواهد شد.
           </p>
         </div>
 
@@ -82,7 +86,7 @@ export function PlatformSettingsForm({
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
           />
           <p className="text-xs text-text-muted">
-            این نرخ برای «خرید سکه به مقدار دلخواه» در فروشگاه و همچنین تبدیل سهم ناشرها از سکه به USDT در لاگ تسویه‌حساب استفاده می‌شه. قیمت پکیج‌های سکه مستقل از این نرخ و دستی تنظیم می‌شه.
+            این نرخ برای «خرید سکه به مقدار دلخواه» و همچنین محاسبه‌ی خودکار قیمت همه‌ی پکیج‌های سکه (تعداد سکه × این نرخ) استفاده می‌شه.
           </p>
         </div>
 
@@ -123,6 +127,24 @@ export function PlatformSettingsForm({
           />
           <p className="text-xs text-text-muted">
             عناوینی که چپتر جدید آن‌ها در <span className="font-semibold text-text-main">{thresholdHours.toLocaleString("fa-IR")} ساعت</span> اخیر منتشر شده باشد، بج «جدید» می‌گیرند.
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-text-main" htmlFor="referral-reward">
+            سکه هدیه برای هر دعوت موفق
+          </label>
+          <input
+            id="referral-reward"
+            type="number"
+            min="0"
+            value={referralRewardCoins}
+            onChange={(e) => setReferralRewardCoins(Number(e.target.value))}
+            required
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary"
+          />
+          <p className="text-xs text-text-muted">
+            وقتی کاربری با لینک دعوت شما بیاید و اولین خرید سکه‌اش را انجام دهد، این مقدار سکه به شما هدیه داده می‌شود. برای غیرفعال‌کردن موقت ایونت دعوت دوستان، مقدار را صفر بگذارید.
           </p>
         </div>
       </div>

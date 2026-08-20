@@ -52,32 +52,3 @@ export async function notifyNewChapter(input: NotifyChapterInput) {
     } catch {}
   });
 }
-
-export interface BroadcastResult {
-  sent: number;
-  failed: number;
-}
-
-export async function broadcastMessage(input: {
-  telegramIds: bigint[];
-  text: string;
-  buttonText?: string;
-  buttonUrl?: string;
-}): Promise<BroadcastResult> {
-  const botToken = getBotToken();
-  if (!botToken) return { sent: 0, failed: input.telegramIds.length };
-
-  let sent = 0;
-  let failed = 0;
-
-  await processInBatches(input.telegramIds, 20, async (telegramId) => {
-    try {
-      await sendTelegramMessage(botToken, telegramId, input.text, { buttonText: input.buttonText, buttonUrl: input.buttonUrl });
-      sent += 1;
-    } catch {
-      failed += 1;
-    }
-  });
-
-  return { sent, failed };
-}

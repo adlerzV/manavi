@@ -6,6 +6,7 @@ import type { ReadingMode } from "@prisma/client";
 import { createComic } from "@/app/admin/actions/catalog-actions";
 import { READING_MODE_LABELS } from "@/lib/reading";
 import { useCollapsibleClose } from "@/components/ui/collapsible-section";
+import { CoverUploader, BannerUploader } from "@/components/admin/banner-uploader";
 
 interface LicenseOption {
   id: string;
@@ -77,6 +78,13 @@ export function CreateComicForm({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (!coverImage) {
+      setStatus("error");
+      setError("ابتدا تصویر کاور را آپلود کنید");
+      return;
+    }
+
     setStatus("saving");
     setError(null);
 
@@ -159,14 +167,8 @@ export function CreateComicForm({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="comic-cover">آدرس کاور (URL)</label>
-          <input id="comic-cover" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="comic-banner">آدرس بنر <span className="text-text-muted">(اختیاری)</span></label>
-          <input id="comic-banner" value={bannerImage} onChange={(e) => setBannerImage(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
-        </div>
+        <CoverUploader comicId={null} currentUrl={coverImage} onUploaded={setCoverImage} />
+        <BannerUploader comicId={null} currentUrl={bannerImage} onUploaded={setBannerImage} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">

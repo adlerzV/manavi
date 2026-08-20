@@ -6,7 +6,7 @@ import type { ReadingMode } from "@prisma/client";
 import { updateComic } from "@/app/admin/actions/catalog-actions";
 import { READING_MODE_LABELS } from "@/lib/reading";
 import { useCollapsibleClose } from "@/components/ui/collapsible-section";
-import { BannerUploader } from "@/components/admin/banner-uploader";
+import { CoverUploader, BannerUploader } from "@/components/admin/banner-uploader";
 
 interface LicenseOption {
   id: string;
@@ -129,16 +129,7 @@ export function EditComicForm({ comic, licenses, genres, categories, initialGenr
         <textarea id="edit-comic-description" value={description} onChange={(e) => setDescription(e.target.value)} required rows={3} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="edit-comic-cover">آدرس تصویر کاور</label>
-          <input id="edit-comic-cover" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="edit-comic-banner">آدرس تصویر بنر (اختیاری)</label>
-          <input id="edit-comic-banner" value={bannerImage} onChange={(e) => setBannerImage(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
-        </div>
-      </div>
+      <CoverUploader comicId={comic.id} currentUrl={coverImage} onUploaded={setCoverImage} />
 
       <div className="space-y-1">
         <label className="text-sm text-text-muted" htmlFor="edit-comic-license">لایسنس</label>

@@ -6,6 +6,8 @@ import type { ReadingMode } from "@prisma/client";
 import { createComicAsPublisher } from "@/app/publisher/actions/comic-create";
 import { READING_MODE_LABELS } from "@/lib/reading";
 import { useCollapsibleClose } from "@/components/ui/collapsible-section";
+import { CoverUploader, BannerUploader } from "@/components/admin/banner-uploader";
+import { uploadComicCoverAsPublisherAction, uploadComicBannerAsPublisherAction } from "@/app/publisher/actions/comic-banner";
 
 interface GenreOption { id: string; name: string }
 interface CategoryOption { id: string; name: string; defaultReadingMode: ReadingMode }
@@ -48,6 +50,13 @@ export function PublisherCreateComicForm({ genres, categories }: { genres: Genre
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (!coverImage) {
+      setStatus("error");
+      setError("ابتدا تصویر کاور را آپلود کنید");
+      return;
+    }
+
     setStatus("saving");
     setError(null);
 
@@ -97,14 +106,18 @@ export function PublisherCreateComicForm({ genres, categories }: { genres: Genre
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="pc-cover">آدرس کاور (URL)</label>
-          <input id="pc-cover" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-text-muted" htmlFor="pc-banner">آدرس بنر (اختیاری)</label>
-          <input id="pc-banner" value={bannerImage} onChange={(e) => setBannerImage(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-text-main outline-none focus:border-primary" />
-        </div>
+        <CoverUploader
+          comicId={null}
+          currentUrl={coverImage}
+          onUploaded={setCoverImage}
+          uploadAction={uploadComicCoverAsPublisherAction}
+        />
+        <BannerUploader
+          comicId={null}
+          currentUrl={bannerImage}
+          onUploaded={setBannerImage}
+          uploadAction={uploadComicBannerAsPublisherAction}
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-4">

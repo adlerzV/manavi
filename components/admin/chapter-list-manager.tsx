@@ -7,7 +7,6 @@ import { ChapterAccessFilterTabs, type ChapterAccessFilterValue } from "./chapte
 import { ChapterBulkActions } from "./chapter-bulk-actions";
 import { ChapterStatusPanel } from "./chapter-status-panel";
 import { EditChapterForm } from "./edit-chapter-form";
-import { ChapterThumbnailCropper } from "./chapter-thumbnail-cropper";
 import { ChapterPagesLazy } from "./chapter-pages-lazy";
 
 export interface ChapterListRow {
@@ -116,7 +115,6 @@ export function ChapterListManager({ chapters, restrictAccessTypes, pageSize = D
                 initialIsLocked={chapter.isLocked}
                 initialAccessType={chapter.accessType}
               />
-              <ChapterThumbnailCropper chapterId={chapter.id} />
               <ChapterPagesLazy chapterId={chapter.id} pageKeys={chapter.pages} />
             </div>
           );

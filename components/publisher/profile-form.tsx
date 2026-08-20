@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { updatePublisherProfile } from "@/app/publisher/actions/profile";
+import { uploadPublisherAvatarAction } from "@/app/publisher/actions/avatar";
+import { AvatarUploadCropper } from "@/components/profile/avatar-upload-cropper";
 import type { ProfileLink } from "@/lib/profile-links";
 
 interface PublisherProfileFormProps {
@@ -66,7 +68,12 @@ export function PublisherProfileForm({ initial }: PublisherProfileFormProps) {
       <h2 className="text-lg font-medium text-text-main">پروفایل ناشر</h2>
 
       <div className="space-y-1">
-        <label className="text-sm text-text-muted" htmlFor="pub-avatar">لینک آواتار</label>
+        <span className="text-sm text-text-muted">آپلود تصویر پروفایل</span>
+        <AvatarUploadCropper uploadAction={uploadPublisherAvatarAction} onUploaded={setAvatarUrl} />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-sm text-text-muted" htmlFor="pub-avatar">یا لینک آواتار</label>
         <input id="pub-avatar" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
       </div>
 

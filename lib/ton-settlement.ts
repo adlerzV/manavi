@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "./prisma";
 import type { Transaction } from "@prisma/client";
-import { REFERRAL_REWARD_COINS } from "./gamification";
+import { getReferralRewardCoins } from "./platform-settings";
 import { invalidateSessionUserCache } from "./auth";
 import {
   getPlatformTonAddress,
@@ -31,6 +31,9 @@ async function resolveDestinationOwnerAddress(transaction: Transaction): Promise
 }
 
 async function grantReferralRewardIfEligible(payerId: string): Promise<void> {
+  const rewardCoins = await getReferralRewardCoins();
+  if (rewardCoins <= 0) return;
+
   const payer = await prisma.user.findUnique({
     where: { id: payerId },
     select: { referredById: true, referralRewardGranted: true },
@@ -45,7 +48,7 @@ async function grantReferralRewardIfEligible(payerId: string): Promise<void> {
 
   await prisma.user.update({
     where: { id: payer.referredById },
-    data: { coinsBalance: { increment: REFERRAL_REWARD_COINS }, referralCount: { increment: 1 } },
+    data: { coinsBalance: { increment: rewardCoins }, referralCount: { increment: 1 } },
   });
 }
 

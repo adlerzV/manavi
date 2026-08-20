@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/auth";
-import { uploadComicBanner } from "@/lib/s3";
+import { uploadComicBanner, uploadComicCover } from "@/lib/s3";
 import { describeUploadError } from "@/lib/upload-error";
 
 interface ActionResult<T = undefined> {
@@ -10,31 +10,51 @@ interface ActionResult<T = undefined> {
   data?: T;
 }
 
-const MAX_BANNER_SIZE_BYTES = 15 * 1024 * 1024;
+const MAX_IMAGE_SIZE_BYTES = 15 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function readComicId(formData: FormData): string | null {
+  const raw = formData.get("comicId");
+  return typeof raw === "string" && raw ? raw : null;
+}
 
 export async function uploadComicBannerAction(formData: FormData): Promise<ActionResult<{ url: string }>> {
   try {
     await requireAdmin();
 
-    const comicId = formData.get("comicId");
+    const comicId = readComicId(formData);
     const file = formData.get("banner") as File | null;
 
-    if (typeof comicId !== "string" || !comicId) {
-      return { success: false, error: "comicId الزامی است" };
-    }
-    if (!file) {
-      return { success: false, error: "فایل بنر یافت نشد" };
-    }
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return { success: false, error: `فرمت فایل پشتیبانی نمی‌شود: ${file.type}` };
-    }
-    if (file.size > MAX_BANNER_SIZE_BYTES) {
-      return { success: false, error: `حجم فایل نباید بیش از ${MAX_BANNER_SIZE_BYTES / 1024 / 1024} مگابایت باشد` };
+    if (!file) return { success: false, error: "فایل بنر یافت نشد" };
+    if (!ALLOWED_TYPES.has(file.type)) return { success: false, error: `فرمت فایل پشتیبانی نمی‌شود: ${file.type}` };
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      return { success: false, error: `حجم فایل نباید بیش از ${MAX_IMAGE_SIZE_BYTES / 1024 / 1024} مگابایت باشد` };
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const url = await uploadComicBanner(comicId, buffer, file.type);
+
+    return { success: true, data: { url } };
+  } catch (err) {
+    return { success: false, error: describeUploadError(err) };
+  }
+}
+
+export async function uploadComicCoverAction(formData: FormData): Promise<ActionResult<{ url: string }>> {
+  try {
+    await requireAdmin();
+
+    const comicId = readComicId(formData);
+    const file = formData.get("cover") as File | null;
+
+    if (!file) return { success: false, error: "فایل کاور یافت نشد" };
+    if (!ALLOWED_TYPES.has(file.type)) return { success: false, error: `فرمت فایل پشتیبانی نمی‌شود: ${file.type}` };
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      return { success: false, error: `حجم فایل نباید بیش از ${MAX_IMAGE_SIZE_BYTES / 1024 / 1024} مگابایت باشد` };
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const url = await uploadComicCover(comicId, buffer, file.type);
 
     return { success: true, data: { url } };
   } catch (err) {

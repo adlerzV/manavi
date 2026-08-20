@@ -12,13 +12,12 @@ import {
 interface CoinPackageManagerProps {
   initialPackages: CoinPackageRow[];
   tomanPerUsdt: number;
+  coinPriceUsdt: number;
 }
 
 interface PackageFormState {
   coins: string;
   bonusCoins: string;
-  priceUsdt: string;
-  originalPriceUsdt: string;
   badge: string;
   isFeatured: boolean;
   sortOrder: string;
@@ -27,20 +26,20 @@ interface PackageFormState {
 const EMPTY_FORM: PackageFormState = {
   coins: "",
   bonusCoins: "0",
-  priceUsdt: "",
-  originalPriceUsdt: "",
   badge: "",
   isFeatured: false,
   sortOrder: "0",
 };
 
-function tomanPreview(priceUsdt: string, tomanPerUsdt: number): string | null {
-  const usdt = Number(priceUsdt);
-  if (!Number.isFinite(usdt) || usdt <= 0 || !tomanPerUsdt) return null;
-  return `≈ ${Math.round(usdt * tomanPerUsdt).toLocaleString("fa-IR")} تومان`;
+function pricePreview(coins: string, coinPriceUsdt: number, tomanPerUsdt: number): string | null {
+  const n = Number(coins);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const usdt = Math.round(n * coinPriceUsdt * 1e6) / 1e6;
+  const toman = tomanPerUsdt > 0 ? Math.round(usdt * tomanPerUsdt) : null;
+  return toman !== null ? `${usdt} USDT ≈ ${toman.toLocaleString("fa-IR")} تومان` : `${usdt} USDT`;
 }
 
-export function CoinPackageManager({ initialPackages, tomanPerUsdt }: CoinPackageManagerProps) {
+export function CoinPackageManager({ initialPackages, tomanPerUsdt, coinPriceUsdt }: CoinPackageManagerProps) {
   const [packages, setPackages] = useState(initialPackages);
   const [form, setForm] = useState<PackageFormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,8 +56,6 @@ export function CoinPackageManager({ initialPackages, tomanPerUsdt }: CoinPackag
     const result = await createCoinPackage({
       coins: Number(form.coins),
       bonusCoins: Number(form.bonusCoins) || 0,
-      priceUsdt: Number(form.priceUsdt),
-      originalPriceUsdt: form.originalPriceUsdt ? Number(form.originalPriceUsdt) : undefined,
       badge: form.badge.trim() || undefined,
       isFeatured: form.isFeatured,
       sortOrder: Number(form.sortOrder) || 0,
@@ -79,8 +76,6 @@ export function CoinPackageManager({ initialPackages, tomanPerUsdt }: CoinPackag
     setEditForm({
       coins: String(pkg.coins),
       bonusCoins: String(pkg.bonusCoins),
-      priceUsdt: String(pkg.priceUsdt),
-      originalPriceUsdt: pkg.originalPriceUsdt != null ? String(pkg.originalPriceUsdt) : "",
       badge: pkg.badge ?? "",
       isFeatured: pkg.isFeatured,
       sortOrder: String(pkg.sortOrder),
@@ -96,8 +91,6 @@ export function CoinPackageManager({ initialPackages, tomanPerUsdt }: CoinPackag
     const result = await updateCoinPackage(packageId, {
       coins: Number(editForm.coins),
       bonusCoins: Number(editForm.bonusCoins) || 0,
-      priceUsdt: Number(editForm.priceUsdt),
-      originalPriceUsdt: editForm.originalPriceUsdt ? Number(editForm.originalPriceUsdt) : undefined,
       badge: editForm.badge.trim() || undefined,
       isActive: current?.isActive ?? true,
       isFeatured: editForm.isFeatured,
@@ -105,15 +98,15 @@ export function CoinPackageManager({ initialPackages, tomanPerUsdt }: CoinPackag
     });
 
     if (result.success) {
+      const nextCoins = Number(editForm.coins);
       setPackages((prev) =>
         prev.map((p) =>
           p.id === packageId
             ? {
                 ...p,
-                coins: Number(editForm.coins),
+                coins: nextCoins,
                 bonusCoins: Number(editForm.bonusCoins) || 0,
-                priceUsdt: Number(editForm.priceUsdt),
-                originalPriceUsdt: editForm.originalPriceUsdt ? Number(editForm.originalPriceUsdt) : null,
+                priceUsdt: Math.round(nextCoins * coinPriceUsdt * 1e6) / 1e6,
                 badge: editForm.badge.trim() || null,
                 isFeatured: editForm.isFeatured,
                 sortOrder: Number(editForm.sortOrder) || 0,
@@ -151,35 +144,30 @@ export function CoinPackageManager({ initialPackages, tomanPerUsdt }: CoinPackag
     setPendingId(null);
   }
 
-  const createPreview = tomanPreview(form.priceUsdt, tomanPerUsdt);
-  const editPreview = tomanPreview(editForm.priceUsdt, tomanPerUsdt);
+  const createPreview = pricePreview(form.coins, coinPriceUsdt, tomanPerUsdt);
+  const editPreview = pricePreview(editForm.coins, coinPriceUsdt, tomanPerUsdt);
 
   return (
     <div className="space-y-8">
       <form onSubmit={handleCreate} className="space-y-4 rounded-md border border-border bg-surface p-6">
         <h2 className="text-lg font-medium text-text-main">افزودن پکیج سکه جدید</h2>
+        <p className="text-xs text-text-muted">
+          قیمت به‌صورت خودکار از «ارزش هر سکه به تتر» در تنظیمات سراسری ({coinPriceUsdt} USDT) محاسبه می‌شود — سکه‌های هدیه رایگان‌اند و در قیمت اثری ندارند.
+        </p>
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="space-y-1">
             <label className="text-sm text-text-muted" htmlFor="pkg-coins">تعداد سکه</label>
             <input id="pkg-coins" type="number" min={1} value={form.coins} onChange={(e) => setForm((f) => ({ ...f, coins: e.target.value }))} required placeholder="100" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
+            {createPreview && <p className="text-xs text-primary">{createPreview}</p>}
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-text-muted" htmlFor="pkg-bonus">سکه‌های هدیه</label>
+            <label className="text-sm text-text-muted" htmlFor="pkg-bonus">سکه‌های هدیه (رایگان)</label>
             <input id="pkg-bonus" type="number" min={0} value={form.bonusCoins} onChange={(e) => setForm((f) => ({ ...f, bonusCoins: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-text-muted" htmlFor="pkg-price">قیمت (USDT)</label>
-            <input id="pkg-price" type="number" step="any" min={0.01} value={form.priceUsdt} onChange={(e) => setForm((f) => ({ ...f, priceUsdt: e.target.value }))} required className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
-            {createPreview && <p className="text-xs text-text-muted">{createPreview}</p>}
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm text-text-muted" htmlFor="pkg-original-price">قیمت اصلی قبل تخفیف — USDT (اختیاری)</label>
-            <input id="pkg-original-price" type="number" step="any" min={0.01} value={form.originalPriceUsdt} onChange={(e) => setForm((f) => ({ ...f, originalPriceUsdt: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
-          </div>
-          <div className="space-y-1">
             <label className="text-sm text-text-muted" htmlFor="pkg-badge">نشان/برچسب (اختیاری)</label>
-            <input id="pkg-badge" value={form.badge} onChange={(e) => setForm((f) => ({ ...f, badge: e.target.value }))} placeholder="ویژه، تخفیف دار" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
+            <input id="pkg-badge" value={form.badge} onChange={(e) => setForm((f) => ({ ...f, badge: e.target.value }))} placeholder="ویژه، پرفروش" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
           </div>
           <div className="space-y-1">
             <label className="text-sm text-text-muted" htmlFor="pkg-sort">ترتیب نمایش</label>
@@ -208,13 +196,11 @@ export function CoinPackageManager({ initialPackages, tomanPerUsdt }: CoinPackag
               {editingId === pkg.id ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <input type="number" min={1} value={editForm.coins} onChange={(e) => setEditForm((f) => ({ ...f, coins: e.target.value }))} placeholder="تعداد سکه" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
-                    <input type="number" min={0} value={editForm.bonusCoins} onChange={(e) => setEditForm((f) => ({ ...f, bonusCoins: e.target.value }))} placeholder="سکه هدیه" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                     <div className="space-y-1">
-                      <input type="number" step="any" min={0.01} value={editForm.priceUsdt} onChange={(e) => setEditForm((f) => ({ ...f, priceUsdt: e.target.value }))} placeholder="قیمت USDT" className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
-                      {editPreview && <p className="text-[11px] text-text-muted">{editPreview}</p>}
+                      <input type="number" min={1} value={editForm.coins} onChange={(e) => setEditForm((f) => ({ ...f, coins: e.target.value }))} placeholder="تعداد سکه" className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                      {editPreview && <p className="text-[11px] text-primary">{editPreview}</p>}
                     </div>
-                    <input type="number" step="any" min={0.01} value={editForm.originalPriceUsdt} onChange={(e) => setEditForm((f) => ({ ...f, originalPriceUsdt: e.target.value }))} placeholder="قیمت قبل تخفیف (USDT)" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
+                    <input type="number" min={0} value={editForm.bonusCoins} onChange={(e) => setEditForm((f) => ({ ...f, bonusCoins: e.target.value }))} placeholder="سکه هدیه" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                     <input value={editForm.badge} onChange={(e) => setEditForm((f) => ({ ...f, badge: e.target.value }))} placeholder="نشان" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                     <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm((f) => ({ ...f, sortOrder: e.target.value }))} placeholder="ترتیب" className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-text-main" />
                   </div>
@@ -239,7 +225,7 @@ export function CoinPackageManager({ initialPackages, tomanPerUsdt }: CoinPackag
                     </p>
                     <p className="text-xs text-text-muted">
                       {pkg.priceUsdt} USDT
-                      {tomanPreview(String(pkg.priceUsdt), tomanPerUsdt) ? ` (${tomanPreview(String(pkg.priceUsdt), tomanPerUsdt)})` : ""}
+                      {tomanPerUsdt > 0 ? ` (≈ ${Math.round(pkg.priceUsdt * tomanPerUsdt).toLocaleString("fa-IR")} تومان)` : ""}
                       {" · "}ترتیب {pkg.sortOrder}
                     </p>
                   </div>

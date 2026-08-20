@@ -35,7 +35,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
         </div>
 
         <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm leading-7 text-text-muted">
-          سکه تنها ارز داخل مناویه؛ باهاش می‌تونی <span className="text-text-main">چپترهای سکه‌ای رو باز کنی</span> و{" "}
+          سکه تنها ارز داخل ماناویه؛ باهاش می‌تونی <span className="text-text-main">چپترهای سکه‌ای رو باز کنی</span> و{" "}
           <span className="text-text-main">مستقیم از مترجم‌ها و طراح‌ها حمایت مالی (دونیت) کنی</span>. هر چپتر سکه‌ای دقیقاً{" "}
           <span className="font-medium text-primary">{coinCost.toLocaleString("fa-IR")} سکه</span> هزینه داره — این قیمت روی همه‌ی چپترهای پولی مناوی یکسانه.
         </div>

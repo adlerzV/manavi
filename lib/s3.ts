@@ -113,14 +113,19 @@ function extractS3Key(keyOrUrl: string): string {
 
 const MAX_KEYS_PER_DELETE_REQUEST = 1000;
 
-export async function uploadChapterThumbnail(
-  comicId: string,
-  chapterNumber: number,
+export async function uploadComicBanner(
+  comicId: string | null,
   file: Buffer,
   contentType: string
 ): Promise<string> {
+  if (!PUBLIC_BASE_URL) {
+    throw new BannerPublicUrlNotConfiguredError();
+  }
+
   const extension = contentType.split("/")[1] || "bin";
-  const key = `comics/${comicId}/chapters/${chapterNumber}/thumbnail-${randomUUID()}.${extension}`;
+  const key = comicId
+    ? `comics/${comicId}/banner-${randomUUID()}.${extension}`
+    : `staging/comics/pending/${randomUUID()}/banner.${extension}`;
 
   await s3.send(
     new PutObjectCommand({
@@ -132,11 +137,11 @@ export async function uploadChapterThumbnail(
     })
   );
 
-  return key;
+  return `${PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
 }
 
-export async function uploadComicBanner(
-  comicId: string,
+export async function uploadComicCover(
+  comicId: string | null,
   file: Buffer,
   contentType: string
 ): Promise<string> {
@@ -145,7 +150,9 @@ export async function uploadComicBanner(
   }
 
   const extension = contentType.split("/")[1] || "bin";
-  const key = `comics/${comicId}/banner-${randomUUID()}.${extension}`;
+  const key = comicId
+    ? `comics/${comicId}/cover-${randomUUID()}.${extension}`
+    : `staging/comics/pending/${randomUUID()}/cover.${extension}`;
 
   await s3.send(
     new PutObjectCommand({

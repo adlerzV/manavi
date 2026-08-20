@@ -9,9 +9,14 @@ import { resolveComicApprovalStatus } from "@/lib/comic-approval";
 import { extractDominantColor } from "@/lib/color";
 import { safeError } from "@/lib/errors";
 import { logAuditEvent } from "@/lib/audit-log";
+import { isAllowedImageUrl } from "@/lib/image-url";
 import type { ReadingMode } from "@prisma/client";
 
-interface ActionResult<T = undefined> { success: boolean; error?: string; data?: T }
+interface ActionResult<T = undefined> {
+  success: boolean;
+  error?: string;
+  data?: T;
+}
 
 export async function createComicAsPublisher(input: {
   title: string;
@@ -33,6 +38,13 @@ export async function createComicAsPublisher(input: {
 
     if (!input.title.trim() || !input.slug.trim() || !input.categoryId) {
       return { success: false, error: "عنوان، اسلاگ و دسته‌بندی الزامی است" };
+    }
+
+    if (!input.coverImage || !isAllowedImageUrl(input.coverImage)) {
+      return { success: false, error: "تصویر کاور معتبر نیست — از آپلودگر تصویر استفاده کنید" };
+    }
+    if (input.bannerImage && !isAllowedImageUrl(input.bannerImage)) {
+      return { success: false, error: "تصویر بنر معتبر نیست" };
     }
 
     const license = await prisma.license.findFirst({
@@ -65,7 +77,9 @@ export async function createComicAsPublisher(input: {
         readingMode: input.readingMode,
         approvalStatus,
         createdById: user.id,
-        genres: input.genreIds?.length ? { create: input.genreIds.map((genreId) => ({ genreId })) } : undefined,
+        genres: input.genreIds?.length
+          ? { create: input.genreIds.map((genreId) => ({ genreId })) }
+          : undefined,
       },
     });
 
@@ -81,7 +95,7 @@ export async function createComicAsPublisher(input: {
     );
 
     if (approvalStatus === "APPROVED") {
-      revalidateTag("home-feed");
+      revalidateTag("home-feed", "max");
       revalidatePath("/app/explore");
       revalidatePath("/app");
     }

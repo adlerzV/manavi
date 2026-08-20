@@ -11,6 +11,7 @@ export default async function AdminSettingsPage() {
         initialThresholdHours={settings.newReleaseThresholdHours}
         initialCoinPriceUsdt={Number(settings.coinPriceUsdt)}
         initialTomanPerUsdt={settings.tomanPerUsdt}
+        initialReferralRewardCoins={settings.referralRewardCoins}
       />
     </div>
   );

@@ -150,7 +150,7 @@ export async function deleteChapter(chapterId: string): Promise<ActionResult> {
   try {
     const chapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
-      select: { pages: true, thumbnailImage: true, comicId: true, comic: { select: { slug: true } } },
+      select: { pages: true, comicId: true, comic: { select: { slug: true } } },
     });
     if (!chapter) return { success: false, error: "چپتر یافت نشد" };
 
@@ -164,7 +164,7 @@ export async function deleteChapter(chapterId: string): Promise<ActionResult> {
       prisma.chapter.delete({ where: { id: chapterId } }),
     ]);
 
-    const keysToDelete = [...chapter.pages, chapter.thumbnailImage].filter(
+    const keysToDelete = chapter.pages.filter(
       (key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://")
     );
     await deleteObjects(keysToDelete).catch(() => {});
