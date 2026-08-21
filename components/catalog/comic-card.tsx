@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SafeCoverImage } from "@/components/ui/safe-cover-image";
 
 interface ComicCardProps {
   slug: string;
@@ -25,7 +25,7 @@ export function ComicCard({
   return (
     <Link href={`/app/comic/${slug}`} className="group block">
       <div className={`relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface ${readGrey ? "opacity-60" : ""}`}>
-        <Image
+        <SafeCoverImage
           src={coverImage}
           alt={title}
           fill

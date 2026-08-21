@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SafeCoverImage } from "@/components/ui/safe-cover-image";
 
 interface HomeComicCardProps {
   slug: string;
@@ -21,7 +21,7 @@ export function HomeComicCard({
   return (
     <Link href={`/app/comic/${slug}`} className="block">
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-surface transition-transform active:scale-[0.97]">
-        <Image
+        <SafeCoverImage
           src={coverImage}
           alt={title}
           fill

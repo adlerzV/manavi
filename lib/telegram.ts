@@ -4,6 +4,7 @@ import { redis, isRedisConfigured } from "./redis";
 
 const MAX_AUTH_AGE_SECONDS = 60 * 60;
 const REPLAY_GUARD_PREFIX = "telegram-initdata-used";
+const MAX_PHOTO_URL_LENGTH = 500;
 
 export interface TelegramUser {
   id: number;
@@ -12,6 +13,7 @@ export interface TelegramUser {
   username?: string;
   language_code?: string;
   is_premium?: boolean;
+  photo_url?: string;
 }
 
 export interface ValidatedInitData {
@@ -32,6 +34,17 @@ export class ReplayedInitDataError extends InvalidInitDataError {
   constructor() {
     super("این initData قبلاً استفاده شده است (احتمال حملهٔ replay)");
     this.name = "ReplayedInitDataError";
+  }
+}
+
+export function sanitizeTelegramPhotoUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  if (url.length > MAX_PHOTO_URL_LENGTH) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" ? url : null;
+  } catch {
+    return null;
   }
 }
 

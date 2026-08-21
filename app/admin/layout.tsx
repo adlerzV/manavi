@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { SidebarNav, type SidebarNavItem } from "@/components/dashboard/sidebar-nav";
-import { TonConnectProvider } from "@/components/providers/ton-connect-provider";
 
 const NAV: SidebarNavItem[] = [
   { href: "/admin", label: "داشبورد", icon: "LayoutDashboard" },
@@ -29,11 +28,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <TonConnectProvider>
-      <div className="min-h-screen bg-background sm:pr-[68px]">
-        <SidebarNav items={NAV} title="پنل مدیریت ماناوی" />
-        <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
-      </div>
-    </TonConnectProvider>
+    <div className="min-h-screen bg-background sm:pr-[68px]">
+      <SidebarNav items={NAV} title="پنل مدیریت ماناوی خوش اومدی سلطان" />
+      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+    </div>
   );
 }

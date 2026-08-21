@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { safeError } from "@/lib/errors";
 import { sanitizeCustomLinks, type ProfileLink } from "@/lib/profile-links";
+import { isAllowedImageUrl } from "@/lib/image-url";
 
 interface ActionResult<T = undefined> {
   success: boolean;
@@ -29,11 +30,16 @@ export async function updatePublisherProfile(input: {
       return { success: false, error: "پروفایل ناشر یافت نشد" };
     }
 
+    const avatarUrl = input.avatarUrl?.trim();
+    if (avatarUrl && !isAllowedImageUrl(avatarUrl)) {
+      return { success: false, error: "آدرس تصویر معتبر نیست — از گزینه آپلود مستقیم استفاده کنید" };
+    }
+
     await prisma.publisher.update({
       where: { id: user.publisherProfile.id },
       data: {
         bio: input.bio?.trim() || null,
-        avatarUrl: input.avatarUrl || null,
+        avatarUrl: avatarUrl || null,
         telegramUrl: input.telegramUrl?.trim() || null,
         instagramUrl: input.instagramUrl?.trim() || null,
         websiteUrl: input.websiteUrl?.trim() || null,

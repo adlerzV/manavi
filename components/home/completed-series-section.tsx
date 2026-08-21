@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SafeCoverImage } from "@/components/ui/safe-cover-image";
 import type { CompletedSeriesComic } from "@/lib/home-feed";
 
 export function CompletedSeriesSection({ comics }: { comics: CompletedSeriesComic[] }) {
@@ -12,7 +12,7 @@ export function CompletedSeriesSection({ comics }: { comics: CompletedSeriesComi
         {comics.map((comic) => (
           <Link key={comic.id} href={`/app/comic/${comic.slug}`} className="w-32 flex-shrink-0">
             <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface" style={{ backgroundColor: comic.dominantColor ?? "#1E1E1E" }}>
-              <Image src={comic.coverImage} alt={comic.title} fill sizes="128px" className="object-cover" />
+              <SafeCoverImage src={comic.coverImage} alt={comic.title} fill sizes="128px" className="object-cover" />
               <span className="absolute right-1.5 top-1.5 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] text-primary-foreground">پایان‌یافته</span>
             </div>
             <p className="mt-1.5 truncate text-xs text-text-main">{comic.title}</p>

@@ -71,12 +71,10 @@ export function EditProfileForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-border bg-surface p-4">
       <div className="space-y-1">
-        <label className="text-sm text-text-muted" htmlFor="profile-avatar">لینک آواتار</label>
-        <input id="profile-avatar" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
-      </div>
-
-      <div className="space-y-1">
-        <span className="text-sm text-text-muted">یا آپلود مستقیم تصویر</span>
+        <span className="text-sm text-text-muted">عکس پروفایل</span>
+        <p className="text-xs text-text-muted">
+          پیش‌فرض از عکس پروفایل تلگرام شما گرفته می‌شود. برای تنظیم دستی، یک تصویر آپلود کنید.
+        </p>
         <AvatarUploadCropper uploadAction={uploadOwnAvatarAction} onUploaded={setAvatarUrl} />
       </div>
 

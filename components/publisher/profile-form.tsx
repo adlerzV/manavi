@@ -68,13 +68,11 @@ export function PublisherProfileForm({ initial }: PublisherProfileFormProps) {
       <h2 className="text-lg font-medium text-text-main">پروفایل ناشر</h2>
 
       <div className="space-y-1">
-        <span className="text-sm text-text-muted">آپلود تصویر پروفایل</span>
+        <span className="text-sm text-text-muted">تصویر پروفایل ناشر</span>
+        <p className="text-xs text-text-muted">
+          اگر آپلود نکنید، در صورت وجود، عکس پروفایل تلگرامِ مالک ناشر به‌صورت پیش‌فرض نمایش داده می‌شود.
+        </p>
         <AvatarUploadCropper uploadAction={uploadPublisherAvatarAction} onUploaded={setAvatarUrl} />
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-sm text-text-muted" htmlFor="pub-avatar">یا لینک آواتار</label>
-        <input id="pub-avatar" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main outline-none focus:border-primary" />
       </div>
 
       <div className="space-y-1">

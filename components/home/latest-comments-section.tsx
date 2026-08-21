@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SafeCoverImage } from "@/components/ui/safe-cover-image";
 import type { LatestCommentItem } from "@/lib/home-feed";
 
 export function LatestCommentsSection({ comments }: { comments: LatestCommentItem[] }) {
@@ -17,7 +17,7 @@ export function LatestCommentsSection({ comments }: { comments: LatestCommentIte
           >
             <div className="flex items-center gap-2">
               <div className="relative h-12 w-9 flex-shrink-0 overflow-hidden rounded" style={{ backgroundColor: comment.comic.dominantColor ?? "#1E1E1E" }}>
-                <Image src={comment.comic.coverImage} alt={comment.comic.title} fill sizes="36px" className="object-cover" />
+                <SafeCoverImage src={comment.comic.coverImage} alt={comment.comic.title} fill sizes="36px" className="object-cover" />
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium text-text-main">{comment.comic.title}</p>

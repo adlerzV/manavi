@@ -5,6 +5,7 @@ import { isTonConfigured } from "@/lib/ton";
 import { getChapterUnlockCoinCost, getCoinPriceUsdt, getTomanPerUsdt } from "@/lib/platform-settings";
 import { CoinPackages } from "@/components/shop/coin-packages";
 import { CustomCoinPurchase } from "@/components/shop/custom-coin-purchase";
+import { TonConnectProvider } from "@/components/providers/ton-connect-provider";
 
 interface PageProps {
   searchParams: Promise<{ redirect?: string }>;
@@ -22,55 +23,57 @@ export default async function ShopPage({ searchParams }: PageProps) {
   const tonConfigured = isTonConfigured();
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-2xl space-y-8">
-        <div>
-          <h1 className="text-lg font-medium text-text-main">فروشگاه سکه</h1>
-          <p className="mt-1 text-sm text-text-muted">
-            موجودی سکه شما: {(user?.coinsBalance ?? 0).toLocaleString("fa-IR")}
-          </p>
-          <Link href="/buy-with-ton" className="mt-2 inline-block text-xs text-primary underline">
-            آموزش خرید
-          </Link>
-        </div>
-
-        <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm leading-7 text-text-muted">
-          سکه تنها ارز داخل ماناویه؛ باهاش می‌تونی <span className="text-text-main">چپترهای سکه‌ای رو باز کنی</span> و{" "}
-          <span className="text-text-main">مستقیم از مترجم‌ها و طراح‌ها حمایت مالی (دونیت) کنی</span>. هر چپتر سکه‌ای دقیقاً{" "}
-          <span className="font-medium text-primary">{coinCost.toLocaleString("fa-IR")} سکه</span> هزینه داره — این قیمت روی همه‌ی چپترهای پولی مناوی یکسانه.
-        </div>
-
-        {!tonConfigured && (
-          <div className="rounded-md border border-accent/40 bg-accent/5 px-4 py-3 text-sm text-accent">
-            پرداخت با کیف پول تون هنوز در تنظیمات محیطی پیکربندی نشده — خرید موقتاً غیرفعال است.
+    <TonConnectProvider>
+      <main className="min-h-screen bg-background px-4 py-8">
+        <div className="mx-auto max-w-2xl space-y-8">
+          <div>
+            <h1 className="text-lg font-medium text-text-main">فروشگاه سکه</h1>
+            <p className="mt-1 text-sm text-text-muted">
+              موجودی سکه شما: {(user?.coinsBalance ?? 0).toLocaleString("fa-IR")}
+            </p>
+            <Link href="/buy-with-ton" className="mt-2 inline-block text-xs text-primary underline">
+              آموزش خرید
+            </Link>
           </div>
-        )}
 
-        <section>
-          <h2 className="mb-3 text-sm font-medium text-text-main">پکیج‌های سکه</h2>
-          <CoinPackages
-            packages={coinPackages}
-            authenticated={Boolean(user)}
-            tonConfigured={tonConfigured}
-            redirectTo={redirect}
-            coinCost={coinCost}
-            tomanPerUsdt={tomanPerUsdt}
-          />
-        </section>
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm leading-7 text-text-muted">
+            سکه تنها ارز داخل ماناویه؛ باهاش می‌تونی <span className="text-text-main">چپترهای سکه‌ای رو باز کنی</span> و{" "}
+            <span className="text-text-main">مستقیم از مترجم‌ها و طراح‌ها حمایت مالی (دونیت) کنی</span>. هر چپتر سکه‌ای دقیقاً{" "}
+            <span className="font-medium text-primary">{coinCost.toLocaleString("fa-IR")} سکه</span> هزینه داره — این قیمت روی همه‌ی چپترهای پولی مناوی یکسانه.
+          </div>
 
-        {tonConfigured && (
+          {!tonConfigured && (
+            <div className="rounded-md border border-accent/40 bg-accent/5 px-4 py-3 text-sm text-accent">
+              پرداخت با کیف پول تون هنوز در تنظیمات محیطی پیکربندی نشده — خرید موقتاً غیرفعال است.
+            </div>
+          )}
+
           <section>
-            <h2 className="mb-3 text-sm font-medium text-text-main">خرید سکه به مقدار دلخواه</h2>
-            <CustomCoinPurchase
+            <h2 className="mb-3 text-sm font-medium text-text-main">پکیج‌های سکه</h2>
+            <CoinPackages
+              packages={coinPackages}
               authenticated={Boolean(user)}
-              coinCost={coinCost}
-              coinPriceUsdt={coinPriceUsdt}
-              tomanPerUsdt={tomanPerUsdt}
+              tonConfigured={tonConfigured}
               redirectTo={redirect}
+              coinCost={coinCost}
+              tomanPerUsdt={tomanPerUsdt}
             />
           </section>
-        )}
-      </div>
-    </main>
+
+          {tonConfigured && (
+            <section>
+              <h2 className="mb-3 text-sm font-medium text-text-main">خرید سکه به مقدار دلخواه</h2>
+              <CustomCoinPurchase
+                authenticated={Boolean(user)}
+                coinCost={coinCost}
+                coinPriceUsdt={coinPriceUsdt}
+                tomanPerUsdt={tomanPerUsdt}
+                redirectTo={redirect}
+              />
+            </section>
+          )}
+        </div>
+      </main>
+    </TonConnectProvider>
   );
 }

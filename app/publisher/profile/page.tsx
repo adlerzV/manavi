@@ -27,11 +27,10 @@ export default async function PublisherProfilePage() {
     <PublisherProfileForm
       initial={{
         bio: user.publisherProfile.bio,
-        avatarUrl: user.publisherProfile.avatarUrl,
+        avatarUrl: user.publisherProfile.avatarUrl ?? user.telegramPhotoUrl,
         telegramUrl: user.publisherProfile.telegramUrl,
         instagramUrl: user.publisherProfile.instagramUrl,
         websiteUrl: user.publisherProfile.websiteUrl,
-        donationCardNumber: user.publisherProfile.donationCardNumber,
         donationLink: user.publisherProfile.donationLink,
         cryptoWalletLabel: user.publisherProfile.cryptoWalletLabel,
         cryptoWalletAddress: user.publisherProfile.cryptoWalletAddress,

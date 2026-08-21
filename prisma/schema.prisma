@@ -26,6 +26,7 @@ model User {
   deletedAt           DateTime?
   bio                 String?
   avatarUrl           String?
+  telegramPhotoUrl    String?
   donationLink        String?
   cryptoWalletLabel   String?
   cryptoWalletAddress String?

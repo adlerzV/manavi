@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser, getPublisherContext } from "@/lib/auth";
 import { getSignedImageUrls } from "@/lib/s3";
@@ -13,6 +12,8 @@ import { ComicDetailTabs } from "@/components/catalog/comic-detail-tabs";
 import { ChapterOnePreview } from "@/components/catalog/chapter-one-preview";
 import { BackButton } from "@/components/navigation/back-button";
 import { ComicUnlockButton } from "@/components/reader/comic-unlock-button";
+import { SafeAvatar } from "@/components/ui/safe-avatar";
+import { SafeCoverImage } from "@/components/ui/safe-cover-image";
 import { getChapterAccessList, getComicUnlockPreview, type ChapterAccessInfo } from "@/lib/chapters";
 import { getAllowedAgeRatings } from "@/lib/content-filter";
 import { STAFF_ROLE_LABELS } from "@/lib/staff-roles";
@@ -135,7 +136,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
         style={!comic.bannerImage ? { backgroundColor: comic.dominantColor ?? "#1E1E1E" } : undefined}
       >
         {comic.bannerImage && (
-          <Image src={comic.bannerImage} alt="" fill priority sizes="100vw" className="object-cover opacity-60" />
+          <SafeCoverImage src={comic.bannerImage} alt="" fill priority sizes="100vw" className="object-cover opacity-60" />
         )}
         <div
           className="absolute inset-x-0 bottom-0 h-24"
@@ -163,7 +164,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="relative h-56 w-40 flex-shrink-0 overflow-hidden rounded-md bg-surface shadow-lg">
-            <Image src={comic.coverImage} alt={comic.title} fill priority sizes="160px" className="object-cover" />
+            <SafeCoverImage src={comic.coverImage} alt={comic.title} fill priority sizes="160px" className="object-cover" />
           </div>
           <div className="flex-1">
             <h1 className="text-2xl font-semibold text-text-main">{comic.title}</h1>
@@ -181,13 +182,7 @@ export default async function ComicDetailPage({ params }: PageProps) {
                 href={`/app/publisher/${comic.license.publisher.id}`}
                 className="mt-2 inline-flex items-center gap-2 rounded-full bg-surface py-1 pl-3 pr-1 text-xs text-text-muted hover:text-primary"
               >
-                <span className="relative flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-background text-[10px]">
-                  {comic.license.publisher.avatarUrl ? (
-                    <Image src={comic.license.publisher.avatarUrl} alt={comic.license.publisher.name} fill sizes="20px" className="object-cover" />
-                  ) : (
-                    comic.license.publisher.name.charAt(0)
-                  )}
-                </span>
+                <SafeAvatar src={comic.license.publisher.avatarUrl} fallbackText={comic.license.publisher.name} size={20} />
                 {comic.license.publisher.name}
               </Link>
             )}

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { addPublisherStaff, removePublisherStaff } from "@/app/publisher/actions/team";
 import type { StaffRole } from "@prisma/client";
+import { STAFF_ROLE_LABELS } from "@/lib/staff-roles";
 
 interface StaffMember {
   id: string;
@@ -75,7 +76,7 @@ export function TeamManager({ initialStaff }: { initialStaff: StaffMember[] }) {
             className="rounded-md border border-border bg-background px-3 py-2 text-sm text-text-main"
           >
             {ROLES.map((r) => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r}>{STAFF_ROLE_LABELS[r]}</option>
             ))}
           </select>
         </div>
@@ -105,7 +106,7 @@ export function TeamManager({ initialStaff }: { initialStaff: StaffMember[] }) {
         {staff.map((s) => (
           <div key={s.id} className="flex items-center justify-between px-4 py-3">
             <p className="text-sm text-text-main">
-              {s.user.firstName} {s.user.username ? `— @${s.user.username}` : ""} · {s.role}
+              {s.user.firstName} {s.user.username ? `— @${s.user.username}` : ""} · {STAFF_ROLE_LABELS[s.role]}
               {s.canUpload ? "" : " (بدون مجوز آپلود)"}
               {s.canManageComics ? " · مدیریت عنوان" : ""}
             </p>

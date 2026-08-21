@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { validateTelegramInitData, InvalidInitDataError } from "@/lib/telegram";
+import { validateTelegramInitData, InvalidInitDataError, sanitizeTelegramPhotoUrl } from "@/lib/telegram";
 import { createSessionToken, sessionCookieOptions } from "@/lib/session";
 import { generateReferralCode } from "@/lib/referral";
 import type { Role } from "@prisma/client";
@@ -21,6 +21,7 @@ async function createUserWithReferral(input: {
   firstName: string;
   lastName: string | null;
   username: string | null;
+  telegramPhotoUrl: string | null;
   referrerId: string | null;
   role: Role;
 }) {
@@ -33,6 +34,7 @@ async function createUserWithReferral(input: {
           firstName: input.firstName,
           lastName: input.lastName,
           username: input.username,
+          telegramPhotoUrl: input.telegramPhotoUrl,
           role: input.role,
           referralCode,
           referredById: input.referrerId,
@@ -70,6 +72,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { user, startParam } = validated;
+  const telegramPhotoUrl = sanitizeTelegramPhotoUrl(user.photo_url);
 
   const existing = await prisma.user.findUnique({ where: { telegramId: BigInt(user.id) } });
   const bootstrapAdmins = getBootstrapAdminTelegramIds();
@@ -84,6 +87,7 @@ export async function POST(req: NextRequest) {
         firstName: user.first_name,
         lastName: user.last_name ?? null,
         username: user.username ?? null,
+        telegramPhotoUrl,
         ...(shouldPromote ? { role: "ADMIN" as Role } : {}),
       },
     });
@@ -99,6 +103,7 @@ export async function POST(req: NextRequest) {
       firstName: user.first_name,
       lastName: user.last_name ?? null,
       username: user.username ?? null,
+      telegramPhotoUrl,
       referrerId: referrer?.id ?? null,
       role,
     });

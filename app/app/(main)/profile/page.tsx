@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -7,6 +6,8 @@ import { EditProfileForm } from "@/components/profile/edit-profile-form";
 import { AgeVerificationToggle } from "@/components/profile/age-verification-toggle";
 import { ReferralCard } from "@/components/gamification/referral-card";
 import { ComicCard } from "@/components/catalog/comic-card";
+import { SafeAvatar } from "@/components/ui/safe-avatar";
+import { SafeCoverImage } from "@/components/ui/safe-cover-image";
 import { getReferralLink } from "@/lib/site-config";
 import { parseCustomLinks } from "@/lib/profile-links";
 import { getReferralRewardCoins } from "@/lib/platform-settings";
@@ -76,13 +77,7 @@ export default async function ProfilePage() {
     <main className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-10">
         <div className="flex items-center gap-4">
-          <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface text-xl font-medium text-text-main">
-            {user.avatarUrl ? (
-              <Image src={user.avatarUrl} alt={user.firstName} fill sizes="64px" className="object-cover" />
-            ) : (
-              user.firstName.charAt(0)
-            )}
-          </div>
+          <SafeAvatar src={user.avatarUrl ?? user.telegramPhotoUrl} fallbackText={user.firstName} size={64} />
           <div>
             <h1 className="text-lg font-semibold text-text-main">
               {user.firstName} {user.lastName ?? ""}
@@ -128,7 +123,7 @@ export default async function ProfilePage() {
                 className="flex items-center gap-3 rounded-md border border-border bg-surface p-2"
               >
                 <div className="relative h-14 w-10 flex-shrink-0 overflow-hidden rounded">
-                  <Image src={entry.comic.coverImage} alt={entry.comic.title} fill className="object-cover" />
+                  <SafeCoverImage src={entry.comic.coverImage} alt={entry.comic.title} fill className="object-cover" />
                 </div>
                 <span className="text-sm text-text-main">{entry.comic.title}</span>
               </Link>
@@ -161,7 +156,7 @@ export default async function ProfilePage() {
             {bookmarks.map((b) => (
               <Link key={b.comicId} href={`/app/comic/${b.comic.slug}`} className="block">
                 <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface">
-                  <Image src={b.comic.coverImage} alt={b.comic.title} fill className="object-cover" />
+                  <SafeCoverImage src={b.comic.coverImage} alt={b.comic.title} fill className="object-cover" />
                 </div>
                 <p className="mt-1 truncate text-xs text-text-main">{b.comic.title}</p>
               </Link>

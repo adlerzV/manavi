@@ -13,6 +13,7 @@ import { AgeVerificationGate } from "@/components/reader/age-verification-gate";
 import { CommentSection } from "@/components/comments/comment-section";
 import { getChapterReactionSummary } from "@/app/actions/reactions";
 import { categoryDirectionToReaderDirection } from "@/lib/reading";
+import { TonConnectProvider } from "@/components/providers/ton-connect-provider";
 import type { StaffCreditItem } from "@/components/reader/chapter-staff-credits";
 
 interface PageProps {
@@ -194,7 +195,7 @@ export default async function ReadChapterPage({ params }: PageProps) {
   }));
 
   return (
-    <>
+    <TonConnectProvider>
       <ChapterReader
         chapterId={chapter.id}
         comicId={chapter.comic.id}
@@ -227,6 +228,6 @@ export default async function ReadChapterPage({ params }: PageProps) {
           canReply={canReply}
         />
       </div>
-    </>
+    </TonConnectProvider>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Bookmark } from "lucide-react";
+import { SafeCoverImage } from "@/components/ui/safe-cover-image";
 import type { MostBookmarkedComic } from "@/lib/home-feed";
 
 export function MostBookmarkedSection({ comics }: { comics: MostBookmarkedComic[] }) {
@@ -19,7 +19,7 @@ export function MostBookmarkedSection({ comics }: { comics: MostBookmarkedComic[
               className="relative aspect-[2/3] w-full overflow-hidden rounded-md bg-surface"
               style={{ backgroundColor: comic.dominantColor ?? "#1E1E1E" }}
             >
-              <Image src={comic.coverImage} alt={comic.title} fill sizes="128px" className="object-cover" />
+              <SafeCoverImage src={comic.coverImage} alt={comic.title} fill sizes="128px" className="object-cover" />
               {comic.completed && (
                 <span className="absolute left-1.5 top-1.5 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] text-primary-foreground">
                   پایان‌یافته

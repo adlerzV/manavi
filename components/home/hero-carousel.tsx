@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { SafeCoverImage } from "@/components/ui/safe-cover-image";
 
 interface HeroComic {
   id: string;
@@ -43,7 +43,7 @@ export function HeroCarousel({ comics }: { comics: HeroComic[] }) {
               key={comic.id}
               className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "pointer-events-none opacity-0"}`}
             >
-              <Image src={comic.coverImage} alt={comic.title} fill priority={i === 0} sizes="(max-width: 768px) 100vw, 900px" className="object-cover" />
+              <SafeCoverImage src={comic.coverImage} alt={comic.title} fill priority={i === 0} sizes="(max-width: 768px) 100vw, 900px" className="object-cover" />
               <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.1) 60%)" }} />
               <div className="absolute inset-x-0 bottom-0 p-5">
                 {comic.featuredBadge && (
