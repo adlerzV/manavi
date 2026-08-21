@@ -343,7 +343,7 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
       where: { id: comicId },
       select: {
         slug: true,
-        chapters: { select: { id: true, pages: true, thumbnailImage: true } },
+        chapters: { select: { id: true, pages: true } },
       },
     });
     if (!comic) return { success: false, error: "عنوان یافت نشد" };
@@ -351,13 +351,13 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
     const chapterIds = comic.chapters.map((c) => c.id);
 
     await prisma.$transaction([
+      prisma.chapterReadMark.deleteMany({ where: { comicId } }),
       prisma.chapterReaction.deleteMany({ where: { chapterId: { in: chapterIds } } }),
       prisma.chapterUnlock.deleteMany({ where: { chapterId: { in: chapterIds } } }),
       prisma.chapterStaff.deleteMany({ where: { chapterId: { in: chapterIds } } }),
       prisma.comment.deleteMany({ where: { chapterId: { in: chapterIds } } }),
       prisma.chapter.deleteMany({ where: { comicId } }),
       prisma.comicGenre.deleteMany({ where: { comicId } }),
-      prisma.comicTag.deleteMany({ where: { comicId } }),
       prisma.comicStaff.deleteMany({ where: { comicId } }),
       prisma.bookmark.deleteMany({ where: { comicId } }),
       prisma.readHistory.deleteMany({ where: { comicId } }),
@@ -365,7 +365,7 @@ export async function deleteComic(comicId: string): Promise<ActionResult> {
     ]);
 
     const keysToDelete = comic.chapters
-      .flatMap((c) => [...c.pages, c.thumbnailImage])
+      .flatMap((c) => c.pages)
       .filter((key): key is string => Boolean(key) && !key.startsWith("http://") && !key.startsWith("https://"));
     await deleteObjects(keysToDelete).catch(() => {});
 

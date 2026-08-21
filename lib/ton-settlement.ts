@@ -64,7 +64,9 @@ async function applySettlementSideEffects(transaction: Transaction): Promise<voi
     if (coinsToGrant > 0) {
       await prisma.user.update({ where: { id: transaction.payerId }, data: { coinsBalance: { increment: coinsToGrant } } });
       await invalidateSessionUserCache(transaction.payerId);
-      await grantReferralRewardIfEligible(transaction.payerId);
+      await grantReferralRewardIfEligible(transaction.payerId).catch((err) => {
+        console.error("[ton-settlement] referral reward grant failed", err);
+      });
     }
     return;
   }
@@ -162,8 +164,12 @@ export async function settlePendingTonTransactions(
         fromJettonWalletAddress,
       });
       if (!found) continue;
-      const status = await claimAndSettle(transaction, found.hash);
-      if (status === "PAID") settled += 1;
+      try {
+        const status = await claimAndSettle(transaction, found.hash);
+        if (status === "PAID") settled += 1;
+      } catch (err) {
+        console.error("[ton-settlement] failed to settle transaction", transaction.id, err);
+      }
     }
   }
 

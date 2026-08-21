@@ -14,6 +14,7 @@ import {
   JETTON_TRANSFER_GAS_NANOTON,
   TonVerificationError,
 } from "@/lib/ton";
+import { settlePendingTonTransaction } from "@/lib/ton-settlement";
 import { findActiveCoinPackage } from "@/lib/coin-packages";
 import { getChapterUnlockCoinCost, getCoinPriceUsdt } from "@/lib/platform-settings";
 import { MIN_DONATION_USDT, MAX_DONATION_USDT, MAX_CUSTOM_COINS } from "@/lib/billing";
@@ -236,7 +237,7 @@ export async function createTonPublisherPayoutPayment(input: {
     await prisma.payoutRequest.create({
       data: {
         publisherId: publisher.id,
-        amountTon: input.amountUsdt, // 🔶 فیلد amountTon همچنان استفاده می‌شود، فقط الان مقدار USDT در آن ذخیره می‌شود — پایین توضیح دادم
+        amountTon: input.amountUsdt,
         periodStart: new Date(input.periodStart),
         periodEnd: new Date(input.periodEnd),
         status: "PENDING",
@@ -282,5 +283,19 @@ export async function verifyTonPayment(transactionId: string): Promise<ActionRes
     return { success: true, data: { status: "PAID" } };
   }
   if (transaction.status === "FAILED") return { success: true, data: { status: "FAILED" } };
+
+  const settlement = await settlePendingTonTransaction(transaction).catch((err) => {
+    console.error("[ton-payments] on-demand settlement check failed", err);
+    return "PENDING" as const;
+  });
+
+  if (settlement === "PAID") {
+    revalidatePath("/app/shop");
+    revalidatePath("/app/profile");
+    revalidatePath("/admin/payouts");
+    return { success: true, data: { status: "PAID" } };
+  }
+  if (settlement === "FAILED") return { success: true, data: { status: "FAILED" } };
+
   return { success: true, data: { status: "PENDING" } };
 }

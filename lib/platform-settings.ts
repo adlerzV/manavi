@@ -29,8 +29,6 @@ export async function getCoinPriceUsdt(): Promise<number> {
 export async function getTomanPerUsdt(): Promise<number> {
   return (await getPlatformSettings()).tomanPerUsdt;
 }
-
-export function usdtToToman(amountUsdt: number, tomanPerUsdt: number): number {
-  if (!tomanPerUsdt) return 0;
-  return Math.round(amountUsdt * tomanPerUsdt);
+export async function getReferralRewardCoins(): Promise<number> {
+  return (await getPlatformSettings()).referralRewardCoins;
 }

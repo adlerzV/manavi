@@ -157,6 +157,7 @@ export async function deleteChapter(chapterId: string): Promise<ActionResult> {
     await requireUploadAccess(chapter.comicId);
 
     await prisma.$transaction([
+      prisma.chapterReadMark.deleteMany({ where: { chapterId } }),
       prisma.chapterReaction.deleteMany({ where: { chapterId } }),
       prisma.chapterUnlock.deleteMany({ where: { chapterId } }),
       prisma.chapterStaff.deleteMany({ where: { chapterId } }),
